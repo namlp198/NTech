@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\NTech.NVision.Contracts\NTech.NVision.Contracts.csproj" />
+    <ProjectReference Include="..\NTech.NVision.Domain\NTech.NVision.Domain.csproj" />
+    <ProjectReference Include="..\..\inspection\NTech.NVision.Engine.Inspection\NTech.NVision.Engine.Inspection.csproj" />
+  </ItemGroup>
+</Project>

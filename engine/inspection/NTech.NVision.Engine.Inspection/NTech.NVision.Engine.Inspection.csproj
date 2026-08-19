@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\acquisition\NTech.NVision.Engine.Acquisition\NTech.NVision.Engine.Acquisition.csproj" />
+    <ProjectReference Include="..\..\ai\NTech.NVision.Engine.AI\NTech.NVision.Engine.AI.csproj" />
+    <ProjectReference Include="..\..\core\NTech.NVision.Contracts\NTech.NVision.Contracts.csproj" />
+    <ProjectReference Include="..\..\core\NTech.NVision.Core\NTech.NVision.Core.csproj" />
+    <ProjectReference Include="..\..\core\NTech.NVision.Domain\NTech.NVision.Domain.csproj" />
+    <ProjectReference Include="..\..\workflow\NTech.NVision.Engine.Workflow\NTech.NVision.Engine.Workflow.csproj" />
+  </ItemGroup>
+</Project>

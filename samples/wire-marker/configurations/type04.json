@@ -1,0 +1,9 @@
+{
+  "recipeId": "33333333-3333-3333-3333-333333333304",
+  "recipeCode": "TYPE_04",
+  "recipeVersion": "1.0.0",
+  "expectedClass": "TYPE_04",
+  "modelSlot": "marker_classifier",
+  "modelId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  "modelVersion": "1.0.0"
+}

@@ -1,0 +1,28 @@
+﻿# AI-Workspace local config
+tools/ai-workspace.repo-config.local.json
+# End AI-Workspace local config
+
+# .NET
+**/bin/
+**/obj/
+artifacts/
+TestResults/
+*.user
+*.suo
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Runtime and generated data
+*.db
+*.db-shm
+*.db-wal
+*.log
+outputs/temporary/*
+!outputs/temporary/.gitkeep
+
+# NVision authoring-local data
+**/.nvision/cache/
+**/.nvision/autosave/

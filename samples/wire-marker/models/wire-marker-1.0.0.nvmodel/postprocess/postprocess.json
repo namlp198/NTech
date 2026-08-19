@@ -1,0 +1,4 @@
+{
+  "operation": "softmax-top1",
+  "topK": 1
+}

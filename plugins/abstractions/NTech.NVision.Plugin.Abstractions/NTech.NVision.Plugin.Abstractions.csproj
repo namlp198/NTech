@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\engine\core\NTech.NVision.Contracts\NTech.NVision.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\engine\core\NTech.NVision.Core\NTech.NVision.Core.csproj" />
+  </ItemGroup>
+</Project>

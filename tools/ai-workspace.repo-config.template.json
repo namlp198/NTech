@@ -1,0 +1,7 @@
+﻿{
+    "projectName":  "NTech NVision",
+    "isCompanyRepo":  false,
+    "workRemote":  "company",
+    "backupRemote":  "github",
+    "mirrorMode":  "fetch-merge"
+}

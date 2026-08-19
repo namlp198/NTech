@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\engine\acquisition\NTech.NVision.Engine.Acquisition\NTech.NVision.Engine.Acquisition.csproj" />
+    <ProjectReference Include="..\..\..\engine\ai\NTech.NVision.Engine.AI\NTech.NVision.Engine.AI.csproj" />
+    <ProjectReference Include="..\..\..\engine\inspection\NTech.NVision.Engine.Inspection\NTech.NVision.Engine.Inspection.csproj" />
+    <ProjectReference Include="..\..\..\plugins\ai\onnxruntime\NTech.NVision.Plugin.AI.OnnxRuntime\NTech.NVision.Plugin.AI.OnnxRuntime.csproj" />
+    <ProjectReference Include="..\..\..\plugins\cameras\file\NTech.NVision.Plugin.Camera.File\NTech.NVision.Plugin.Camera.File.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\..\samples\wire-marker\fixtures\*.pgm">
+      <Link>WireMarker\fixtures\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\..\samples\wire-marker\models\wire-marker-1.0.0.nvmodel\**\*">
+      <Link>WireMarker\models\wire-marker-1.0.0.nvmodel\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>
