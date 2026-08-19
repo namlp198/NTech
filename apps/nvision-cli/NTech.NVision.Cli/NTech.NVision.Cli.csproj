@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\engine\core\NTech.NVision.Application\NTech.NVision.Application.csproj" />
+    <ProjectReference Include="..\..\..\engine\acquisition\NTech.NVision.Engine.Acquisition\NTech.NVision.Engine.Acquisition.csproj" />
+    <ProjectReference Include="..\..\..\engine\ai\NTech.NVision.Engine.AI\NTech.NVision.Engine.AI.csproj" />
+    <ProjectReference Include="..\..\..\engine\inspection\NTech.NVision.Engine.Inspection\NTech.NVision.Engine.Inspection.csproj" />
+    <ProjectReference Include="..\..\..\engine\workflow\NTech.NVision.Engine.Workflow\NTech.NVision.Engine.Workflow.csproj" />
+    <ProjectReference Include="..\..\..\plugins\ai\onnxruntime\NTech.NVision.Plugin.AI.OnnxRuntime\NTech.NVision.Plugin.AI.OnnxRuntime.csproj" />
+    <ProjectReference Include="..\..\..\plugins\cameras\file\NTech.NVision.Plugin.Camera.File\NTech.NVision.Plugin.Camera.File.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\..\samples\wire-marker\configurations\*.json">
+      <Link>WireMarker\configurations\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\..\samples\wire-marker\models\wire-marker-1.0.0.nvmodel\**\*">
+      <Link>WireMarker\models\wire-marker-1.0.0.nvmodel\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

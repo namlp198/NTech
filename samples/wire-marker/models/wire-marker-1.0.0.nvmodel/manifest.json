@@ -1,0 +1,23 @@
+{
+  "format": "nvision-ai-model",
+  "schemaVersion": "1.0",
+  "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  "code": "MARKER_CLASSIFIER",
+  "name": "Wire Marker Reference Classifier",
+  "version": "1.0.0",
+  "task": "classification",
+  "input": {
+    "name": "input",
+    "width": 8,
+    "height": 8,
+    "channels": 1,
+    "layout": "FEATURES",
+    "dataType": "float32"
+  },
+  "outputName": "scores",
+  "preferredBackend": "ntech.ai.onnxruntime",
+  "artifact": "model/model.onnx.base64",
+  "labels": "labels/classes.json",
+  "preprocess": "preprocess/preprocess.json",
+  "postprocess": "postprocess/postprocess.json"
+}

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\engine\ai\NTech.NVision.Engine.AI\NTech.NVision.Engine.AI.csproj" />
+  </ItemGroup>
+</Project>

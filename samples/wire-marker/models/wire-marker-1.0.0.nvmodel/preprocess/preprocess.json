@@ -1,0 +1,6 @@
+{
+  "operation": "vertical-half-means",
+  "scale": 0.00392156862745098,
+  "layout": "features",
+  "dataType": "float32"
+}

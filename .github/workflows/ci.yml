@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore NTech.NVision.sln --configfile NuGet.Config
+
+      - name: Build
+        run: dotnet build NTech.NVision.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test NTech.NVision.sln --configuration Release --no-build --no-restore
+
+      - name: Verify formatting
+        run: dotnet format NTech.NVision.sln --verify-no-changes --no-restore
