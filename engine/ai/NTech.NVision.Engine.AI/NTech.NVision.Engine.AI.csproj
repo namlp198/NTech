@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\core\NTech.NVision.Contracts\NTech.NVision.Contracts.csproj" />
+    <ProjectReference Include="..\..\core\NTech.NVision.Core\NTech.NVision.Core.csproj" />
+    <ProjectReference Include="..\..\..\plugins\abstractions\NTech.NVision.Plugin.Abstractions\NTech.NVision.Plugin.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

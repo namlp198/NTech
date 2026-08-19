@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\engine\acquisition\NTech.NVision.Engine.Acquisition\NTech.NVision.Engine.Acquisition.csproj" />
+    <ProjectReference Include="..\..\..\..\engine\core\NTech.NVision.Contracts\NTech.NVision.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\..\engine\core\NTech.NVision.Core\NTech.NVision.Core.csproj" />
+    <ProjectReference Include="..\..\..\abstractions\NTech.NVision.Plugin.Abstractions\NTech.NVision.Plugin.Abstractions.csproj" />
+  </ItemGroup>
+</Project>
