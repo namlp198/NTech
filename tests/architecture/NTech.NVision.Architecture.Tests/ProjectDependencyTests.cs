@@ -19,6 +19,7 @@ public sealed class ProjectDependencyTests
             "NTech.NVision.Engine.AI",
             "NTech.NVision.Engine.Inspection",
             "NTech.NVision.Plugin.Abstractions",
+            "NTech.NVision.Native",
             "NTech.NVision.Cli",
             "NTech.NVision.Architecture.Tests",
         ];
@@ -27,6 +28,37 @@ public sealed class ProjectDependencyTests
         {
             Assert.True(model.ProjectsByName.ContainsKey(projectName), $"Missing required P0 project: {projectName}");
         }
+    }
+
+    [Fact]
+    public void NativeFirstFoundationAndStableCAbiArePresent()
+    {
+        string root = RepositoryModel.Load().RootPath;
+        string[] requiredFiles =
+        [
+            "CMakeLists.txt",
+            "CMakePresets.json",
+            "native/CMakeLists.txt",
+            "native/core/include/nvision/core/engine.hpp",
+            "native/abi/include/nvision/capi/nvision.h",
+            "native/host/proto/nvision_engine_host.proto",
+            "docs/decisions/ADR-0005-native-first-core-and-engine.md",
+        ];
+
+        Assert.All(requiredFiles, path => Assert.True(
+            File.Exists(Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar))),
+            $"Missing native-first foundation file: {path}"));
+
+        string abi = File.ReadAllText(Path.Combine(
+            root,
+            "native",
+            "abi",
+            "include",
+            "nvision",
+            "capi",
+            "nvision.h"));
+        Assert.Contains("NVISION_ABI_VERSION", abi, StringComparison.Ordinal);
+        Assert.Contains("typedef struct nv_engine nv_engine", abi, StringComparison.Ordinal);
     }
 
     [Fact]

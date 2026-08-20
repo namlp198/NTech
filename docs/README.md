@@ -21,6 +21,7 @@ This index is the source of truth for the NVision documentation set.
 | 12 | [Product Roadmap](product/12_PRODUCT_ROADMAP.md) | Dependency phases, milestones, and release gates | Foundation |
 | 13 | [Implementation Plan](implementation/13_IMPLEMENTATION_PLAN.md) | Concrete repository, project, task, and delivery plan | Approved |
 | 14 | [Repository Structure](architecture/14_REPOSITORY_STRUCTURE.md) | Canonical physical layout and ownership rules | Accepted |
+| 15 | [Native Engine Architecture](architecture/15_NATIVE_ENGINE_ARCHITECTURE.md) | C++ execution plane, C ABI/P/Invoke, Engine Host, and memory transport | Accepted |
 
 ## Supporting Documentation
 

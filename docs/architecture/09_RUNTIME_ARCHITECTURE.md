@@ -33,6 +33,10 @@
 
 This document defines the production architecture of **NVision Runtime**.
 
+> **Implementation authority:** Runtime is split into a C#/.NET 10 Supervisor/product
+> plane and a supervised native C++ Engine Host. gRPC carries control and result metadata;
+> native/shared memory carries large frame payloads. See ADR-0005 and Document 15.
+
 NVision Runtime is the production execution environment responsible for turning a published NVision deployment into reliable, repeatable, traceable industrial inspections.
 
 The Runtime combines previously defined subsystems into one production lifecycle:

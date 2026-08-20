@@ -369,22 +369,27 @@ Recommended baseline for the current development environment:
 
 | Area | Choice |
 |---|---|
-| Language | C# |
-| SDK/runtime | .NET 10, pinned by `global.json` |
-| Cross-platform libraries | `net10.0` |
+| Native language | C++20 for canonical Core and Engine |
+| Native build | CMake with portable presets |
+| Managed language | C# for UI, supervision, authoring, persistence, and business logic |
+| SDK/runtime | .NET 10, pinned by `global.json`, for managed products |
+| Cross-platform execution | Native Windows x64, Linux x64, Linux ARM64 |
 | Windows UI | `net10.0-windows` + WPF |
 | UI pattern | MVVM |
-| Hosting | .NET Generic Host |
+| Hosting | .NET Runtime Supervisor + native Engine Host |
 | Serialization | `System.Text.Json` |
-| AI reference backend | ONNX Runtime |
-| Vision | OpenCvSharp, introduced only when required by the first nodes |
+| AI reference backend | Native ONNX Runtime C/C++ API |
+| Vision | Native OpenCV C++ API |
 | Local database | SQLite |
 | Logging | Microsoft logging abstractions + Serilog provider |
-| Runtime control API | gRPC |
-| Tests | xUnit |
+| Embedded API | Versioned C ABI + P/Invoke |
+| Runtime control API | gRPC; shared memory for large frames |
+| Tests | Native tests/CTest + xUnit contract/integration tests |
 | Package management | Central Package Management |
 
-If production hosts require .NET 8, change the target during P0 and record it in an ADR. Do not support multiple target frameworks in the first slice without a concrete deployment requirement.
+The P0–P2 managed Engine is a temporary behavioral reference. New canonical Core/Engine
+behavior targets the native plane defined by ADR-0005. Managed engine projects are
+retired only after native parity gates pass.
 
 ## 8.2 Package Policy
 
@@ -392,7 +397,9 @@ If production hosts require .NET 8, change the target during P0 and record it in
 - Do not add a package without a direct first-slice use.
 - Keep vendor SDK packages inside their plugin projects.
 - Keep WPF packages inside application presentation projects.
-- Keep ONNX Runtime types inside the ONNX plugin.
+- Keep ONNX Runtime types inside the native ONNX plugin.
+- Keep OpenCV and native frame types out of managed contracts.
+- Keep the C ABI small, versioned, ownership-explicit, and free of C++/STL types.
 - Keep SQLite implementation types inside storage/data implementation projects.
 - Document native runtime requirements and license information.
 

@@ -26,6 +26,10 @@
 
 This document defines the UI architecture of **NVision Studio**.
 
+Studio remains C#/.NET 10 + WPF + MVVM. Its test, validation, compile, and publish flows
+consume the same native C++ Engine through P/Invoke or the Engine Host gRPC contract.
+Studio ViewModels and authoring DTOs are not an alternative execution engine.
+
 NVision Studio is the primary engineering environment used to:
 
 - Create and open NVision Projects

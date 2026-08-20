@@ -25,6 +25,10 @@
 
 This document defines the camera abstraction used by **NTech NVision**.
 
+> **Implementation authority:** Acquisition, frame pools, leases, pixel buffers, and
+> production camera plugins are C++20. Managed clients receive metadata, preview data,
+> or opaque/shared-memory handles; they do not own the inspection hot-path buffer.
+
 The Camera Abstraction is responsible for providing one stable NVision-owned interface over different camera vendors, transport technologies, and operating systems.
 
 The abstraction must support:

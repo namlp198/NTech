@@ -2,35 +2,42 @@
 
 ## Current Task
 
-P2 — Wire Marker Headless Vertical Slice — Complete
+N0 — Native Engine Foundation and Managed Boundary — Complete
 
 ## Goal
 
-Run and persist one complete deterministic image inspection through the real reference ONNX backend without UI or hardware dependencies.
+Rebaseline NVision around one portable C++20 Core/Engine, expose it through a stable
+C ABI for embedded P/Invoke clients, and define a gRPC Engine Host boundary for
+production Runtime deployments.
 
-## Completed in Current P2 Slice
+## Completed in Current N0 Slice
 
-- Immutable image/frame/pixel-format contracts and reference-counted `FrameLease` ownership.
-- Replaceable camera contract, deterministic PGM File Camera, and hardened AcquisitionService timeout/cancellation.
-- Directory-backed `.nvmodel` manifest loader with SHA-256 artifact validation, immutable model registry, and Recipe-level slot resolution.
-- Replaceable ONNX Runtime 1.28 CPU backend running a real deterministic ONNX graph.
-- Versioned reference preprocessing and classification postprocessing.
-- Crop, Classify, Compare, and Decision nodes executed through P1 validation, compilation, and sequential runtime.
-- Immutable InspectionResult validation with strict quality-versus-technical status semantics.
-- File image evidence and SQLite result persistence/reconstruction.
-- TYPE_01/TYPE_04 fixtures and configurations, golden integration tests, repeated ownership coverage, and CLI demo script.
+- Accepted ADR-0005 and rebaselined the product, architecture, AI, device, Runtime,
+  Studio, roadmap, implementation, and repository-structure documentation.
+- Added a cross-platform CMake foundation and portable `nvision_core` C++ library.
+- Added versioned C ABI v1 with opaque handles, retain/release ownership, bounded
+  UTF-8 output, capability discovery, and thread-local diagnostics.
+- Added the .NET 10 `NTech.NVision.Native` P/Invoke SDK using `LibraryImport` and
+  `SafeHandle`, with real native integration tests.
+- Added the initial production Engine Host protobuf contract, including lifecycle,
+  inspection, cancellation, state, and shared-frame descriptors.
+- Integrated native build/test into the repository build, test, and check scripts.
+- Preserved the managed P0-P2 implementation as a behavior oracle during migration.
 
 ## Next Steps
 
-1. Review P3 ProjectFormat and Studio MVP scope.
-2. Promote Wire Marker source/configuration into the editable `.nvision` ProjectFormat and immutable `.nvpkg` publish path.
+1. N1: port Frame/PixelFormat/buffer ownership, File Camera, and acquisition lifecycle
+   to C++ while retaining the existing managed tests as parity tests.
+2. N2: port preprocessing and ONNX Runtime execution to C++, then remove production
+   inference from the managed ONNX plugin.
+3. N3: port Workflow compilation/execution and the Wire Marker inspection path.
+4. N4: generate and implement the production gRPC Engine Host after C ABI parity.
 
 ## Acceptance Criteria
 
-- [x] `TYPE_01 + TYPE_01` produces `OK`.
-- [x] `TYPE_04 + TYPE_01` produces `NG / WRONG_TYPE`.
-- [x] Backend failure produces persisted `ERROR`, never ordinary `NG`.
-- [x] Result and exact Project/Job/Recipe/Model/plugin/backend versions are persisted.
-- [x] SQLite reconstructs the canonical result and file evidence has checksums.
-- [x] Repeated inspection and explicit FrameLease reference-count tests pass.
-- [x] Architecture, unit, integration, and format checks pass.
+- [x] Native C++ builds with warnings-as-errors through CMake.
+- [x] Native unit tests pass.
+- [x] C ABI lifetime, ABI negotiation, capabilities, and diagnostics are tested.
+- [x] .NET P/Invoke integration loads and exercises the real native library.
+- [x] Production Engine Host protobuf contract is versioned in the repository.
+- [x] Full native + managed repository check passes.

@@ -8,6 +8,11 @@ The repository is a capability-oriented monorepo. Studio, Runtime, SDKs, plugins
 
 P0 — Repository and Foundation, P1 — Core Domain and Workflow Engine, and **P2 — Wire Marker Headless Vertical Slice** are complete.
 
+ADR-0005 rebaselines the production architecture as native-first. The existing managed
+P0–P2 path remains a compatibility oracle while canonical Core/Engine behavior migrates
+to C++20. C#/.NET 10 remains the product plane for Studio, Runtime supervision/UI,
+authoring, persistence, and business software.
+
 The first executable inspection path now runs deterministic File Camera frames through a compiled typed Workflow, real ONNX Runtime CPU inference, immutable result finalization, image evidence storage, and SQLite history. It proves the reference platform path and error semantics; the included synthetic model and PGM fixtures are engineering regression assets, not production inspection content.
 
 ## Read First
@@ -16,6 +21,7 @@ The first executable inspection path now runs deterministic File Camera frames t
 2. [Documentation Index](docs/README.md)
 3. [Implementation Plan](docs/implementation/13_IMPLEMENTATION_PLAN.md)
 4. [Repository Structure](docs/architecture/14_REPOSITORY_STRUCTURE.md)
+5. [Native Engine Architecture](docs/architecture/15_NATIVE_ENGINE_ARCHITECTURE.md)
 
 Contributors using AI-assisted workflows must also read [docs/README_AI_WORKFLOW.md](docs/README_AI_WORKFLOW.md).
 
@@ -24,6 +30,7 @@ Contributors using AI-assisted workflows must also read [docs/README_AI_WORKFLOW
 ```text
 apps/       Executable products and composition roots
 engine/     Shared acquisition, vision, AI, workflow, and inspection behavior
+native/     Canonical C++20 Core/Engine, C ABI, Engine Host, and native tests
 sdk/        External embedding and control surfaces
 plugins/    Replaceable vendor/backend/protocol implementations
 schemas/    Versioned durable contracts
@@ -44,12 +51,16 @@ Windows is the initial development and deployment platform.
 .\scripts\check.ps1
 ```
 
+`build.ps1` and `test.ps1` include the native CMake/CTest pipeline.
+
 Shell wrappers are retained for compatible CI and future Linux Runtime work.
 
 ## Architecture Guardrails
 
-- Domain has no UI, database, OpenCV, AI-backend, or vendor-SDK dependency.
+- Canonical Core/Engine execution is portable C++20.
+- Runtime Domain has no UI, database, OpenCV, AI-backend, or vendor-SDK dependency.
 - Engine has no Studio or Runtime UI dependency.
+- OpenCV/ONNX Runtime hot paths are native; C# clients use C ABI/P/Invoke or Engine Host gRPC.
 - Vendor integrations live behind versioned plugin contracts.
 - Studio test mode and Runtime use the same Engine.
 - Editable `.nvision` source is published as immutable `.nvpkg` for production.

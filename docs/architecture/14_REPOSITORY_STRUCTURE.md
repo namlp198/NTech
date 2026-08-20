@@ -10,6 +10,7 @@ NVision uses a capability-oriented monorepo. The canonical root is:
 ```text
 apps/
 engine/
+native/
 sdk/
 plugins/
 schemas/
@@ -25,6 +26,7 @@ This layout follows Section 28 of the Platform Foundation. It represents the pro
 
 - `apps` owns executable composition and presentation.
 - `engine` owns reusable platform behavior and stable internal contracts.
+- `native` owns the canonical C++20 Core/Engine, C ABI, Engine Host, and native tests.
 - `sdk` owns public embedding/control surfaces.
 - `plugins` owns replaceable vendor and backend implementations.
 - `schemas` owns versioned serialized compatibility contracts.
@@ -32,6 +34,10 @@ This layout follows Section 28 of the Platform Foundation. It represents the pro
 - `samples` owns executable reference applications and regression evidence.
 - `tools` owns engineering utilities, not production domain behavior.
 - `docs` owns shared product and engineering knowledge.
+
+During migration, managed P0–P2 code remains under `engine` as a compatibility oracle.
+New canonical execution behavior belongs under `native`; managed product-plane code is
+progressively moved into application, infrastructure, and SDK facade projects.
 
 ## Physical Project Rule
 

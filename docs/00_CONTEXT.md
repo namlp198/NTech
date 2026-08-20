@@ -10,29 +10,41 @@ Build a reusable industrial Machine Vision platform for authoring, publishing, e
 
 ## Current State
 
-- Working: P0 repository foundation, the complete P1 Workflow engine, and the P2 Wire Marker headless inspection slice.
+- Working: P0 repository foundation, the complete managed P1 Workflow engine, the managed P2 Wire Marker headless inspection slice, and the N0 native C++/C ABI/P/Invoke foundation.
 - Working P2 path: FrameLease ownership → File Camera → AcquisitionService → compiled Crop/Classify/Compare/Decision Workflow → ONNX Runtime CPU → immutable InspectionResult → file image evidence + SQLite.
 - Blocked: Nothing in the current P2 slice.
-- Not started: ProjectFormat/Studio authoring, Runtime Service, PLC integration, real camera plugins, and production-trained inspection models.
+- Not started: native P2 behavior migration, the Engine Host implementation, ProjectFormat/Studio authoring, Runtime Service, PLC integration, real camera plugins, and production-trained inspection models.
 
 ## Architecture Summary
 
 NVision is a capability-oriented modular monolith. Executable products live in `apps`; reusable headless behavior lives in `engine`; vendor and backend variability lives in `plugins`; durable contracts live in `schemas`. Studio and Runtime are separate applications using the same Engine.
 
+The approved implementation boundary is native-first. Canonical Core and Engine
+execution are portable C++20. Studio, Runtime UI, Runtime supervision, persistence,
+authoring, and business-oriented products use C#/.NET 10. Embedded clients use the
+versioned C ABI through P/Invoke; production Runtime supervises a native Engine Host
+through gRPC. Large images remain in native/shared memory. See ADR-0005 and
+`docs/architecture/15_NATIVE_ENGINE_ARCHITECTURE.md`.
+
 ## Important Constraints
 
 - Follow `docs/architecture/14_REPOSITORY_STRUCTURE.md`.
 - Domain and Engine cannot depend on WPF or vendor SDKs.
+- New canonical Core/Engine behavior cannot be implemented only in managed code.
+- OpenCV and ONNX Runtime production execution belong to the native C++ plane.
 - Technical inspection failures never become valid-looking OK/NG results.
 - File Camera, PLC Simulator, and ONNX Runtime precede real hardware.
 
 ## Current Development Focus
 
-Prepare P3 ProjectFormat and Studio MVP while preserving the P2 headless execution path as a permanent regression suite.
+Port the Frame/buffer ownership, File Camera, and acquisition lifecycle slice to C++.
+Use the managed P2 path as a behavior oracle and permanent cross-boundary regression
+suite; do not expand managed Engine behavior that belongs in native code.
 
 ## Verification Baseline
 
-`scripts/check.ps1` currently completes restore, Release build, 113 tests, and formatting verification.
+`scripts/check.ps1` builds and tests the native and managed planes, then verifies
+formatting. The current baseline is 1 native CTest plus 117 .NET tests.
 
 ## Notes for AI
 

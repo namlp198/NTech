@@ -17,6 +17,10 @@
 
 This document defines the architecture of the **NVision Plugin System**.
 
+> **Implementation authority:** Camera, AI backend, and performance-sensitive Workflow
+> node plugins use the versioned native C ABI from ADR-0005. Managed plugins are limited
+> to non-hot-path business, exporter, reporting, and authoring extensions.
+
 The Plugin System is the primary extension boundary that allows NVision to integrate new:
 
 - Camera vendors
