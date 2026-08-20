@@ -27,6 +27,10 @@
 
 This document converts the NVision architecture into a practical implementation roadmap.
 
+> **2026-08-20 rebaseline:** ADR-0005 inserts a native-foundation migration before P3
+> Studio expansion. P0–P2 managed behavior is retained as a compatibility oracle while
+> Core/Engine execution moves to C++20, C ABI/P/Invoke, and the production Engine Host.
+
 The roadmap is designed to answer:
 
 - What should be built first?
@@ -3519,7 +3523,9 @@ Do not use WPF/Windows-only types in Runtime core.
 
 # 240. Native Dependency Strategy
 
-Keep camera/AI native dependencies isolated in plugins.
+Core and Engine execution are native-first. Keep OpenCV, camera, AI, GPU, and vendor
+dependencies isolated behind native modules/plugins and the versioned C ABI. Managed
+Studio and Runtime products must not load or expose vendor implementation types.
 
 ---
 

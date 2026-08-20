@@ -2,78 +2,61 @@
 
 ## Date
 
-2026-08-19
+2026-08-20
 
 ## Branch
 
-`codex/nvision-foundation`
+`codex/native-engine-foundation`
 
 ## Completed
 
-- Approved and stored the implementation plan.
-- Moved foundation documents into the canonical documentation taxonomy.
-- Bootstrapped repository and workspace project context.
-- Added accepted repository ADRs.
-- Created a .NET 10 solution with capability-oriented project boundaries.
-- Added central package/build/analyzer policy, scripts, NuGet config, and Windows CI.
-- Added executable architecture rules.
-- Completed P0 exit gate.
-- Started P1 with result/error/validation primitives and initial strong IDs.
-- Implemented Project and Job with aggregate-level uniqueness and timeout invariants.
-- Implemented WorkflowDefinition, typed port descriptors, nodes, and connections.
-- Enforced graph construction invariants including exact port type compatibility, multiplicity, self-loop, and cycle rejection.
-- Added semantic versions and typed scalar parameter values without raw `object` configuration paths.
-- Added Recipe aggregation, Project-level Recipe uniqueness, and default/project/Recipe parameter precedence.
-- Added exact-version node type metadata registry with built-in/plugin origin and execution characteristics.
-- Added the seven-stage Workflow validation pipeline and a dedicated Engine.Workflow unit-test project.
-- Added immutable ExecutionPlan compilation with deterministic topological ordering, bound Recipe parameters, dependencies, routing, and resource requirements.
-- Added typed node execution contracts, execution-scoped port values, and the sequential Workflow runtime.
-- Added deterministic fake Constant/Add/GreaterThan nodes and upgraded the CLI to run the complete validate-resolve-compile-execute flow.
-- Added immutable per-node `AbortWorkflow` and `Continue` policies to the compiled plan.
-- Added dependency-aware failure propagation, contextual error categories, and explicit skipped-node reasons.
-- Added Workflow/node timeout hierarchy and cancellation hardening for both cooperative and non-cooperative executors.
-- Added monotonic node/Workflow timing and structured trace events through an injectable trace sink.
-- Isolated trace persistence failure as warning `TRC-001` instead of failing the Workflow.
-- Generalized the runtime around a stable ready queue and remaining-dependency counters.
-- Added `BoundedParallelWorkflowRuntime` with explicit `MaxConcurrency`; retained `SequentialWorkflowRuntime` as the same scheduler configured with one worker.
-- Added synchronized port-value storage and serialized trace-sink delivery for parallel nodes.
-- Preserved abort/continue, skip propagation, Workflow/node timeout, cancellation hardening, timing, and deterministic result ordering under concurrency.
-- Upgraded the CLI demo to execute its independent constant nodes with bounded concurrency `2`.
-- Added immutable Frame/PixelFormat/IFrameBuffer contracts and reference-counted FrameLease ownership.
-- Added camera plugin contracts, deterministic File Camera PGM replay, and AcquisitionService hardening for timeout, cancellation, non-cooperative devices, invalid ownership, and late lease release.
-- Added a development `.nvmodel` manifest/package loader with SHA-256 validation, exact immutable model registry, and model-slot resolution.
-- Added a replaceable ONNX Runtime 1.28 CPU plugin and ran an actual ONNX graph through explicit preprocessing and softmax/top-1 postprocessing.
-- Added Crop, Classify, Compare, and Decision nodes composed through the P1 Workflow registry, Recipe resolution, compiler, and sequential runtime.
-- Added immutable canonical InspectionResult records and validation that prevents technical failures from becoming OK/NG.
-- Added file image evidence with checksums and SQLite result persistence/reconstruction.
-- Added TYPE_01/TYPE_04 fixtures and configurations, golden/technical/repeat integration tests, `inspect` CLI command, and repeatable demo script.
+- Audited the complete documentation set and all production source projects against
+  the approved native-first product boundary.
+- Accepted ADR-0005: portable C++20 Core/Engine, C ABI + P/Invoke for embedded use,
+  and a supervised gRPC Engine Host for production Runtime deployments.
+- Rebaselined the affected product, architecture, Workflow, plugin, camera, AI,
+  Runtime, Studio, roadmap, implementation, and repository-structure documents.
+- Added the CMake native tree with `nvision_core`, the `nvision_engine` shared C ABI
+  library, and native lifecycle/ABI/capability tests.
+- Added C ABI v1 with opaque handles, explicit retain/release, bounded UTF-8 buffers,
+  status codes, ABI negotiation, and thread-local last-error diagnostics.
+- Added the .NET 10 `NTech.NVision.Native` SDK using source-generated P/Invoke and
+  `SafeHandle`, plus three real native interop tests.
+- Added the initial Engine Host protobuf contract for capability, package, inspect,
+  cancel, state, and shared-frame operations.
+- Integrated native configure/build/test into the standard repository scripts.
+- Added repository LF policy consistent with `.editorconfig`.
 
 ## Current Status
 
-P0, P1, and P2 are complete. The first full inspection path runs File Camera → AcquisitionService → compiled typed Workflow → ONNX Runtime CPU → immutable InspectionResult → file/SQLite evidence. The repository builds with zero warnings/errors and all 113 tests pass.
+N0 is complete. The native foundation is executable and the managed SDK loads the
+real C ABI library. The existing managed P0-P2 implementation is intentionally still
+present as the behavior oracle; it is not the final production Engine.
 
 ## Next Actions
 
-1. Review the P3 ProjectFormat and Studio MVP scope.
-2. Define editable Wire Marker `.nvision` DTOs and migrations without coupling runtime domain to JSON.
-3. Add immutable `.nvpkg` publication and reopen/validate round-trip before Studio editing.
+1. Port Frame/PixelFormat/native buffer ownership and File Camera acquisition to C++.
+2. Add ABI operations and managed parity tests for that acquisition slice.
+3. Port preprocessing and ONNX Runtime execution to C++.
+4. Implement the gRPC Engine Host only after the embedded ABI reaches Wire Marker
+   parity, so both boundaries delegate to the same native application services.
 
 ## Warnings
 
-- The reference ONNX model is deliberately synthetic and deterministic; it validates the platform flow, not production classification quality.
-- P2 uses a directory-backed development `.nvmodel` with a Base64 artifact and text-reviewable PGM fixtures. Archive packaging and production image codecs are deferred.
-- Recipe inheritance is represented by `BaseRecipeId` but intentionally not resolved in this MVP slice.
-- Reference validation is an explicit pipeline stage but remains empty until Device/Model/Calibration reference value types exist.
-- MVP parallel scheduling uses one overall concurrency limit. Resource-specific CPU/I/O/GPU queues and keyed device locks remain later optimizations.
-- MVP policies are `AbortWorkflow` and `Continue`. `ReturnNG` remains an Inspection/product decision, and fallback remains explicit graph structure rather than a hidden generic runtime policy.
-- A non-cooperative in-process executor can be detached after timeout/cancellation but cannot be forcibly terminated; blocking vendor SDKs may still require a vendor abort API or process isolation.
-- NuGet restore requires access to the user NuGet configuration/cache in the sandboxed Codex environment.
-- Real camera and PLC selections remain intentionally unresolved until P5.
+- The protobuf is a reviewed transport contract scaffold; generated stubs and the
+  production host process are intentionally deferred until native functional parity.
+- The managed Workflow, acquisition, and ONNX implementations must not gain new
+  canonical Engine behavior during migration.
+- Large image payloads must remain in native/shared memory; do not serialize image
+  bytes through ordinary gRPC messages.
+- The local .NET 10.0.200 SDK under ignored `artifacts/dotnet` was used because the
+  machine-wide SDK was .NET 9.
 
 ## Verification
 
-- `scripts/check.ps1`: passed.
-- Release build: 0 warnings, 0 errors.
-- Tests: 113 passed, 0 failed, 0 skipped.
-- P1 CLI demo: `(2 + 3) > 4` produces `Decision: True` through the compiled bounded-parallel runtime (`MaxConcurrency = 2`).
-- P2 CLI demo: `type01.pgm + TYPE_01 -> OK`; `type04.pgm + TYPE_01 -> NG / WRONG_TYPE`; injected backend failure persists `ERROR`.
+- Native Release build: passed with warnings-as-errors.
+- CTest: 1 passed, 0 failed.
+- .NET Release build: 0 warnings, 0 errors.
+- .NET tests: 117 passed, 0 failed, 0 skipped.
+- Native P/Invoke integration: ABI negotiation, capability UTF-8, and handle disposal
+  all passed against `nvision_engine.dll`.

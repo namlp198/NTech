@@ -17,6 +17,10 @@
 
 This document defines the architecture of the **NVision Workflow Engine**.
 
+> **Implementation authority:** The canonical Workflow Engine is C++20 under ADR-0005.
+> Managed P0–P2 code is a temporary behavior oracle. C# examples describe contracts,
+> not the production scheduler implementation.
+
 The Workflow Engine is the execution heart of NVision. It transforms an authored `WorkflowDefinition` into a validated and executable inspection pipeline.
 
 Its responsibilities include:
@@ -4520,16 +4524,16 @@ assuming referenced services/plugins are available.
 
 ---
 
-# 236. C# Project Dependencies
+# 236. Native Project Dependencies
 
 Recommended:
 
 ```text
-NTech.NVision.Engine.Workflow
+nvision_workflow (C++20)
     ↓
-NTech.NVision.Domain
-NTech.NVision.Engine.Core
-NTech.NVision.Plugin.Abstractions
+nvision_domain
+nvision_core
+nvision_plugin_abi
 ```
 
 Avoid direct reference to:
@@ -4537,9 +4541,12 @@ Avoid direct reference to:
 ```text
 WPF
 Basler
-TensorRT binding
+TensorRT/ONNX Runtime implementation types
 SQLite
 ```
+
+C# clients consume compiled/validation results through the native C ABI or Engine Host
+gRPC contract. They do not host a second authoritative Workflow implementation.
 
 ---
 
