@@ -39,6 +39,9 @@ struct InspectionIdTag final {};
 struct ResourceIdTag final {};
 struct CoordinateSpaceIdTag final {};
 struct EvidenceIdTag final {};
+struct ToolTypeIdTag final {};
+struct PluginIdTag final {};
+struct PortKeyTag final {};
 
 using ProjectId = StableIdentifier<ProjectIdTag>;
 using WorkflowId = StableIdentifier<WorkflowIdTag>;
@@ -49,5 +52,8 @@ using InspectionId = StableIdentifier<InspectionIdTag>;
 using ResourceId = StableIdentifier<ResourceIdTag>;
 using CoordinateSpaceId = StableIdentifier<CoordinateSpaceIdTag>;
 using EvidenceId = StableIdentifier<EvidenceIdTag>;
+using ToolTypeId = StableIdentifier<ToolTypeIdTag>;
+using PluginId = StableIdentifier<PluginIdTag>;
+using PortKey = StableIdentifier<PortKeyTag>;
 
 }  // namespace nvision::core

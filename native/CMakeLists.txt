@@ -8,7 +8,9 @@ add_library(nvision_core STATIC
     core/src/identifier.cpp
     core/src/inspection_outcome.cpp
     core/src/resource_reference.cpp
-    core/src/semantic_version.cpp)
+    core/src/semantic_version.cpp
+    core/src/tool_definition.cpp
+    core/src/tool_registry.cpp)
 
 target_include_directories(nvision_core
     PUBLIC
@@ -120,4 +122,21 @@ if(NVISION_BUILD_TESTS)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 
     add_test(NAME nvision_execution_result_tests COMMAND nvision_execution_result_tests)
+
+    add_executable(nvision_tool_catalog_tests
+        tests/tool_catalog_tests.cpp)
+
+    target_link_libraries(nvision_tool_catalog_tests PRIVATE nvision_core)
+    target_compile_features(nvision_tool_catalog_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_tool_catalog_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(nvision_tool_catalog_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_tool_catalog_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_tool_catalog_tests COMMAND nvision_tool_catalog_tests)
 endif()
