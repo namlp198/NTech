@@ -1,8 +1,11 @@
 add_library(nvision_core STATIC
+    acquisition/src/file_camera.cpp
+    acquisition/src/frame.cpp
     core/src/engine.cpp)
 
 target_include_directories(nvision_core
     PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/acquisition/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/core/include>)
 
 target_compile_features(nvision_core PUBLIC cxx_std_20)
@@ -14,6 +17,7 @@ target_include_directories(nvision_engine
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/abi/include>
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/acquisition/include
         ${CMAKE_CURRENT_SOURCE_DIR}/core/include)
 
 target_compile_definitions(nvision_engine PRIVATE NVISION_ENGINE_BUILD)
@@ -41,6 +45,8 @@ if(NVISION_BUILD_TESTS)
 
     target_link_libraries(nvision_native_tests PRIVATE nvision_engine)
     target_compile_features(nvision_native_tests PRIVATE cxx_std_20)
+    target_compile_definitions(nvision_native_tests PRIVATE
+        NVISION_TEST_FIXTURE_DIR="${PROJECT_SOURCE_DIR}/samples/wire-marker/fixtures")
 
     if(MSVC)
         target_compile_options(nvision_native_tests PRIVATE /W4 /WX /permissive- /EHsc)
@@ -52,4 +58,23 @@ if(NVISION_BUILD_TESTS)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 
     add_test(NAME nvision_native_tests COMMAND nvision_native_tests)
+
+    add_executable(nvision_acquisition_tests
+        tests/acquisition_tests.cpp)
+
+    target_link_libraries(nvision_acquisition_tests PRIVATE nvision_core)
+    target_compile_features(nvision_acquisition_tests PRIVATE cxx_std_20)
+    target_compile_definitions(nvision_acquisition_tests PRIVATE
+        NVISION_TEST_FIXTURE_DIR="${PROJECT_SOURCE_DIR}/samples/wire-marker/fixtures")
+
+    if(MSVC)
+        target_compile_options(nvision_acquisition_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(nvision_acquisition_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_acquisition_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_acquisition_tests COMMAND nvision_acquisition_tests)
 endif()

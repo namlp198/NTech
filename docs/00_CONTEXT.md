@@ -10,10 +10,10 @@ Build a reusable industrial Machine Vision platform for authoring, publishing, e
 
 ## Current State
 
-- Working: P0 repository foundation, the complete managed P1 Workflow engine, the managed P2 Wire Marker headless inspection slice, and the N0 native C++/C ABI/P/Invoke foundation.
+- Working: P0 repository foundation, the complete managed P1 Workflow engine, the managed P2 Wire Marker headless inspection slice, N0 native foundation, and N1 native Frame/File Camera/acquisition.
 - Working P2 path: FrameLease ownership → File Camera → AcquisitionService → compiled Crop/Classify/Compare/Decision Workflow → ONNX Runtime CPU → immutable InspectionResult → file image evidence + SQLite.
 - Blocked: Nothing in the current P2 slice.
-- Not started: native P2 behavior migration, the Engine Host implementation, ProjectFormat/Studio authoring, Runtime Service, PLC integration, real camera plugins, and production-trained inspection models.
+- Not started: native model/ONNX and Workflow/inspection migration, the Engine Host implementation, ProjectFormat/Studio authoring, Runtime Service, PLC integration, real camera plugins, and production-trained inspection models.
 
 ## Architecture Summary
 
@@ -37,14 +37,15 @@ through gRPC. Large images remain in native/shared memory. See ADR-0005 and
 
 ## Current Development Focus
 
-Port the Frame/buffer ownership, File Camera, and acquisition lifecycle slice to C++.
+Port model package validation, preprocessing, and ONNX Runtime execution to C++.
 Use the managed P2 path as a behavior oracle and permanent cross-boundary regression
-suite; do not expand managed Engine behavior that belongs in native code.
+suite; do not expand managed Engine behavior that belongs in native code. Native Frame,
+buffer ownership, File Camera, and acquisition lifecycle are now authoritative.
 
 ## Verification Baseline
 
 `scripts/check.ps1` builds and tests the native and managed planes, then verifies
-formatting. The current baseline is 1 native CTest plus 117 .NET tests.
+formatting. The current baseline is 2 native CTests plus 119 .NET tests.
 
 ## Notes for AI
 

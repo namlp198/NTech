@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(NTechNVisionNative VERSION 0.1.0 LANGUAGES CXX)
+project(NTechNVisionNative VERSION 0.2.0 LANGUAGES CXX)
 
 option(NVISION_BUILD_TESTS "Build native NVision tests" ON)
 

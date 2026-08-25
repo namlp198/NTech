@@ -24,6 +24,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\..\..\samples\wire-marker\fixtures\*.pgm">
+      <Link>Fixtures\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

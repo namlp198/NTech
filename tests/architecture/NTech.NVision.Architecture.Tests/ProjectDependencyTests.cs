@@ -40,6 +40,8 @@ public sealed class ProjectDependencyTests
             "CMakePresets.json",
             "native/CMakeLists.txt",
             "native/core/include/nvision/core/engine.hpp",
+            "native/acquisition/include/nvision/acquisition/frame.hpp",
+            "native/acquisition/include/nvision/acquisition/file_camera.hpp",
             "native/abi/include/nvision/capi/nvision.h",
             "native/host/proto/nvision_engine_host.proto",
             "docs/decisions/ADR-0005-native-first-core-and-engine.md",
@@ -59,6 +61,10 @@ public sealed class ProjectDependencyTests
             "nvision.h"));
         Assert.Contains("NVISION_ABI_VERSION", abi, StringComparison.Ordinal);
         Assert.Contains("typedef struct nv_engine nv_engine", abi, StringComparison.Ordinal);
+        Assert.Contains("typedef struct nv_camera nv_camera", abi, StringComparison.Ordinal);
+        Assert.Contains("typedef struct nv_frame nv_frame", abi, StringComparison.Ordinal);
+        Assert.Contains("nv_engine_create_file_camera", abi, StringComparison.Ordinal);
+        Assert.Contains("nv_frame_retain", abi, StringComparison.Ordinal);
     }
 
     [Fact]

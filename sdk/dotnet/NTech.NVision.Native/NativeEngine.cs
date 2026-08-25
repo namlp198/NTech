@@ -25,7 +25,7 @@ public sealed class NativeEngine : IDisposable
             StructSize = (uint)Marshal.SizeOf<NativeEngineConfig>(),
             RequestedAbiVersion = SupportedAbiVersion,
         };
-        NativeStatus status = NativeMethods.EngineCreate(in config, out IntPtr nativeHandle);
+        NativeStatusCode status = NativeMethods.EngineCreate(in config, out IntPtr nativeHandle);
         NativeException.ThrowIfFailed(status);
         if (nativeHandle == IntPtr.Zero)
         {
@@ -52,12 +52,12 @@ public sealed class NativeEngine : IDisposable
     public string GetCapabilitiesJson()
     {
         ThrowIfDisposed();
-        NativeStatus sizing = NativeMethods.EngineGetCapabilitiesJson(
+        NativeStatusCode sizing = NativeMethods.EngineGetCapabilitiesJson(
             handle,
             IntPtr.Zero,
             UIntPtr.Zero,
             out UIntPtr requiredSize);
-        if (sizing != NativeStatus.BufferTooSmall)
+        if (sizing != NativeStatusCode.BufferTooSmall)
         {
             NativeException.ThrowIfFailed(sizing);
         }
@@ -89,6 +89,15 @@ public sealed class NativeEngine : IDisposable
         {
             Marshal.FreeHGlobal(buffer);
         }
+    }
+
+    public NativeFileCamera CreateFileCamera(
+        string cameraId,
+        IEnumerable<string> sources,
+        bool loop = false)
+    {
+        ThrowIfDisposed();
+        return NativeFileCamera.Create(handle, cameraId, sources, loop);
     }
 
     public void Dispose()
