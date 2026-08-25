@@ -36,3 +36,9 @@ and dictionary content without embedding filesystem paths. Each reference carrie
 exact semantic version and validated integrity metadata: canonical lowercase SHA-256 and
 positive content length. Package/registry resolution and hash computation remain later
 loader responsibilities.
+
+Immutable `ExecutionRecord`, `InspectionDecision`, `EvidenceArtifact`, and
+`InspectionResult` aggregates finalize the M1 contract layer. Successful execution may
+produce OK, NG, or an explicit Indeterminate decision. Error, Timeout, and Cancelled
+execution must remain Indeterminate, contain matching technical errors, and carry no
+quality decision. Spatial evidence requires coordinate-space identity.

@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-08-25
+2026-08-26
 
 ## Branch
 
@@ -28,18 +28,22 @@
 - Added unified versioned resource references in `4339211`. Resource/model/template/
   calibration/dictionary references carry stable IDs, exact versions, kinds, canonical
   SHA-256 digests, and positive content lengths without filesystem paths.
+- Added immutable execution/result/evidence aggregates in `e8b7073`. The aggregate locks
+  technical Error/Timeout/Cancelled to Indeterminate, forbids quality decisions on failed
+  execution, requires matching stable error codes, and enforces unique coordinate-aware
+  spatial evidence.
 
 ## Current Status
 
-M1 is in progress. Foundational contracts (`c07440b`) and zero-copy Image Views
-(`0c71340`) plus versioned resource references (`4339211`) are implemented and green.
-Immutable result/evidence contracts remain before the M1 exit gate is complete.
+M1 is complete on `codex/generic-vision-m1`. Foundational contracts (`c07440b`), zero-copy
+Image Views (`0c71340`), resource references (`4339211`), and immutable execution results
+(`e8b7073`) are implemented and green. The feature branch has not been merged or pushed.
 
 ## Next Actions
 
-1. Implement immutable execution/result/evidence aggregates using the status/verdict
-   invariant already established.
-2. Run the full repository check after each coherent behavior slice.
+1. Resolve or explicitly defer the remaining external asset license/provenance gap in M0.
+2. Begin M2 Tool Definition/Catalog only after the next instruction.
+3. Run the full repository check after each coherent behavior slice.
 
 ## Warnings
 
@@ -55,6 +59,6 @@ Immutable result/evidence contracts remain before the M1 exit gate is complete.
 
 - Baseline full `scripts/check.ps1`: passed before M1 changes.
 - Native Release build with `/W4 /WX`: passed after M1 changes.
-- CTest: 3 passed, 0 failed.
-- Full post-change `scripts/check.ps1`: passed; 3 native CTests and 119 .NET tests passed,
+- CTest: 4 passed, 0 failed.
+- Full post-change `scripts/check.ps1`: passed; 4 native CTests and 119 .NET tests passed,
   with 0 build warnings and formatting verification clean.

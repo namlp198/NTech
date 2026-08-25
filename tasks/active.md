@@ -2,7 +2,7 @@
 
 ## Current Task
 
-M1 — Native Foundational Data Contracts — In Progress
+M1 — Native Foundational Data Contracts — Complete on Feature Branch
 
 ## Goal
 
@@ -30,14 +30,19 @@ and Pin Insert workflows without embedding either application's vocabulary in Co
 - Added unified immutable references for resource, model, template, calibration, and
   dictionary content. References bind stable ID and exact semantic version to canonical
   lowercase SHA-256 and positive expected content length without storing filesystem paths.
+- Added immutable execution, decision, evidence, and inspection-result aggregates.
+  Technical failure requires matching execution errors, remains Indeterminate, and cannot
+  carry an OK/NG decision. Spatial evidence requires coordinate-space identity and all
+  evidence IDs are unique within a finalized result.
+- Added a dedicated execution-result CTest target; the full repository gate passes with
+  4 native CTests and 119 .NET tests.
 
 ## Next Steps
 
-1. Add immutable execution, result, evidence, overlay, measurement, and defect contracts.
-2. Complete the external model/dependency license provenance audit before importing or
+1. Complete the external model/dependency license provenance audit before importing or
    redistributing any reference assets.
-3. Keep C ABI and gRPC exposure deferred until the internal M1 contracts pass their exit
-   gate and are stable enough for boundary design.
+2. Perform the M2 Tool Definition/Catalog slice only after the next instruction.
+3. Keep C ABI and gRPC exposure deferred until M8.
 
 ## Acceptance Criteria
 
@@ -48,5 +53,5 @@ and Pin Insert workflows without embedding either application's vocabulary in Co
 - [x] Technical failures cannot become OK or NG inspection verdicts.
 - [x] Image views preserve native ownership and explicit transforms.
 - [x] Resource/model/template references are immutable and versioned.
-- [ ] Result/evidence structures are immutable and reject invalid status combinations.
-- [ ] The complete M1 exit gate passes without application-specific Core types.
+- [x] Result/evidence structures are immutable and reject invalid status combinations.
+- [x] The complete M1 exit gate passes without application-specific Core types.
