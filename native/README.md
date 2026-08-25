@@ -19,3 +19,9 @@ The N1 acquisition slice provides immutable native frames, shared ownership reta
 until the final lease is released, deterministic ASCII PGM replay, bounded acquisition,
 explicit cancellation, and lifecycle/error states. `nv_frame_get_buffer` is zero-copy;
 its pointer remains valid only while the caller owns a frame handle.
+
+The first M1 foundational-contract slice adds application-neutral stable identifiers,
+semantic version precedence, generic native port data kinds, coordinate-space-aware
+geometry and homographies, and an inspection outcome that prevents technical failures
+from being represented as OK or NG. These are internal native contracts; C ABI exposure
+is intentionally deferred until the generic boundary is proven.

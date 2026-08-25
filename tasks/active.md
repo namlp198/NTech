@@ -2,47 +2,48 @@
 
 ## Current Task
 
-N1 — Native Frame, File Camera, and Acquisition Lifecycle — Complete
+M1 — Native Foundational Data Contracts — In Progress
 
 ## Goal
 
-Move authoritative Frame/PixelFormat contracts, buffer ownership, deterministic File
-Camera replay, and bounded acquisition lifecycle from the managed compatibility path
-into the portable C++20 Engine.
+Create application-neutral portable C++20 contracts that can describe both Wire Marker
+and Pin Insert workflows without embedding either application's vocabulary in Core.
 
-## Completed in Current N1 Slice
+## Completed in Current Slice
 
-- Added immutable native Frame, PixelFormat, status, timestamp quality, metadata, and
-  read-only FrameBuffer types with dimension/stride/length validation.
-- Added shared native FrameLease ownership; the buffer is released only after the final
-  internal or C ABI frame owner releases it.
-- Added deterministic ASCII PGM P2 File Camera replay with ordered/looping sources,
-  reconnect reset, stable frame IDs, exact metadata, and normalized Mono8 pixels.
-- Added connect/acquire/disconnect state, missing-source faulting, invalid-state and
-  end-of-stream failures, bounded lock/I/O processing, and cancellation checks.
-- Extended C ABI v1 with opaque camera, frame, and cancellation handles; fixed-layout
-  request/info structures; zero-copy buffer view; bounded UTF-8 metadata; and explicit
-  status/error mapping.
-- Extended the .NET 10 facade with `NativeFileCamera`, `NativeFrameLease`, `SafeHandle`
-  ownership, cancellation bridging, explicit diagnostic pixel copy, and typed metadata.
-- Added direct native, C ABI, architecture, and managed interop coverage while retaining
-  the managed acquisition implementation as the P2 behavior oracle.
+- Verified the merged N1 baseline on `develop`; the complete repository check passed.
+- Created `codex/generic-vision-m1` from merge commit `bd46168`.
+- Added typed canonical identifiers for Project, Workflow, Job, Recipe, execution
+  session, resource, and coordinate-space identity.
+- Added validated semantic versions with SemVer precedence independent of build metadata.
+- Added the initial generic native `PortDataType` catalog required by both reference
+  workflows.
+- Added coordinate-space-aware point, line, circle, rectangle, polygon, and 2D
+  homography contracts with finite/degenerate/mixed-space validation.
+- Added a generic inspection outcome that rejects technical Error/Timeout/Cancelled
+  states carrying valid-looking OK or NG verdicts.
+- Added a dedicated native foundational-contract CTest proving generic reference-graph
+  coverage and invalid-combination rejection.
 
 ## Next Steps
 
-1. N2: port `.nvmodel` package/integrity validation and model registry/session ownership
-   to C++.
-2. Port classification preprocessing and postprocessing to native golden-tested code.
-3. Integrate ONNX Runtime through its native C/C++ API and remove managed production
-   inference after parity and performance gates pass.
-4. N3: port Workflow compilation/execution and the Wire Marker inspection path.
+1. Add native image-view contracts that retain explicit source image and coordinate-space
+   ownership without copying full frame buffers.
+2. Add versioned resource/model/template references and integrity metadata.
+3. Add immutable execution, result, evidence, overlay, measurement, and defect contracts.
+4. Complete the external model/dependency license provenance audit before importing or
+   redistributing any reference assets.
+5. Keep C ABI and gRPC exposure deferred until the internal M1 contracts pass their exit
+   gate and are stable enough for boundary design.
 
 ## Acceptance Criteria
 
-- [x] Complete native frames reject invalid shape/stride/buffer combinations.
-- [x] Native buffer ownership survives retained leases and ends at the final release.
-- [x] File Camera replay, loop, reconnect, metadata, and pixels match the managed oracle.
-- [x] Invalid state, missing source, timeout, cancellation, and end-of-stream are explicit.
-- [x] C ABI camera/frame/cancellation ownership is opaque and version-compatible.
-- [x] P/Invoke exercises the real native implementation through `SafeHandle`.
-- [x] Native and managed acquisition/parity tests pass.
+- [x] Work occurs on a dedicated feature branch with the merged N1 baseline green.
+- [x] Native generic types can represent the data flow of both reference workflows.
+- [x] Geometry cannot exist without explicit coordinate-space identity.
+- [x] Invalid/non-finite/degenerate geometry and mismatched transforms are rejected.
+- [x] Technical failures cannot become OK or NG inspection verdicts.
+- [ ] Image views preserve native ownership and explicit transforms.
+- [ ] Resource/model/template references are immutable and versioned.
+- [ ] Result/evidence structures are immutable and reject invalid status combinations.
+- [ ] The complete M1 exit gate passes without application-specific Core types.

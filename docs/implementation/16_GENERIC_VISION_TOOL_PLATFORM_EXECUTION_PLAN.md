@@ -121,19 +121,17 @@ The repository already contains:
 - managed Workflow, Job, Recipe, model package, ONNX Runtime, and Wire Marker vertical
   slice behavior that must not be expanded as the production hot path.
 
-Current N1 commit:
+N1 implementation commit:
 
 ```text
 ed53d73 feat(native): move acquisition ownership to C++
 ```
 
-At the time this document was created, that commit is on:
+It was merged into `develop` by:
 
 ```text
-codex/native-acquisition
+bd46168 merge: integrate native acquisition and vision platform plan
 ```
-
-It must be merged only when explicitly authorized.
 
 ---
 
@@ -1227,9 +1225,9 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | Milestone | Status | Evidence / commit |
 |---|---|---|
 | N0 — Native foundation | Complete | Existing repository baseline |
-| N1 — Native acquisition | Complete on feature branch | `ed53d73` |
-| M0 — Baseline and integration | Not started | Awaiting authorization to merge N1 |
-| M1 — Native data contracts | Not started | |
+| N1 — Native acquisition | Complete and merged | `ed53d73`, merge `bd46168` |
+| M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
+| M1 — Native data contracts | In progress | Foundational contracts on `codex/generic-vision-m1` |
 | M2 — Tool definition/catalog | Not started | |
 | M3 — Generic OpenCV foundation | Not started | |
 | M4 — Model/recognition foundation | Not started | |
@@ -1245,12 +1243,12 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 
 ## 20. Immediate next action
 
-Do not begin M1 on the current branch until the user provides the next instruction.
+M1 is authorized and active on `codex/generic-vision-m1`. Continue with the smallest
+coherent native contract slices while keeping M0 provenance gaps explicit:
 
-The expected sequence is:
-
-1. receive authorization to merge `ed53d73` into `develop`;
-2. merge and verify the clean baseline;
-3. create a new feature branch for M1;
-4. implement the smallest native typed-contract slice that can describe both the Wire
-   Marker and Pin Insert workflows without application vocabulary.
+1. complete native image-view ownership and coordinate-space contracts;
+2. add versioned resource/model/template references;
+3. add immutable execution/result/evidence contracts;
+4. resolve external model license provenance before importing or redistributing assets;
+5. keep every slice generic and prove both reference workflows without application
+   vocabulary in production Core types.
