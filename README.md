@@ -36,6 +36,12 @@ remain Indeterminate, contain matching execution errors, and never carry an OK/N
 decision. Evidence is content-addressed, uniquely identified, and spatial evidence must
 declare its coordinate space.
 
+M2 has started with a versioned native Tool Catalog contract. Tool definitions now bind
+stable type identity and exact semantic version to typed ports, catalog metadata,
+built-in/plugin origin, and execution characteristics. Exact registry resolution preserves
+unresolved ID/version requests, while category paths remain display metadata rather than
+persisted identity.
+
 The first executable inspection path now runs deterministic File Camera frames through a compiled typed Workflow, real ONNX Runtime CPU inference, immutable result finalization, image evidence storage, and SQLite history. It proves the reference platform path and error semantics; the included synthetic model and PGM fixtures are engineering regression assets, not production inspection content.
 
 ## Read First

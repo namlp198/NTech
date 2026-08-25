@@ -1228,7 +1228,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | N1 — Native acquisition | Complete and merged | `ed53d73`, merge `bd46168` |
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
 | M1 — Native data contracts | Complete on feature branch | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results |
-| M2 — Tool definition/catalog | Not started | |
+| M2 — Tool definition/catalog | In progress | `a2f1a25` versioned definitions and registry |
 | M3 — Generic OpenCV foundation | Not started | |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
@@ -1243,11 +1243,12 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 
 ## 20. Immediate next action
 
-M1 is complete on `codex/generic-vision-m1`. Keep the remaining M0 provenance gap explicit
-and do not begin M2 without the next instruction:
+M2 is active on `codex/generic-vision-m2`. The versioned Tool Definition/Registry foundation
+is complete. Continue with the next smallest generic schema slices while keeping the M0
+provenance gap explicit:
 
-1. resolve or explicitly defer external model license provenance before importing or
-   redistributing assets;
-2. begin M2 Tool Definition/Catalog with the smallest generic registry/schema slice;
+1. add declarative parameter/property-editor schemas, including conditional fields and
+   versioned resource/model/calibration bindings;
+2. preserve unresolved-node configuration and add the reusable subworkflow contract;
 3. keep every slice generic and prove both reference workflows without application
    vocabulary in production Core types.

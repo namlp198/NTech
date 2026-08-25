@@ -6,7 +6,7 @@
 
 ## Branch
 
-`codex/generic-vision-m1`
+`codex/generic-vision-m2`
 
 ## Completed
 
@@ -32,18 +32,24 @@
   technical Error/Timeout/Cancelled to Indeterminate, forbids quality decisions on failed
   execution, requires matching stable error codes, and enforces unique coordinate-aware
   spatial evidence.
+- Started M2 in `a2f1a25` with immutable versioned Tool Definitions and a native registry.
+  Definitions cover typed ports, hierarchical metadata, origin, and execution
+  characteristics. Resolution is exact by ID/version and preserves unknown versus
+  unsupported-version states independently of category metadata.
 
 ## Current Status
 
-M1 is complete on `codex/generic-vision-m1`. Foundational contracts (`c07440b`), zero-copy
-Image Views (`0c71340`), resource references (`4339211`), and immutable execution results
-(`e8b7073`) are implemented and green. The feature branch has not been merged or pushed.
+M1 remains complete, and M2 is in progress on `codex/generic-vision-m2`. The first Tool
+Definition/Catalog slice (`a2f1a25`) is implemented and green. The feature branch has not
+been merged or pushed.
 
 ## Next Actions
 
-1. Resolve or explicitly defer the remaining external asset license/provenance gap in M0.
-2. Begin M2 Tool Definition/Catalog only after the next instruction.
-3. Run the full repository check after each coherent behavior slice.
+1. Implement the declarative parameter/property-editor schema and conditional fields.
+2. Add reusable subworkflow and unresolved-node preservation contracts, then validate the
+   two generic reference graphs.
+3. Keep the M0 asset provenance gap explicit and run the full repository check after each
+   coherent behavior slice.
 
 ## Warnings
 
@@ -52,13 +58,13 @@ Image Views (`0c71340`), resource references (`4339211`), and immutable executio
 - ONNX Runtime and OpenCV distributions contain license files, but no license/provenance
   evidence was found beside the external Wire Marker project/models or the provided Pin
   Insert project. Do not import or redistribute those assets until provenance is resolved.
-- The new contracts are internal C++ APIs. Do not expose them through C ABI/gRPC until M1
-  stabilizes and the boundary work reaches M8.
+- The new contracts are internal C++ APIs. Do not expose them through C ABI/gRPC until the
+  boundary work reaches M8.
 
 ## Verification
 
-- Baseline full `scripts/check.ps1`: passed before M1 changes.
-- Native Release build with `/W4 /WX`: passed after M1 changes.
-- CTest: 4 passed, 0 failed.
-- Full post-change `scripts/check.ps1`: passed; 4 native CTests and 119 .NET tests passed,
+- Completed M1 baseline full `scripts/check.ps1`: passed before M2 changes.
+- Native Release build with `/W4 /WX`: passed after the current M2 changes.
+- CTest: 5 passed, 0 failed.
+- Full post-change `scripts/check.ps1`: passed; 5 native CTests and 119 .NET tests passed,
   with 0 build warnings and formatting verification clean.

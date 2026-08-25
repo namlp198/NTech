@@ -42,3 +42,9 @@ Immutable `ExecutionRecord`, `InspectionDecision`, `EvidenceArtifact`, and
 produce OK, NG, or an explicit Indeterminate decision. Error, Timeout, and Cancelled
 execution must remain Indeterminate, contain matching technical errors, and carry no
 quality decision. Spatial evidence requires coordinate-space identity.
+
+The first M2 slice adds immutable versioned `ToolTypeDefinition` contracts and a native
+`ToolRegistry`. Definitions describe typed ports, hierarchical catalog metadata, origin,
+and execution characteristics. Registry identity is only stable tool ID plus exact
+semantic version; changing category metadata cannot change resolution identity. Missing
+IDs and unsupported versions remain distinguishable unresolved states.
