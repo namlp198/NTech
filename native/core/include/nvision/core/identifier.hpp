@@ -35,15 +35,19 @@ struct WorkflowIdTag final {};
 struct JobIdTag final {};
 struct RecipeIdTag final {};
 struct ExecutionSessionIdTag final {};
+struct InspectionIdTag final {};
 struct ResourceIdTag final {};
 struct CoordinateSpaceIdTag final {};
+struct EvidenceIdTag final {};
 
 using ProjectId = StableIdentifier<ProjectIdTag>;
 using WorkflowId = StableIdentifier<WorkflowIdTag>;
 using JobId = StableIdentifier<JobIdTag>;
 using RecipeId = StableIdentifier<RecipeIdTag>;
 using ExecutionSessionId = StableIdentifier<ExecutionSessionIdTag>;
+using InspectionId = StableIdentifier<InspectionIdTag>;
 using ResourceId = StableIdentifier<ResourceIdTag>;
 using CoordinateSpaceId = StableIdentifier<CoordinateSpaceIdTag>;
+using EvidenceId = StableIdentifier<EvidenceIdTag>;
 
 }  // namespace nvision::core

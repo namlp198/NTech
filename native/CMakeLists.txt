@@ -3,6 +3,7 @@ add_library(nvision_core STATIC
     acquisition/src/frame.cpp
     acquisition/src/image_view.cpp
     core/src/engine.cpp
+    core/src/execution_result.cpp
     core/src/geometry.cpp
     core/src/identifier.cpp
     core/src/inspection_outcome.cpp
@@ -102,4 +103,21 @@ if(NVISION_BUILD_TESTS)
     add_test(
         NAME nvision_foundational_contracts_tests
         COMMAND nvision_foundational_contracts_tests)
+
+    add_executable(nvision_execution_result_tests
+        tests/execution_result_tests.cpp)
+
+    target_link_libraries(nvision_execution_result_tests PRIVATE nvision_core)
+    target_compile_features(nvision_execution_result_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_execution_result_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(nvision_execution_result_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_execution_result_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_execution_result_tests COMMAND nvision_execution_result_tests)
 endif()

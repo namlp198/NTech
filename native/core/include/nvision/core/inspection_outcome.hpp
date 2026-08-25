@@ -6,16 +6,16 @@
 namespace nvision::core {
 
 enum class ExecutionStatus : std::uint32_t {
-    success,
-    error,
-    timeout,
-    cancelled,
+    success = 0,
+    error = 1,
+    timeout = 2,
+    cancelled = 3,
 };
 
 enum class InspectionVerdict : std::uint32_t {
-    ok,
-    ng,
-    indeterminate,
+    ok = 0,
+    ng = 1,
+    indeterminate = 2,
 };
 
 class InspectionOutcome final {
