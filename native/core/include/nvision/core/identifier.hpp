@@ -42,6 +42,8 @@ struct EvidenceIdTag final {};
 struct ToolTypeIdTag final {};
 struct PluginIdTag final {};
 struct PortKeyTag final {};
+struct ParameterKeyTag final {};
+struct EnumOptionKeyTag final {};
 
 using ProjectId = StableIdentifier<ProjectIdTag>;
 using WorkflowId = StableIdentifier<WorkflowIdTag>;
@@ -55,5 +57,7 @@ using EvidenceId = StableIdentifier<EvidenceIdTag>;
 using ToolTypeId = StableIdentifier<ToolTypeIdTag>;
 using PluginId = StableIdentifier<PluginIdTag>;
 using PortKey = StableIdentifier<PortKeyTag>;
+using ParameterKey = StableIdentifier<ParameterKeyTag>;
+using EnumOptionKey = StableIdentifier<EnumOptionKeyTag>;
 
 }  // namespace nvision::core

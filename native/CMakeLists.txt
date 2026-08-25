@@ -7,6 +7,7 @@ add_library(nvision_core STATIC
     core/src/geometry.cpp
     core/src/identifier.cpp
     core/src/inspection_outcome.cpp
+    core/src/parameter_schema.cpp
     core/src/resource_reference.cpp
     core/src/semantic_version.cpp
     core/src/tool_definition.cpp
@@ -139,4 +140,22 @@ if(NVISION_BUILD_TESTS)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 
     add_test(NAME nvision_tool_catalog_tests COMMAND nvision_tool_catalog_tests)
+
+    add_executable(nvision_parameter_schema_tests
+        tests/parameter_schema_tests.cpp)
+
+    target_link_libraries(nvision_parameter_schema_tests PRIVATE nvision_core)
+    target_compile_features(nvision_parameter_schema_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_parameter_schema_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_parameter_schema_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_parameter_schema_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_parameter_schema_tests COMMAND nvision_parameter_schema_tests)
 endif()

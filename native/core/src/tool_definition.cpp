@@ -108,6 +108,11 @@ void validate_text(
     }
 }
 
+bool supports_visibility_condition(const ParameterKind kind) noexcept {
+    return kind == ParameterKind::boolean || kind == ParameterKind::integer ||
+           kind == ParameterKind::string || kind == ParameterKind::enumeration;
+}
+
 }  // namespace
 
 ToolPortDefinition::ToolPortDefinition(
@@ -295,13 +300,15 @@ ToolTypeDefinition::ToolTypeDefinition(
     ToolCatalogMetadata catalog,
     std::vector<ToolPortDefinition> ports,
     ToolOrigin origin,
-    ToolExecutionCharacteristics execution)
+    ToolExecutionCharacteristics execution,
+    std::vector<ParameterDefinition> parameters)
     : id_(std::move(id)),
       version_(std::move(version)),
       catalog_(std::move(catalog)),
       ports_(std::move(ports)),
       origin_(std::move(origin)),
-      execution_(std::move(execution)) {
+      execution_(std::move(execution)),
+      parameters_(std::move(parameters)) {
     for (std::size_t index = 0U; index < ports_.size(); ++index) {
         const auto duplicate = std::find_if(
             ports_.begin() + static_cast<std::ptrdiff_t>(index + 1U),
@@ -312,6 +319,50 @@ ToolTypeDefinition::ToolTypeDefinition(
             });
         if (duplicate != ports_.end()) {
             throw std::invalid_argument("tool port keys must be unique within each direction");
+        }
+    }
+
+    for (std::size_t index = 0U; index < parameters_.size(); ++index) {
+        const auto duplicate = std::find_if(
+            parameters_.begin() + static_cast<std::ptrdiff_t>(index + 1U),
+            parameters_.end(),
+            [this, index](const ParameterDefinition& candidate) {
+                return candidate.key() == parameters_[index].key();
+            });
+        if (duplicate != parameters_.end()) {
+            throw std::invalid_argument("tool parameter keys must be unique");
+        }
+    }
+
+    for (const auto& parameter : parameters_) {
+        if (!parameter.visibility()) {
+            continue;
+        }
+        const auto* controller = find_parameter(parameter.visibility()->controller());
+        if (controller == nullptr) {
+            throw std::invalid_argument("visibility condition controller does not exist");
+        }
+        if (controller->key() == parameter.key()) {
+            throw std::invalid_argument("parameter visibility must not depend on itself");
+        }
+        if (!supports_visibility_condition(controller->type().kind())) {
+            throw std::invalid_argument("visibility controller must use a comparable scalar type");
+        }
+        if (!controller->type().accepts(parameter.visibility()->expected_value())) {
+            throw std::invalid_argument(
+                "visibility condition value does not satisfy its controller schema");
+        }
+    }
+
+    for (const auto& parameter : parameters_) {
+        std::vector<ParameterKey> visited;
+        const ParameterDefinition* current = &parameter;
+        while (current->visibility()) {
+            if (std::find(visited.begin(), visited.end(), current->key()) != visited.end()) {
+                throw std::invalid_argument("parameter visibility conditions must not form a cycle");
+            }
+            visited.push_back(current->key());
+            current = find_parameter(current->visibility()->controller());
         }
     }
 }
@@ -340,6 +391,10 @@ const ToolExecutionCharacteristics& ToolTypeDefinition::execution() const noexce
     return execution_;
 }
 
+const std::vector<ParameterDefinition>& ToolTypeDefinition::parameters() const noexcept {
+    return parameters_;
+}
+
 const ToolPortDefinition* ToolTypeDefinition::find_port(
     const PortKey& key,
     const PortDirection direction) const noexcept {
@@ -348,6 +403,15 @@ const ToolPortDefinition* ToolTypeDefinition::find_port(
             return port.key() == key && port.direction() == direction;
         });
     return match == ports_.end() ? nullptr : &*match;
+}
+
+const ParameterDefinition* ToolTypeDefinition::find_parameter(
+    const ParameterKey& key) const noexcept {
+    const auto match = std::find_if(
+        parameters_.begin(), parameters_.end(), [&key](const ParameterDefinition& parameter) {
+            return parameter.key() == key;
+        });
+    return match == parameters_.end() ? nullptr : &*match;
 }
 
 }  // namespace nvision::core

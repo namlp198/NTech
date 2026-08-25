@@ -2,6 +2,7 @@
 
 #include "nvision/core/data_type.hpp"
 #include "nvision/core/identifier.hpp"
+#include "nvision/core/parameter_schema.hpp"
 #include "nvision/core/semantic_version.hpp"
 
 #include <cstdint>
@@ -136,7 +137,8 @@ public:
         ToolCatalogMetadata catalog,
         std::vector<ToolPortDefinition> ports,
         ToolOrigin origin = ToolOrigin::built_in(),
-        ToolExecutionCharacteristics execution = {});
+        ToolExecutionCharacteristics execution = {},
+        std::vector<ParameterDefinition> parameters = {});
 
     [[nodiscard]] const ToolTypeId& id() const noexcept;
     [[nodiscard]] const SemanticVersion& version() const noexcept;
@@ -144,9 +146,11 @@ public:
     [[nodiscard]] const std::vector<ToolPortDefinition>& ports() const noexcept;
     [[nodiscard]] const ToolOrigin& origin() const noexcept;
     [[nodiscard]] const ToolExecutionCharacteristics& execution() const noexcept;
+    [[nodiscard]] const std::vector<ParameterDefinition>& parameters() const noexcept;
     [[nodiscard]] const ToolPortDefinition* find_port(
         const PortKey& key,
         PortDirection direction) const noexcept;
+    [[nodiscard]] const ParameterDefinition* find_parameter(const ParameterKey& key) const noexcept;
 
 private:
     ToolTypeId id_;
@@ -155,6 +159,7 @@ private:
     std::vector<ToolPortDefinition> ports_;
     ToolOrigin origin_;
     ToolExecutionCharacteristics execution_;
+    std::vector<ParameterDefinition> parameters_;
 };
 
 }  // namespace nvision::core
