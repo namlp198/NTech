@@ -48,3 +48,9 @@ The first M2 slice adds immutable versioned `ToolTypeDefinition` contracts and a
 and execution characteristics. Registry identity is only stable tool ID plus exact
 semantic version; changing category metadata cannot change resolution identity. Missing
 IDs and unsupported versions remain distinguishable unresolved states.
+
+Declarative parameter schemas cover scalar values, enum options, recursively typed arrays,
+coordinate-aware geometry, ROI shape constraints, and integrity-bearing versioned
+resource/model/calibration references. Property editor metadata declares grouping, order,
+control, and numeric units without UI dependencies. Default values, editor compatibility,
+and conditional visibility dependency graphs are validated when definitions are finalized.

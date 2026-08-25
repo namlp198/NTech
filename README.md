@@ -42,6 +42,11 @@ built-in/plugin origin, and execution characteristics. Exact registry resolution
 unresolved ID/version requests, while category paths remain display metadata rather than
 persisted identity.
 
+The Tool Catalog now also carries declarative parameter/property-editor schemas. Scalar,
+enum, array, coordinate-aware geometry, ROI, and versioned resource/model/calibration
+fields have type-safe defaults and editor metadata. Conditional fields are validated as
+an acyclic dependency graph before a tool definition can enter the registry.
+
 The first executable inspection path now runs deterministic File Camera frames through a compiled typed Workflow, real ONNX Runtime CPU inference, immutable result finalization, image evidence storage, and SQLite history. It proves the reference platform path and error semantics; the included synthetic model and PGM fixtures are engineering regression assets, not production inspection content.
 
 ## Read First

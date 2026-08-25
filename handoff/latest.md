@@ -36,18 +36,21 @@
   Definitions cover typed ports, hierarchical metadata, origin, and execution
   characteristics. Resolution is exact by ID/version and preserves unknown versus
   unsupported-version states independently of category metadata.
+- Added declarative parameter/property-editor schemas in `b143c6a`. The contracts cover
+  enum, typed arrays, geometry, ROI, and versioned resource/model/calibration references,
+  with type-safe defaults, UI-neutral editor metadata, and acyclic conditional fields.
 
 ## Current Status
 
-M1 remains complete, and M2 is in progress on `codex/generic-vision-m2`. The first Tool
-Definition/Catalog slice (`a2f1a25`) is implemented and green. The feature branch has not
-been merged or pushed.
+M1 remains complete, and M2 is in progress on `codex/generic-vision-m2`. Tool
+Definition/Catalog (`a2f1a25`) and declarative parameter schemas (`b143c6a`) are
+implemented and green. The feature branch has not been merged or pushed.
 
 ## Next Actions
 
-1. Implement the declarative parameter/property-editor schema and conditional fields.
-2. Add reusable subworkflow and unresolved-node preservation contracts, then validate the
+1. Add reusable subworkflow and unresolved-node preservation contracts, then validate the
    two generic reference graphs.
+2. Enumerate the initial generic built-in Tool Catalog tree.
 3. Keep the M0 asset provenance gap explicit and run the full repository check after each
    coherent behavior slice.
 
@@ -65,6 +68,6 @@ been merged or pushed.
 
 - Completed M1 baseline full `scripts/check.ps1`: passed before M2 changes.
 - Native Release build with `/W4 /WX`: passed after the current M2 changes.
-- CTest: 5 passed, 0 failed.
-- Full post-change `scripts/check.ps1`: passed; 5 native CTests and 119 .NET tests passed,
+- CTest: 6 passed, 0 failed.
+- Full post-change `scripts/check.ps1`: passed; 6 native CTests and 119 .NET tests passed,
   with 0 build warnings and formatting verification clean.
