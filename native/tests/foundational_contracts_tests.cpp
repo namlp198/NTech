@@ -1,3 +1,4 @@
+#include "nvision/acquisition/image_view.hpp"
 #include "nvision/core/data_type.hpp"
 #include "nvision/core/geometry.hpp"
 #include "nvision/core/inspection_outcome.hpp"
@@ -7,8 +8,10 @@
 #include <cmath>
 #include <cstdlib>
 #include <limits>
+#include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #define NVISION_REQUIRE(condition) \
@@ -33,15 +36,28 @@ using nvision::core::Polygon;
 using nvision::core::PortDataType;
 using nvision::core::SemanticVersion;
 using nvision::core::Transform2D;
+using nvision::acquisition::Frame;
+using nvision::acquisition::FrameBuffer;
+using nvision::acquisition::FrameLease;
+using nvision::acquisition::FrameMetadata;
+using nvision::acquisition::FrameStatus;
+using nvision::acquisition::ImageView;
+using nvision::acquisition::PixelFormat;
+using nvision::acquisition::TimestampQuality;
 
-template <typename Action>
-bool rejects_invalid_argument(Action action) {
+template <typename Exception, typename Action>
+bool rejects(Action action) {
     try {
         action();
-    } catch (const std::invalid_argument&) {
+    } catch (const Exception&) {
         return true;
     }
     return false;
+}
+
+template <typename Action>
+bool rejects_invalid_argument(Action action) {
+    return rejects<std::invalid_argument>(std::move(action));
 }
 
 void stable_identifiers_are_typed_and_canonical() {
@@ -220,6 +236,151 @@ void both_reference_workflows_are_expressible_with_generic_port_types() {
     NVISION_REQUIRE(point_grid_inspection_types.back() == PortDataType::evidence);
 }
 
+void image_views_retain_frame_ownership_without_copying_pixels() {
+    std::vector<std::uint8_t> bytes(48U);
+    for (std::size_t index = 0U; index < bytes.size(); ++index) {
+        bytes[index] = static_cast<std::uint8_t>(index);
+    }
+
+    auto buffer = std::make_shared<const FrameBuffer>(std::move(bytes));
+    std::weak_ptr<const FrameBuffer> observed_buffer = buffer;
+    FrameLease frame = std::make_shared<const Frame>(
+        std::array<std::uint8_t, 16>{1U, 2U, 3U, 4U},
+        "test-camera",
+        1U,
+        0,
+        0,
+        4U,
+        3U,
+        16U,
+        PixelFormat::bgr8,
+        buffer,
+        FrameStatus::complete,
+        TimestampQuality::host_only,
+        FrameMetadata{});
+    std::weak_ptr<const Frame> observed_frame = frame;
+
+    {
+        const ImageView view(frame, 1U, 1U, 2U, 2U);
+        frame.reset();
+        buffer.reset();
+
+        NVISION_REQUIRE(!observed_frame.expired());
+        NVISION_REQUIRE(!observed_buffer.expired());
+        NVISION_REQUIRE(view.origin_x() == 1U);
+        NVISION_REQUIRE(view.origin_y() == 1U);
+        NVISION_REQUIRE(view.width() == 2U);
+        NVISION_REQUIRE(view.height() == 2U);
+        NVISION_REQUIRE(view.stride_bytes() == 16U);
+        NVISION_REQUIRE(view.pixel_format() == PixelFormat::bgr8);
+
+        const std::span<const std::uint8_t> first_row = view.row(0U);
+        const std::span<const std::uint8_t> second_row = view.row(1U);
+        NVISION_REQUIRE(first_row.size() == 6U);
+        NVISION_REQUIRE(second_row.size() == 6U);
+        NVISION_REQUIRE(first_row.front() == 19U);
+        NVISION_REQUIRE(first_row.back() == 24U);
+        NVISION_REQUIRE(second_row.front() == 35U);
+        NVISION_REQUIRE(second_row.back() == 40U);
+        NVISION_REQUIRE(
+            first_row.data() == view.frame()->buffer()->bytes().data() + 19U);
+
+        const ImageView nested = view.subview(1U, 0U, 1U, 2U);
+        NVISION_REQUIRE(nested.origin_x() == 2U);
+        NVISION_REQUIRE(nested.origin_y() == 1U);
+        NVISION_REQUIRE(nested.row(0U).data() == view.frame()->buffer()->bytes().data() + 22U);
+    }
+
+    NVISION_REQUIRE(observed_frame.expired());
+    NVISION_REQUIRE(observed_buffer.expired());
+}
+
+void image_views_define_frame_specific_coordinate_transforms_and_bounds() {
+    auto buffer = std::make_shared<const FrameBuffer>(std::vector<std::uint8_t>(48U));
+    const FrameLease frame = std::make_shared<const Frame>(
+        std::array<std::uint8_t, 16>{10U, 11U, 12U, 13U},
+        "test-camera",
+        1U,
+        0,
+        0,
+        4U,
+        3U,
+        16U,
+        PixelFormat::bgr8,
+        buffer,
+        FrameStatus::complete,
+        TimestampQuality::host_only,
+        FrameMetadata{});
+    const ImageView root(frame);
+    const ImageView view(frame, 1U, 1U, 2U, 2U);
+
+    NVISION_REQUIRE(root.coordinate_space() == root.source_coordinate_space());
+    NVISION_REQUIRE(view.coordinate_space() != view.source_coordinate_space());
+    NVISION_REQUIRE(
+        view.coordinate_space().value().find("nvision.frame.") == 0U);
+
+    const Point2D source_point = view.view_to_source().apply(
+        Point2D(view.coordinate_space(), 0.0, 0.0));
+    NVISION_REQUIRE(source_point.coordinate_space() == view.source_coordinate_space());
+    NVISION_REQUIRE(source_point.x() == 1.0);
+    NVISION_REQUIRE(source_point.y() == 1.0);
+
+    const Point2D local_point = view.source_to_view().apply(
+        Point2D(view.source_coordinate_space(), 2.0, 2.0));
+    NVISION_REQUIRE(local_point.coordinate_space() == view.coordinate_space());
+    NVISION_REQUIRE(local_point.x() == 1.0);
+    NVISION_REQUIRE(local_point.y() == 1.0);
+
+    NVISION_REQUIRE(rejects<std::out_of_range>([&] {
+        static_cast<void>(view.row(2U));
+    }));
+    NVISION_REQUIRE(rejects<std::out_of_range>([&] {
+        ImageView invalid(frame, 3U, 2U, 2U, 1U);
+    }));
+    NVISION_REQUIRE(rejects<std::out_of_range>([&] {
+        static_cast<void>(view.subview(1U, 1U, 2U, 2U));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        ImageView invalid(FrameLease{});
+    }));
+
+    const FrameLease unidentified = std::make_shared<const Frame>(
+        std::array<std::uint8_t, 16>{},
+        "test-camera",
+        2U,
+        0,
+        0,
+        4U,
+        3U,
+        16U,
+        PixelFormat::bgr8,
+        std::make_shared<const FrameBuffer>(std::vector<std::uint8_t>(48U)),
+        FrameStatus::complete,
+        TimestampQuality::host_only,
+        FrameMetadata{});
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        ImageView invalid(unidentified);
+    }));
+
+    const FrameLease incomplete = std::make_shared<const Frame>(
+        std::array<std::uint8_t, 16>{20U},
+        "test-camera",
+        2U,
+        0,
+        0,
+        4U,
+        3U,
+        16U,
+        PixelFormat::bgr8,
+        std::make_shared<const FrameBuffer>(std::vector<std::uint8_t>(48U)),
+        FrameStatus::incomplete,
+        TimestampQuality::host_only,
+        FrameMetadata{});
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        ImageView invalid(incomplete);
+    }));
+}
+
 }  // namespace
 
 int main() {
@@ -228,5 +389,7 @@ int main() {
     geometry_preserves_coordinate_spaces_and_explicit_transforms();
     technical_status_cannot_be_misreported_as_an_inspection_verdict();
     both_reference_workflows_are_expressible_with_generic_port_types();
+    image_views_retain_frame_ownership_without_copying_pixels();
+    image_views_define_frame_specific_coordinate_transforms_and_bounds();
     return 0;
 }
