@@ -25,3 +25,8 @@ semantic version precedence, generic native port data kinds, coordinate-space-aw
 geometry and homographies, and an inspection outcome that prevents technical failures
 from being represented as OK or NG. These are internal native contracts; C ABI exposure
 is intentionally deferred until the generic boundary is proven.
+
+`ImageView` adds bounded, read-only zero-copy access to a complete Frame. Full-frame,
+ROI, and nested views retain the source Frame lease, expose stride-aware row spans, and
+carry frame-specific coordinate spaces plus explicit view-to-source/source-to-view
+transforms. Row spans remain valid only while the view or another Frame owner is alive.

@@ -23,6 +23,10 @@ application-neutral foundational contract slice: typed stable identifiers, seman
 versions, generic port data kinds, coordinate-space-aware geometry and transforms, and
 separate technical execution status versus inspection verdict.
 
+Native acquisition also provides zero-copy `ImageView` contracts. A view retains its
+source Frame lease, respects stride and ROI bounds, and carries frame-specific source/
+local coordinate spaces with explicit transforms.
+
 The first executable inspection path now runs deterministic File Camera frames through a compiled typed Workflow, real ONNX Runtime CPU inference, immutable result finalization, image evidence storage, and SQLite history. It proves the reference platform path and error semantics; the included synthetic model and PGM fixtures are engineering regression assets, not production inspection content.
 
 ## Read First

@@ -22,22 +22,23 @@
   prevents Error, Timeout, or Cancelled execution from carrying OK/NG.
 - Added `nvision_foundational_contracts_tests`; all 3 native CTests pass with warnings as
   errors.
+- Added zero-copy `ImageView` in `0c71340`. Full-frame, ROI, and nested views retain the
+  Frame lease, expose stride-aware read-only rows, reject incomplete/anonymous frames and
+  invalid bounds, and carry frame-specific source/local spaces with explicit transforms.
 
 ## Current Status
 
-M1 is in progress. The first foundational-contract slice is implemented and native tests
-pass in `c07440b`. Image views, versioned resource references, and immutable result/
-evidence contracts remain before the M1 exit gate is complete.
+M1 is in progress. Foundational contracts (`c07440b`) and zero-copy Image Views
+(`0c71340`) are implemented and green. Versioned resource references and immutable
+result/evidence contracts remain before the M1 exit gate is complete.
 
 ## Next Actions
 
-1. Implement a native image-view contract tied to retained image ownership and explicit
-   source/target coordinate spaces.
-2. Implement generic immutable resource/model/template references with version and
+1. Implement generic immutable resource/model/template references with version and
    checksum metadata.
-3. Implement immutable execution/result/evidence aggregates using the status/verdict
+2. Implement immutable execution/result/evidence aggregates using the status/verdict
    invariant already established.
-4. Run the full repository check after each coherent behavior slice.
+3. Run the full repository check after each coherent behavior slice.
 
 ## Warnings
 
