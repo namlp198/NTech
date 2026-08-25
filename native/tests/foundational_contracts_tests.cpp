@@ -2,6 +2,7 @@
 #include "nvision/core/data_type.hpp"
 #include "nvision/core/geometry.hpp"
 #include "nvision/core/inspection_outcome.hpp"
+#include "nvision/core/resource_reference.hpp"
 #include "nvision/core/semantic_version.hpp"
 
 #include <array>
@@ -11,6 +12,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -30,10 +32,16 @@ using nvision::core::ExecutionSessionId;
 using nvision::core::ExecutionStatus;
 using nvision::core::InspectionOutcome;
 using nvision::core::InspectionVerdict;
+using nvision::core::IntegrityAlgorithm;
+using nvision::core::IntegrityDigest;
 using nvision::core::Line2D;
 using nvision::core::Point2D;
 using nvision::core::Polygon;
 using nvision::core::PortDataType;
+using nvision::core::ResourceId;
+using nvision::core::ResourceIntegrity;
+using nvision::core::ResourceKind;
+using nvision::core::ResourceReference;
 using nvision::core::SemanticVersion;
 using nvision::core::Transform2D;
 using nvision::acquisition::Frame;
@@ -381,6 +389,79 @@ void image_views_define_frame_specific_coordinate_transforms_and_bounds() {
     }));
 }
 
+void resource_references_are_versioned_and_content_addressed() {
+    constexpr std::string_view checksum =
+        "3bec1d7190001d1dc1f4ef009013b1abafb1d6a7d725840f15c54920e639e313";
+    const IntegrityDigest digest = IntegrityDigest::parse(std::string("sha256:") +
+                                                           std::string(checksum));
+    const ResourceIntegrity model_integrity(digest, 146U);
+    const ResourceReference model(
+        ResourceId("nvision.resource.text-detector"),
+        SemanticVersion(1U, 3U, 2U),
+        ResourceKind::model,
+        model_integrity);
+    const ResourceReference template_asset(
+        ResourceId("nvision.resource.golden-template"),
+        SemanticVersion(2U, 0U, 0U),
+        ResourceKind::template_asset,
+        ResourceIntegrity(digest, 4'096U));
+    const ResourceReference lookup_resource(
+        ResourceId("nvision.resource.lookup-table"),
+        SemanticVersion(1U, 0U, 0U),
+        ResourceKind::resource,
+        ResourceIntegrity(digest, 256U));
+
+    NVISION_REQUIRE(digest.algorithm() == IntegrityAlgorithm::sha256);
+    NVISION_REQUIRE(digest.hex_digest() == checksum);
+    NVISION_REQUIRE(digest.to_string() == std::string("sha256:") + std::string(checksum));
+    NVISION_REQUIRE(model.id().value() == "nvision.resource.text-detector");
+    NVISION_REQUIRE(model.version().to_string() == "1.3.2");
+    NVISION_REQUIRE(model.kind() == ResourceKind::model);
+    NVISION_REQUIRE(model.integrity().content_length_bytes() == 146U);
+    NVISION_REQUIRE(model.integrity().digest() == digest);
+    NVISION_REQUIRE(template_asset.kind() == ResourceKind::template_asset);
+    NVISION_REQUIRE(template_asset.integrity().content_length_bytes() == 4'096U);
+    NVISION_REQUIRE(lookup_resource.kind() == ResourceKind::resource);
+    NVISION_REQUIRE(lookup_resource.integrity().content_length_bytes() == 256U);
+}
+
+void resource_integrity_rejects_noncanonical_or_incomplete_metadata() {
+    constexpr std::string_view checksum =
+        "3bec1d7190001d1dc1f4ef009013b1abafb1d6a7d725840f15c54920e639e313";
+    const IntegrityDigest digest(IntegrityAlgorithm::sha256, std::string(checksum));
+
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        static_cast<void>(IntegrityDigest::parse("sha256:1234"));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(IntegrityDigest::parse(std::string("SHA256:") +
+                                                 std::string(checksum)));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        std::string uppercase(checksum);
+        uppercase[0] = 'A';
+        IntegrityDigest invalid(IntegrityAlgorithm::sha256, std::move(uppercase));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        std::string invalid_hex(checksum);
+        invalid_hex[0] = 'g';
+        IntegrityDigest invalid(IntegrityAlgorithm::sha256, std::move(invalid_hex));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        IntegrityDigest invalid(static_cast<IntegrityAlgorithm>(999U), std::string(checksum));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        ResourceIntegrity invalid(digest, 0U);
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        ResourceReference invalid(
+            ResourceId("nvision.resource.invalid-kind"),
+            SemanticVersion(1U, 0U, 0U),
+            static_cast<ResourceKind>(999U),
+            ResourceIntegrity(digest, 1U));
+    }));
+}
+
 }  // namespace
 
 int main() {
@@ -391,5 +472,7 @@ int main() {
     both_reference_workflows_are_expressible_with_generic_port_types();
     image_views_retain_frame_ownership_without_copying_pixels();
     image_views_define_frame_specific_coordinate_transforms_and_bounds();
+    resource_references_are_versioned_and_content_addressed();
+    resource_integrity_rejects_noncanonical_or_incomplete_metadata();
     return 0;
 }
