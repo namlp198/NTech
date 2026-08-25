@@ -1227,7 +1227,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | N0 — Native foundation | Complete | Existing repository baseline |
 | N1 — Native acquisition | Complete and merged | `ed53d73`, merge `bd46168` |
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
-| M1 — Native data contracts | In progress | Foundational contracts on `codex/generic-vision-m1` |
+| M1 — Native data contracts | In progress | `c07440b` foundational contracts on `codex/generic-vision-m1` |
 | M2 — Tool definition/catalog | Not started | |
 | M3 — Generic OpenCV foundation | Not started | |
 | M4 — Model/recognition foundation | Not started | |

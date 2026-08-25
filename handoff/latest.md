@@ -26,8 +26,8 @@
 ## Current Status
 
 M1 is in progress. The first foundational-contract slice is implemented and native tests
-pass. Image views, versioned resource references, and immutable result/evidence contracts
-remain before the M1 exit gate is complete.
+pass in `c07440b`. Image views, versioned resource references, and immutable result/
+evidence contracts remain before the M1 exit gate is complete.
 
 ## Next Actions
 
