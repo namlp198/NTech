@@ -1227,8 +1227,8 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | N0 — Native foundation | Complete | Existing repository baseline |
 | N1 — Native acquisition | Complete and merged | `ed53d73`, merge `bd46168` |
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
-| M1 — Native data contracts | Complete on feature branch | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results |
-| M2 — Tool definition/catalog | In progress | `a2f1a25` definitions/registry; `b143c6a` parameter schemas |
+| M1 — Native data contracts | Complete and merged | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results; merge `d01e54c` |
+| M2 — Tool definition/catalog | In progress, foundation merged | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c` |
 | M3 — Generic OpenCV foundation | Not started | |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
@@ -1243,9 +1243,10 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 
 ## 20. Immediate next action
 
-M2 is active on `codex/generic-vision-m2`. Versioned Tool Definition/Registry and
-declarative parameter/property-editor schemas are complete. Continue with the remaining
-smallest generic contract slices while keeping the M0 provenance gap explicit:
+M2 is active, with its current foundation merged into `develop` by `d01e54c`. Versioned
+Tool Definition/Registry and declarative parameter/property-editor schemas are complete.
+Continue on a new feature branch with the remaining smallest generic contract slices while
+keeping the M0 provenance gap explicit:
 
 1. preserve unresolved-node configuration and add the reusable subworkflow contract;
 2. enumerate the initial generic built-in Tool Catalog tree and validate both reference

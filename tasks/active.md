@@ -2,7 +2,7 @@
 
 ## Current Task
 
-M2 — Tool Definition, Catalog, and Parameter Schema — In Progress
+M2 — Tool Definition, Catalog, and Parameter Schema — In Progress, Foundation Merged
 
 ## Goal
 
@@ -30,6 +30,8 @@ persisted identity to Studio display structure.
   controllers, self-dependencies, and conditional visibility cycles.
 - Added dedicated Tool Catalog and Parameter Schema test targets; the full repository gate
   passes with 6 native CTests and 119 .NET tests.
+- Merged the completed M1 chain and current M2 foundation into `develop` with merge commit
+  `d01e54c`; the full post-merge repository gate remains green.
 
 ## Next Steps
 
@@ -42,7 +44,7 @@ persisted identity to Studio display structure.
 
 ## Acceptance Criteria
 
-- [x] Work occurs on a dedicated M2 feature branch with the M1 baseline green.
+- [x] Work occurred on a dedicated M2 feature branch and the green foundation is merged.
 - [x] Tool definitions have stable ID plus exact semantic version.
 - [x] Category metadata can change without changing registry identity.
 - [x] Typed ports, built-in/plugin origin, and execution characteristics are validated.

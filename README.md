@@ -18,7 +18,7 @@ buffer lifetime, retain/release frame leases, deterministic P2 File Camera repla
 camera connect/acquire/disconnect state, timeout/cancellation, and acquisition errors.
 The .NET SDK exercises these capabilities only through the versioned C ABI.
 
-M1 foundational contracts are complete on the generic vision platform feature branch.
+M1 foundational contracts are complete and merged into `develop`.
 Native Core now has typed stable identifiers, semantic versions, generic port data kinds,
 coordinate-space-aware geometry and transforms, and separate technical execution status
 versus inspection verdict.

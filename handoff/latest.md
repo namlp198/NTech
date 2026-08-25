@@ -6,7 +6,7 @@
 
 ## Branch
 
-`codex/generic-vision-m2`
+`develop`
 
 ## Completed
 
@@ -39,12 +39,14 @@
 - Added declarative parameter/property-editor schemas in `b143c6a`. The contracts cover
   enum, typed arrays, geometry, ROI, and versioned resource/model/calibration references,
   with type-safe defaults, UI-neutral editor metadata, and acyclic conditional fields.
+- Merged `codex/generic-vision-m2` into `develop` with `d01e54c`. This also merges the full
+  M1 dependency chain, which had not previously entered `develop`.
 
 ## Current Status
 
-M1 remains complete, and M2 is in progress on `codex/generic-vision-m2`. Tool
-Definition/Catalog (`a2f1a25`) and declarative parameter schemas (`b143c6a`) are
-implemented and green. The feature branch has not been merged or pushed.
+M1 is complete and merged. M2 remains in progress; Tool Definition/Catalog (`a2f1a25`)
+and declarative parameter schemas (`b143c6a`) are merged into local `develop` by
+`d01e54c` and green. Local `develop` has not been pushed.
 
 ## Next Actions
 
@@ -71,3 +73,5 @@ implemented and green. The feature branch has not been merged or pushed.
 - CTest: 6 passed, 0 failed.
 - Full post-change `scripts/check.ps1`: passed; 6 native CTests and 119 .NET tests passed,
   with 0 build warnings and formatting verification clean.
+- Full post-merge `scripts/check.ps1 -NoRestore`: passed with the same 6 native CTests and
+  119 .NET tests, 0 build warnings, and clean formatting verification.
