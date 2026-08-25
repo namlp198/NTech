@@ -2,42 +2,47 @@
 
 ## Current Task
 
-N0 — Native Engine Foundation and Managed Boundary — Complete
+N1 — Native Frame, File Camera, and Acquisition Lifecycle — Complete
 
 ## Goal
 
-Rebaseline NVision around one portable C++20 Core/Engine, expose it through a stable
-C ABI for embedded P/Invoke clients, and define a gRPC Engine Host boundary for
-production Runtime deployments.
+Move authoritative Frame/PixelFormat contracts, buffer ownership, deterministic File
+Camera replay, and bounded acquisition lifecycle from the managed compatibility path
+into the portable C++20 Engine.
 
-## Completed in Current N0 Slice
+## Completed in Current N1 Slice
 
-- Accepted ADR-0005 and rebaselined the product, architecture, AI, device, Runtime,
-  Studio, roadmap, implementation, and repository-structure documentation.
-- Added a cross-platform CMake foundation and portable `nvision_core` C++ library.
-- Added versioned C ABI v1 with opaque handles, retain/release ownership, bounded
-  UTF-8 output, capability discovery, and thread-local diagnostics.
-- Added the .NET 10 `NTech.NVision.Native` P/Invoke SDK using `LibraryImport` and
-  `SafeHandle`, with real native integration tests.
-- Added the initial production Engine Host protobuf contract, including lifecycle,
-  inspection, cancellation, state, and shared-frame descriptors.
-- Integrated native build/test into the repository build, test, and check scripts.
-- Preserved the managed P0-P2 implementation as a behavior oracle during migration.
+- Added immutable native Frame, PixelFormat, status, timestamp quality, metadata, and
+  read-only FrameBuffer types with dimension/stride/length validation.
+- Added shared native FrameLease ownership; the buffer is released only after the final
+  internal or C ABI frame owner releases it.
+- Added deterministic ASCII PGM P2 File Camera replay with ordered/looping sources,
+  reconnect reset, stable frame IDs, exact metadata, and normalized Mono8 pixels.
+- Added connect/acquire/disconnect state, missing-source faulting, invalid-state and
+  end-of-stream failures, bounded lock/I/O processing, and cancellation checks.
+- Extended C ABI v1 with opaque camera, frame, and cancellation handles; fixed-layout
+  request/info structures; zero-copy buffer view; bounded UTF-8 metadata; and explicit
+  status/error mapping.
+- Extended the .NET 10 facade with `NativeFileCamera`, `NativeFrameLease`, `SafeHandle`
+  ownership, cancellation bridging, explicit diagnostic pixel copy, and typed metadata.
+- Added direct native, C ABI, architecture, and managed interop coverage while retaining
+  the managed acquisition implementation as the P2 behavior oracle.
 
 ## Next Steps
 
-1. N1: port Frame/PixelFormat/buffer ownership, File Camera, and acquisition lifecycle
-   to C++ while retaining the existing managed tests as parity tests.
-2. N2: port preprocessing and ONNX Runtime execution to C++, then remove production
-   inference from the managed ONNX plugin.
-3. N3: port Workflow compilation/execution and the Wire Marker inspection path.
-4. N4: generate and implement the production gRPC Engine Host after C ABI parity.
+1. N2: port `.nvmodel` package/integrity validation and model registry/session ownership
+   to C++.
+2. Port classification preprocessing and postprocessing to native golden-tested code.
+3. Integrate ONNX Runtime through its native C/C++ API and remove managed production
+   inference after parity and performance gates pass.
+4. N3: port Workflow compilation/execution and the Wire Marker inspection path.
 
 ## Acceptance Criteria
 
-- [x] Native C++ builds with warnings-as-errors through CMake.
-- [x] Native unit tests pass.
-- [x] C ABI lifetime, ABI negotiation, capabilities, and diagnostics are tested.
-- [x] .NET P/Invoke integration loads and exercises the real native library.
-- [x] Production Engine Host protobuf contract is versioned in the repository.
-- [x] Full native + managed repository check passes.
+- [x] Complete native frames reject invalid shape/stride/buffer combinations.
+- [x] Native buffer ownership survives retained leases and ends at the final release.
+- [x] File Camera replay, loop, reconnect, metadata, and pixels match the managed oracle.
+- [x] Invalid state, missing source, timeout, cancellation, and end-of-stream are explicit.
+- [x] C ABI camera/frame/cancellation ownership is opaque and version-compatible.
+- [x] P/Invoke exercises the real native implementation through `SafeHandle`.
+- [x] Native and managed acquisition/parity tests pass.

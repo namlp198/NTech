@@ -4,12 +4,18 @@ This directory owns the canonical portable C++20 Core and Engine introduced by
 ADR-0005.
 
 ```text
-core/   Internal native Core/Engine implementation
-abi/    Stable versioned C ABI for P/Invoke and embedding
-host/   Production Engine Host gRPC contract and implementation
-tests/  Native lifetime, ABI, behavior, and performance verification
+core/         Internal native Core/Engine implementation
+acquisition/  Frame, native buffer ownership, File Camera, and acquisition lifecycle
+abi/          Stable versioned C ABI for P/Invoke and embedding
+host/         Production Engine Host gRPC contract and implementation
+tests/        Native lifetime, ABI, behavior, and performance verification
 ```
 
 Internal C++ APIs may evolve with the source tree. Only the C ABI and versioned gRPC
 contract are binary/process boundaries. Do not export STL types, exceptions, raw vendor
 types, or compiler-specific object layouts.
+
+The N1 acquisition slice provides immutable native frames, shared ownership retained
+until the final lease is released, deterministic ASCII PGM replay, bounded acquisition,
+explicit cancellation, and lifecycle/error states. `nv_frame_get_buffer` is zero-copy;
+its pointer remains valid only while the caller owns a frame handle.

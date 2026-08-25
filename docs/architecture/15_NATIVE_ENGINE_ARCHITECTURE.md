@@ -1,8 +1,8 @@
 # 15 — NVision Native Engine Architecture
 
 **Status:** Accepted
-**Version:** 1.0
-**Date:** 2026-08-20
+**Version:** 1.1
+**Date:** 2026-08-25
 **Decision:** `ADR-0005`
 
 ## 1. Purpose
@@ -199,3 +199,12 @@ Native foundation + C ABI
 
 P3 Studio work may build managed authoring UI, but test, publish validation, and runtime
 execution must target the native engine boundary.
+
+## 14. Implementation Status
+
+N0 and N1 are complete. The shared native library now owns Frame/PixelFormat contracts,
+read-only native buffers, retained frame leases, deterministic File Camera replay,
+connect/acquire/disconnect lifecycle, timeout/cancellation, and acquisition error mapping.
+The C ABI and .NET P/Invoke facade exercise the same implementation. The managed P2
+acquisition path remains only as the parity oracle until the complete Wire Marker path
+has migrated.

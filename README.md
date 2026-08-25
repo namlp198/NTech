@@ -13,6 +13,11 @@ P0–P2 path remains a compatibility oracle while canonical Core/Engine behavior
 to C++20. C#/.NET 10 remains the product plane for Studio, Runtime supervision/UI,
 authoring, persistence, and business software.
 
+N1 is complete: native C++ now owns immutable Frame/PixelFormat contracts, read-only
+buffer lifetime, retain/release frame leases, deterministic P2 File Camera replay,
+camera connect/acquire/disconnect state, timeout/cancellation, and acquisition errors.
+The .NET SDK exercises these capabilities only through the versioned C ABI.
+
 The first executable inspection path now runs deterministic File Camera frames through a compiled typed Workflow, real ONNX Runtime CPU inference, immutable result finalization, image evidence storage, and SQLite history. It proves the reference platform path and error semantics; the included synthetic model and PGM fixtures are engineering regression assets, not production inspection content.
 
 ## Read First
