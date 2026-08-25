@@ -1,7 +1,17 @@
 add_library(nvision_core STATIC
     acquisition/src/file_camera.cpp
     acquisition/src/frame.cpp
-    core/src/engine.cpp)
+    acquisition/src/image_view.cpp
+    core/src/engine.cpp
+    core/src/execution_result.cpp
+    core/src/geometry.cpp
+    core/src/identifier.cpp
+    core/src/inspection_outcome.cpp
+    core/src/parameter_schema.cpp
+    core/src/resource_reference.cpp
+    core/src/semantic_version.cpp
+    core/src/tool_definition.cpp
+    core/src/tool_registry.cpp)
 
 target_include_directories(nvision_core
     PUBLIC
@@ -77,4 +87,75 @@ if(NVISION_BUILD_TESTS)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 
     add_test(NAME nvision_acquisition_tests COMMAND nvision_acquisition_tests)
+
+    add_executable(nvision_foundational_contracts_tests
+        tests/foundational_contracts_tests.cpp)
+
+    target_link_libraries(nvision_foundational_contracts_tests PRIVATE nvision_core)
+    target_compile_features(nvision_foundational_contracts_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_foundational_contracts_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(nvision_foundational_contracts_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_foundational_contracts_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(
+        NAME nvision_foundational_contracts_tests
+        COMMAND nvision_foundational_contracts_tests)
+
+    add_executable(nvision_execution_result_tests
+        tests/execution_result_tests.cpp)
+
+    target_link_libraries(nvision_execution_result_tests PRIVATE nvision_core)
+    target_compile_features(nvision_execution_result_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_execution_result_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(nvision_execution_result_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_execution_result_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_execution_result_tests COMMAND nvision_execution_result_tests)
+
+    add_executable(nvision_tool_catalog_tests
+        tests/tool_catalog_tests.cpp)
+
+    target_link_libraries(nvision_tool_catalog_tests PRIVATE nvision_core)
+    target_compile_features(nvision_tool_catalog_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_tool_catalog_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(nvision_tool_catalog_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_tool_catalog_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_tool_catalog_tests COMMAND nvision_tool_catalog_tests)
+
+    add_executable(nvision_parameter_schema_tests
+        tests/parameter_schema_tests.cpp)
+
+    target_link_libraries(nvision_parameter_schema_tests PRIVATE nvision_core)
+    target_compile_features(nvision_parameter_schema_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_parameter_schema_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_parameter_schema_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_parameter_schema_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_parameter_schema_tests COMMAND nvision_parameter_schema_tests)
 endif()

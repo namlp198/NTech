@@ -2,47 +2,51 @@
 
 ## Current Task
 
-N1 — Native Frame, File Camera, and Acquisition Lifecycle — Complete
+M2 — Tool Definition, Catalog, and Parameter Schema — In Progress
 
 ## Goal
 
-Move authoritative Frame/PixelFormat contracts, buffer ownership, deterministic File
-Camera replay, and bounded acquisition lifecycle from the managed compatibility path
-into the portable C++20 Engine.
+Create an application-neutral native Tool Catalog whose stable versioned definitions,
+schemas, and resolution behavior can describe both reference workflows without coupling
+persisted identity to Studio display structure.
 
-## Completed in Current N1 Slice
+## Completed in Current Slice
 
-- Added immutable native Frame, PixelFormat, status, timestamp quality, metadata, and
-  read-only FrameBuffer types with dimension/stride/length validation.
-- Added shared native FrameLease ownership; the buffer is released only after the final
-  internal or C ABI frame owner releases it.
-- Added deterministic ASCII PGM P2 File Camera replay with ordered/looping sources,
-  reconnect reset, stable frame IDs, exact metadata, and normalized Mono8 pixels.
-- Added connect/acquire/disconnect state, missing-source faulting, invalid-state and
-  end-of-stream failures, bounded lock/I/O processing, and cancellation checks.
-- Extended C ABI v1 with opaque camera, frame, and cancellation handles; fixed-layout
-  request/info structures; zero-copy buffer view; bounded UTF-8 metadata; and explicit
-  status/error mapping.
-- Extended the .NET 10 facade with `NativeFileCamera`, `NativeFrameLease`, `SafeHandle`
-  ownership, cancellation bridging, explicit diagnostic pixel copy, and typed metadata.
-- Added direct native, C ABI, architecture, and managed interop coverage while retaining
-  the managed acquisition implementation as the P2 behavior oracle.
+- Created `codex/generic-vision-m2` from the completed M1 feature branch.
+- Added strong Tool Type, Plugin, and Port Key identities.
+- Added immutable versioned `ToolTypeDefinition` contracts with typed ports,
+  hierarchical category metadata, tags, descriptions, built-in/plugin origin, and
+  execution lifetime/device/cancellation/debug characteristics.
+- Added a native `ToolRegistry` keyed only by stable Tool Type ID and exact semantic
+  version. Exact resolution distinguishes unknown IDs from unsupported versions and
+  preserves the unresolved request identity.
+- Proved category paths are mutable catalog metadata rather than persisted registry
+  identity.
+- Added declarative `ParameterValue`, `ParameterType`, `ParameterDefinition`, and Property
+  Editor metadata contracts for scalar, enum, recursively typed array, geometry, ROI, and
+  versioned resource/model/calibration fields.
+- Integrated parameters into immutable Tool Definitions. Finalization rejects duplicate
+  keys, incompatible defaults/editor controls, missing or type-incompatible condition
+  controllers, self-dependencies, and conditional visibility cycles.
+- Added dedicated Tool Catalog and Parameter Schema test targets; the full repository gate
+  passes with 6 native CTests and 119 .NET tests.
 
 ## Next Steps
 
-1. N2: port `.nvmodel` package/integrity validation and model registry/session ownership
-   to C++.
-2. Port classification preprocessing and postprocessing to native golden-tested code.
-3. Integrate ONNX Runtime through its native C/C++ API and remove managed production
-   inference after parity and performance gates pass.
-4. N3: port Workflow compilation/execution and the Wire Marker inspection path.
+1. Add reusable subworkflow and preserved unresolved-node contracts, then validate both
+   reference graphs against the native catalog.
+2. Enumerate the initial generic built-in tool tree with the completed definition/schema
+   contracts.
+3. Complete the external model/dependency license provenance audit before importing or
+   redistributing reference assets; keep C ABI/gRPC exposure deferred until M8.
 
 ## Acceptance Criteria
 
-- [x] Complete native frames reject invalid shape/stride/buffer combinations.
-- [x] Native buffer ownership survives retained leases and ends at the final release.
-- [x] File Camera replay, loop, reconnect, metadata, and pixels match the managed oracle.
-- [x] Invalid state, missing source, timeout, cancellation, and end-of-stream are explicit.
-- [x] C ABI camera/frame/cancellation ownership is opaque and version-compatible.
-- [x] P/Invoke exercises the real native implementation through `SafeHandle`.
-- [x] Native and managed acquisition/parity tests pass.
+- [x] Work occurs on a dedicated M2 feature branch with the M1 baseline green.
+- [x] Tool definitions have stable ID plus exact semantic version.
+- [x] Category metadata can change without changing registry identity.
+- [x] Typed ports, built-in/plugin origin, and execution characteristics are validated.
+- [x] Registry enumeration and exact resolution preserve explicit unresolved states.
+- [x] Declarative parameter/property-editor schemas cover all required generic kinds.
+- [ ] Reusable subworkflow and unresolved-node configuration contracts are preserved.
+- [ ] The initial generic catalog validates both reference graphs at contract level.

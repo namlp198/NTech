@@ -18,6 +18,35 @@ buffer lifetime, retain/release frame leases, deterministic P2 File Camera repla
 camera connect/acquire/disconnect state, timeout/cancellation, and acquisition errors.
 The .NET SDK exercises these capabilities only through the versioned C ABI.
 
+M1 foundational contracts are complete on the generic vision platform feature branch.
+Native Core now has typed stable identifiers, semantic versions, generic port data kinds,
+coordinate-space-aware geometry and transforms, and separate technical execution status
+versus inspection verdict.
+
+Native acquisition also provides zero-copy `ImageView` contracts. A view retains its
+source Frame lease, respects stride and ROI bounds, and carries frame-specific source/
+local coordinate spaces with explicit transforms.
+
+Resource, model, template, calibration, and dictionary bindings now share one immutable
+native reference contract keyed by stable ID, exact semantic version, resource kind,
+canonical SHA-256, and expected content length.
+
+Immutable execution and inspection-result aggregates now enforce that technical failures
+remain Indeterminate, contain matching execution errors, and never carry an OK/NG quality
+decision. Evidence is content-addressed, uniquely identified, and spatial evidence must
+declare its coordinate space.
+
+M2 has started with a versioned native Tool Catalog contract. Tool definitions now bind
+stable type identity and exact semantic version to typed ports, catalog metadata,
+built-in/plugin origin, and execution characteristics. Exact registry resolution preserves
+unresolved ID/version requests, while category paths remain display metadata rather than
+persisted identity.
+
+The Tool Catalog now also carries declarative parameter/property-editor schemas. Scalar,
+enum, array, coordinate-aware geometry, ROI, and versioned resource/model/calibration
+fields have type-safe defaults and editor metadata. Conditional fields are validated as
+an acyclic dependency graph before a tool definition can enter the registry.
+
 The first executable inspection path now runs deterministic File Camera frames through a compiled typed Workflow, real ONNX Runtime CPU inference, immutable result finalization, image evidence storage, and SQLite history. It proves the reference platform path and error semantics; the included synthetic model and PGM fixtures are engineering regression assets, not production inspection content.
 
 ## Read First

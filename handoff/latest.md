@@ -2,64 +2,72 @@
 
 ## Date
 
-2026-08-25
+2026-08-26
 
 ## Branch
 
-`codex/native-acquisition`
+`codex/generic-vision-m2`
 
 ## Completed
 
-- Implemented canonical C++20 Frame, PixelFormat, status, timestamp quality, metadata,
-  and immutable native FrameBuffer contracts under `native/acquisition`.
-- Enforced positive dimensions, packed-row stride, complete-buffer size, timestamp, and
-  overflow invariants before a native Frame can exist.
-- Implemented shared native FrameLease ownership and verified the buffer survives retained
-  owners and is destroyed after the final owner releases it.
-- Implemented deterministic ASCII PGM P2 File Camera replay with ordered/looping sources,
-  stable reconnect IDs, Mono8 scaling, metadata, and sequence reset.
-- Implemented connect/acquire/disconnect lifecycle, fault state, invalid-state,
-  missing-source, invalid-data, I/O, end-of-stream, timeout, and cancellation behavior.
-- Extended C ABI v1 with opaque camera/frame/cancellation handles, explicit
-  retain/release, fixed-layout frame info, bounded UTF-8 fields, and zero-copy buffer view.
-- Extended `NTech.NVision.Native` with typed camera/frame facades and `SafeHandle`
-  ownership. `CopyPixels()` is explicit and limited to compatibility/diagnostics.
-- Expanded capabilities to Engine 0.2.0 with `native-frame`, `file-camera`, and
-  `native-acquisition` features.
-- Added native behavior/ownership tests, C ABI tests, architecture guards, and .NET
-  end-to-end interop/parity tests using the Wire Marker fixtures.
-- Updated native architecture, camera architecture, repository context, task, SDK,
-  native, and test documentation.
+- Confirmed N1 is merged into `develop` by `bd46168` and verified the clean baseline with
+  `scripts/check.ps1` before starting M1.
+- Added strong application-neutral native IDs and validated semantic-version precedence.
+- Added the initial generic native port data kinds needed by text inspection and point-
+  grid inspection reference graphs.
+- Added coordinate-space-aware point, line, circle, rectangle, polygon, and homography
+  contracts. Invalid finite values, degenerate shapes, singular transforms, and mixed
+  coordinate spaces fail at construction or application boundaries.
+- Added separate `ExecutionStatus` and `InspectionVerdict` contracts plus validation that
+  prevents Error, Timeout, or Cancelled execution from carrying OK/NG.
+- Added `nvision_foundational_contracts_tests`; all 3 native CTests pass with warnings as
+  errors.
+- Added zero-copy `ImageView` in `0c71340`. Full-frame, ROI, and nested views retain the
+  Frame lease, expose stride-aware read-only rows, reject incomplete/anonymous frames and
+  invalid bounds, and carry frame-specific source/local spaces with explicit transforms.
+- Added unified versioned resource references in `4339211`. Resource/model/template/
+  calibration/dictionary references carry stable IDs, exact versions, kinds, canonical
+  SHA-256 digests, and positive content lengths without filesystem paths.
+- Added immutable execution/result/evidence aggregates in `e8b7073`. The aggregate locks
+  technical Error/Timeout/Cancelled to Indeterminate, forbids quality decisions on failed
+  execution, requires matching stable error codes, and enforces unique coordinate-aware
+  spatial evidence.
+- Started M2 in `a2f1a25` with immutable versioned Tool Definitions and a native registry.
+  Definitions cover typed ports, hierarchical metadata, origin, and execution
+  characteristics. Resolution is exact by ID/version and preserves unknown versus
+  unsupported-version states independently of category metadata.
+- Added declarative parameter/property-editor schemas in `b143c6a`. The contracts cover
+  enum, typed arrays, geometry, ROI, and versioned resource/model/calibration references,
+  with type-safe defaults, UI-neutral editor metadata, and acyclic conditional fields.
 
 ## Current Status
 
-N1 is complete. Native acquisition is now authoritative. The managed acquisition/File
-Camera path remains unchanged as a compatibility oracle for the full P2 Wire Marker
-regression until Workflow and inspection migration are complete.
+M1 remains complete, and M2 is in progress on `codex/generic-vision-m2`. Tool
+Definition/Catalog (`a2f1a25`) and declarative parameter schemas (`b143c6a`) are
+implemented and green. The feature branch has not been merged or pushed.
 
 ## Next Actions
 
-1. Port `.nvmodel` package validation, integrity, and model/session ownership to C++.
-2. Port preprocessing/postprocessing and add native golden parity fixtures.
-3. Integrate ONNX Runtime through the native API.
-4. Keep full-resolution frames native; do not add managed hot-path buffer ownership.
+1. Add reusable subworkflow and unresolved-node preservation contracts, then validate the
+   two generic reference graphs.
+2. Enumerate the initial generic built-in Tool Catalog tree.
+3. Keep the M0 asset provenance gap explicit and run the full repository check after each
+   coherent behavior slice.
 
 ## Warnings
 
-- File Camera cancellation is cooperative at lock, pre-I/O, and post-parse boundaries;
-  standard blocking filesystem reads cannot be forcibly interrupted portably.
-- C ABI buffer pointers are valid only while a retained `nv_frame` handle exists.
-- Frame IDs are stable within the native implementation but are not promised to equal
-  the temporary managed oracle's SHA-256-derived GUID bytes.
-- The production Engine Host remains a protobuf contract scaffold until native Wire
-  Marker parity is complete.
+- Pin Insert golden/regression images remain unavailable, so it is currently an
+  architectural contract oracle rather than a parity suite.
+- ONNX Runtime and OpenCV distributions contain license files, but no license/provenance
+  evidence was found beside the external Wire Marker project/models or the provided Pin
+  Insert project. Do not import or redistribute those assets until provenance is resolved.
+- The new contracts are internal C++ APIs. Do not expose them through C ABI/gRPC until the
+  boundary work reaches M8.
 
 ## Verification
 
-- Full `scripts/check.ps1`: passed.
-- Native Release build with warnings-as-errors: passed.
-- CTest: 2 passed, 0 failed.
-- .NET Release SDK build: 0 warnings, 0 errors.
-- .NET tests: 119 passed, 0 failed, 0 skipped.
-- Native interop tests: Engine/camera lifetime, frame retain/release, metadata, pixels,
-  looping, reconnect identity, cancellation, invalid state, and end-of-stream passed.
+- Completed M1 baseline full `scripts/check.ps1`: passed before M2 changes.
+- Native Release build with `/W4 /WX`: passed after the current M2 changes.
+- CTest: 6 passed, 0 failed.
+- Full post-change `scripts/check.ps1`: passed; 6 native CTests and 119 .NET tests passed,
+  with 0 build warnings and formatting verification clean.

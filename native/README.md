@@ -19,3 +19,38 @@ The N1 acquisition slice provides immutable native frames, shared ownership reta
 until the final lease is released, deterministic ASCII PGM replay, bounded acquisition,
 explicit cancellation, and lifecycle/error states. `nv_frame_get_buffer` is zero-copy;
 its pointer remains valid only while the caller owns a frame handle.
+
+The first M1 foundational-contract slice adds application-neutral stable identifiers,
+semantic version precedence, generic native port data kinds, coordinate-space-aware
+geometry and homographies, and an inspection outcome that prevents technical failures
+from being represented as OK or NG. These are internal native contracts; C ABI exposure
+is intentionally deferred until the generic boundary is proven.
+
+`ImageView` adds bounded, read-only zero-copy access to a complete Frame. Full-frame,
+ROI, and nested views retain the source Frame lease, expose stride-aware row spans, and
+carry frame-specific coordinate spaces plus explicit view-to-source/source-to-view
+transforms. Row spans remain valid only while the view or another Frame owner is alive.
+
+Versioned `ResourceReference` contracts identify resource, model, template, calibration,
+and dictionary content without embedding filesystem paths. Each reference carries an
+exact semantic version and validated integrity metadata: canonical lowercase SHA-256 and
+positive content length. Package/registry resolution and hash computation remain later
+loader responsibilities.
+
+Immutable `ExecutionRecord`, `InspectionDecision`, `EvidenceArtifact`, and
+`InspectionResult` aggregates finalize the M1 contract layer. Successful execution may
+produce OK, NG, or an explicit Indeterminate decision. Error, Timeout, and Cancelled
+execution must remain Indeterminate, contain matching technical errors, and carry no
+quality decision. Spatial evidence requires coordinate-space identity.
+
+The first M2 slice adds immutable versioned `ToolTypeDefinition` contracts and a native
+`ToolRegistry`. Definitions describe typed ports, hierarchical catalog metadata, origin,
+and execution characteristics. Registry identity is only stable tool ID plus exact
+semantic version; changing category metadata cannot change resolution identity. Missing
+IDs and unsupported versions remain distinguishable unresolved states.
+
+Declarative parameter schemas cover scalar values, enum options, recursively typed arrays,
+coordinate-aware geometry, ROI shape constraints, and integrity-bearing versioned
+resource/model/calibration references. Property editor metadata declares grouping, order,
+control, and numeric units without UI dependencies. Default values, editor compatibility,
+and conditional visibility dependency graphs are validated when definitions are finalized.
