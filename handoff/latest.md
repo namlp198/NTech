@@ -25,20 +25,21 @@
 - Added zero-copy `ImageView` in `0c71340`. Full-frame, ROI, and nested views retain the
   Frame lease, expose stride-aware read-only rows, reject incomplete/anonymous frames and
   invalid bounds, and carry frame-specific source/local spaces with explicit transforms.
+- Added unified versioned resource references in `4339211`. Resource/model/template/
+  calibration/dictionary references carry stable IDs, exact versions, kinds, canonical
+  SHA-256 digests, and positive content lengths without filesystem paths.
 
 ## Current Status
 
 M1 is in progress. Foundational contracts (`c07440b`) and zero-copy Image Views
-(`0c71340`) are implemented and green. Versioned resource references and immutable
-result/evidence contracts remain before the M1 exit gate is complete.
+(`0c71340`) plus versioned resource references (`4339211`) are implemented and green.
+Immutable result/evidence contracts remain before the M1 exit gate is complete.
 
 ## Next Actions
 
-1. Implement generic immutable resource/model/template references with version and
-   checksum metadata.
-2. Implement immutable execution/result/evidence aggregates using the status/verdict
+1. Implement immutable execution/result/evidence aggregates using the status/verdict
    invariant already established.
-3. Run the full repository check after each coherent behavior slice.
+2. Run the full repository check after each coherent behavior slice.
 
 ## Warnings
 

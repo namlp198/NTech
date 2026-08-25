@@ -27,14 +27,16 @@ and Pin Insert workflows without embedding either application's vocabulary in Co
 - Added zero-copy native `ImageView` contracts for full frames, ROIs, and nested views.
   Views retain `FrameLease`, respect stride/padding, reject invalid ownership/bounds, and
   expose frame-specific coordinate spaces with explicit bidirectional transforms.
+- Added unified immutable references for resource, model, template, calibration, and
+  dictionary content. References bind stable ID and exact semantic version to canonical
+  lowercase SHA-256 and positive expected content length without storing filesystem paths.
 
 ## Next Steps
 
-1. Add versioned resource/model/template references and integrity metadata.
-2. Add immutable execution, result, evidence, overlay, measurement, and defect contracts.
-3. Complete the external model/dependency license provenance audit before importing or
+1. Add immutable execution, result, evidence, overlay, measurement, and defect contracts.
+2. Complete the external model/dependency license provenance audit before importing or
    redistributing any reference assets.
-4. Keep C ABI and gRPC exposure deferred until the internal M1 contracts pass their exit
+3. Keep C ABI and gRPC exposure deferred until the internal M1 contracts pass their exit
    gate and are stable enough for boundary design.
 
 ## Acceptance Criteria
@@ -45,6 +47,6 @@ and Pin Insert workflows without embedding either application's vocabulary in Co
 - [x] Invalid/non-finite/degenerate geometry and mismatched transforms are rejected.
 - [x] Technical failures cannot become OK or NG inspection verdicts.
 - [x] Image views preserve native ownership and explicit transforms.
-- [ ] Resource/model/template references are immutable and versioned.
+- [x] Resource/model/template references are immutable and versioned.
 - [ ] Result/evidence structures are immutable and reject invalid status combinations.
 - [ ] The complete M1 exit gate passes without application-specific Core types.

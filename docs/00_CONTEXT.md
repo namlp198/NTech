@@ -10,7 +10,7 @@ Build a reusable industrial Machine Vision platform for authoring, publishing, e
 
 ## Current State
 
-- Working: P0 repository foundation, the complete managed P1 Workflow engine, the managed P2 Wire Marker headless inspection slice, N0 native foundation, N1 native Frame/File Camera/acquisition, and M1 generic native contracts including zero-copy coordinate-aware Image Views.
+- Working: P0 repository foundation, the complete managed P1 Workflow engine, the managed P2 Wire Marker headless inspection slice, N0 native foundation, N1 native Frame/File Camera/acquisition, and M1 generic native contracts including zero-copy coordinate-aware Image Views plus versioned content-addressed resource references.
 - Working P2 path: FrameLease ownership → File Camera → AcquisitionService → compiled Crop/Classify/Compare/Decision Workflow → ONNX Runtime CPU → immutable InspectionResult → file image evidence + SQLite.
 - Blocked: Nothing in the current M1 contract slice. Pin Insert parity still lacks golden/regression images, and external Wire Marker model provenance/license evidence remains open before those assets can be redistributed.
 - Not started: native model/ONNX and Workflow/inspection migration, the Engine Host implementation, ProjectFormat/Studio authoring, Runtime Service, PLC integration, real camera plugins, and production-trained inspection models.
@@ -42,9 +42,10 @@ The first slice establishes generic typed identifiers and data kinds, coordinate
 validated geometry/transforms, semantic versions, and strict separation of technical
 execution status from inspection verdict. Zero-copy Image Views now retain native Frame
 ownership and provide stride-aware ROI rows plus explicit frame/view transforms. Continue
-with resource/model/template references and immutable execution/result/evidence
-structures. Use the managed P2 path as a behavior oracle; do not expand managed hot-path
-behavior.
+with immutable execution/result/evidence structures. Resource/model/template references
+now carry stable ID, exact semantic version, kind, canonical SHA-256, and expected content
+length without filesystem paths. Use the managed P2 path as a behavior oracle; do not
+expand managed hot-path behavior.
 
 ## Verification Baseline
 

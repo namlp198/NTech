@@ -1227,7 +1227,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | N0 — Native foundation | Complete | Existing repository baseline |
 | N1 — Native acquisition | Complete and merged | `ed53d73`, merge `bd46168` |
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
-| M1 — Native data contracts | In progress | `c07440b` foundations; `0c71340` zero-copy Image Views |
+| M1 — Native data contracts | In progress | `c07440b` foundations; `0c71340` Image Views; `4339211` resource references |
 | M2 — Tool definition/catalog | Not started | |
 | M3 — Generic OpenCV foundation | Not started | |
 | M4 — Model/recognition foundation | Not started | |
@@ -1246,8 +1246,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 M1 is authorized and active on `codex/generic-vision-m1`. Continue with the smallest
 coherent native contract slices while keeping M0 provenance gaps explicit:
 
-1. add versioned resource/model/template references;
-2. add immutable execution/result/evidence contracts;
-3. resolve external model license provenance before importing or redistributing assets;
-4. keep every slice generic and prove both reference workflows without application
+1. add immutable execution/result/evidence contracts;
+2. resolve external model license provenance before importing or redistributing assets;
+3. keep every slice generic and prove both reference workflows without application
    vocabulary in production Core types.

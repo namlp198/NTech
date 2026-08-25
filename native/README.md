@@ -30,3 +30,9 @@ is intentionally deferred until the generic boundary is proven.
 ROI, and nested views retain the source Frame lease, expose stride-aware row spans, and
 carry frame-specific coordinate spaces plus explicit view-to-source/source-to-view
 transforms. Row spans remain valid only while the view or another Frame owner is alive.
+
+Versioned `ResourceReference` contracts identify resource, model, template, calibration,
+and dictionary content without embedding filesystem paths. Each reference carries an
+exact semantic version and validated integrity metadata: canonical lowercase SHA-256 and
+positive content length. Package/registry resolution and hash computation remain later
+loader responsibilities.

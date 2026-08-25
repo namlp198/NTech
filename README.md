@@ -27,6 +27,10 @@ Native acquisition also provides zero-copy `ImageView` contracts. A view retains
 source Frame lease, respects stride and ROI bounds, and carries frame-specific source/
 local coordinate spaces with explicit transforms.
 
+Resource, model, template, calibration, and dictionary bindings now share one immutable
+native reference contract keyed by stable ID, exact semantic version, resource kind,
+canonical SHA-256, and expected content length.
+
 The first executable inspection path now runs deterministic File Camera frames through a compiled typed Workflow, real ONNX Runtime CPU inference, immutable result finalization, image evidence storage, and SQLite history. It proves the reference platform path and error semantics; the included synthetic model and PGM fixtures are engineering regression assets, not production inspection content.
 
 ## Read First
