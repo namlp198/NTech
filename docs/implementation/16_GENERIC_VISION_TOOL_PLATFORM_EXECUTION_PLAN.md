@@ -1228,7 +1228,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | N1 — Native acquisition | Complete and merged | `ed53d73`, merge `bd46168` |
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
 | M1 — Native data contracts | Complete and merged | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results; merge `d01e54c` |
-| M2 — Tool definition/catalog | In progress, foundation merged | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c` |
+| M2 — Tool definition/catalog | In progress, contracts complete | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` workflow nodes/subworkflows |
 | M3 — Generic OpenCV foundation | Not started | |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
@@ -1243,13 +1243,17 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 
 ## 20. Immediate next action
 
-M2 is active, with its current foundation merged into `develop` by `d01e54c`. Versioned
-Tool Definition/Registry and declarative parameter/property-editor schemas are complete.
-Continue on a new feature branch with the remaining smallest generic contract slices while
-keeping the M0 provenance gap explicit:
+M2 is active. Its foundation is merged into `develop` by `d01e54c`, and
+`codex/generic-vision-m2-subworkflow` adds the remaining contracts in `00f86c6`:
+unresolved-node configuration preservation and the reusable subworkflow definition.
+Continue while keeping the M0 provenance gap explicit:
 
-1. preserve unresolved-node configuration and add the reusable subworkflow contract;
-2. enumerate the initial generic built-in Tool Catalog tree and validate both reference
-   graphs at contract level;
+1. enumerate the initial generic built-in Tool Catalog tree from Section 8;
+2. validate both reference graphs against that catalog at contract level using the node,
+   subworkflow, and parameter contracts;
 3. keep every slice generic and prove both reference workflows without application
    vocabulary in production Core types.
+
+Note that the full repository gate currently needs .NET SDK 10.0.200 as pinned by
+`global.json`. Where only the native plane changes, record the native build and CTest
+result and state that the managed half could not run.

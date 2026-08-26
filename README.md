@@ -47,6 +47,12 @@ enum, array, coordinate-aware geometry, ROI, and versioned resource/model/calibr
 fields have type-safe defaults and editor metadata. Conditional fields are validated as
 an acyclic dependency graph before a tool definition can enter the registry.
 
+Workflow nodes now persist only stable tool identity plus exact semantic version, and
+their parameter configuration survives binding unchanged. Unknown tools, unsupported
+versions, incompatible values, and undeclared parameter keys are reported as diagnostics
+instead of being repaired. Reusable subworkflows publish a generic graph through an
+ordinary versioned tool interface with mapped ports and promoted parameters.
+
 The first executable inspection path now runs deterministic File Camera frames through a compiled typed Workflow, real ONNX Runtime CPU inference, immutable result finalization, image evidence storage, and SQLite history. It proves the reference platform path and error semantics; the included synthetic model and PGM fixtures are engineering regression assets, not production inspection content.
 
 ## Read First

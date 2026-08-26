@@ -54,3 +54,16 @@ coordinate-aware geometry, ROI shape constraints, and integrity-bearing versione
 resource/model/calibration references. Property editor metadata declares grouping, order,
 control, and numeric units without UI dependencies. Default values, editor compatibility,
 and conditional visibility dependency graphs are validated when definitions are finalized.
+
+Persisted `WorkflowNode` instances complete the M2 contract layer. A node stores the
+stable tool type ID, its exact semantic version, and a `NodeConfiguration` whose
+assignments keep their authored order and values. Binding a node against the registry
+reports an unknown tool, an unsupported version, a type-incompatible value, or a missing
+required parameter as diagnostics; it never removes or rewrites stored configuration, and
+an undeclared parameter key is preserved as a warning.
+
+`SubworkflowDefinition` publishes a reusable graph through an ordinary versioned tool
+interface. Exposed ports map to internal node ports and exposed parameters are promoted
+to node parameters. Structural violations, including a subworkflow that contains itself,
+fail at construction. Mismatches that depend on registry resolution surface as
+diagnostics so that one missing plugin cannot mask the rest of the contract.
