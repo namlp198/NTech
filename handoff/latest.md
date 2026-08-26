@@ -47,8 +47,11 @@ been pushed and has not been merged into `develop`.
 1. Review and merge `codex/generic-vision-m2-subworkflow` into `develop`.
 2. Start M3, the generic OpenCV vision foundation, implementing the catalog definitions
    behind their contracts and refining parameter sets against real behavior.
-3. Keep the M0 asset provenance gap explicit and run the full repository check after each
-   coherent behavior slice once the pinned .NET SDK is available.
+3. Install .NET SDK 10.0.200 or newer, planned through Visual Studio 2026, then run the
+   full `scripts/check.ps1` to confirm the managed half on this machine.
+4. Keep the M0 asset provenance gap explicit and run the full repository check after each
+   coherent behavior slice.
+5. Decide whether to renormalize repository line endings as a separate commit.
 
 ## Warnings
 
@@ -56,7 +59,19 @@ been pushed and has not been merged into `develop`.
   and only 9.0.312 is installed, so the managed build, the .NET tests, and
   `dotnet format --verify-no-changes` did not execute. This work touches only native C++
   and CMake files, so the managed plane is unaffected by the change itself, but the
-  managed half of the gate is unverified in this session.
+  managed half of the gate is unverified in this session. Visual Studio 2026 with the
+  .NET 10 SDK is the agreed resolution; .NET 10 remains the managed target per ADR-0005.
+- Repository line endings are inconsistent. `.gitattributes` declares `* text=auto eol=lf`
+  and `.editorconfig` declares `end_of_line = lf`, but the committed blobs still contain
+  CRLF from before those files were added. A checkout writes LF, so `dotnet format` is
+  satisfied, yet any operation that rewrites the working tree makes about 170 C# files
+  appear modified. The clean fix is `git add --renormalize .` as its own commit. It was
+  left undone because it is unrelated to this branch and needs an explicit decision.
+- Two managed spots depend on a runtime newer than .NET 8, confirmed by building the
+  solution on `net8.0` during an evaluation that was then reverted:
+  `PortValueStore` uses `System.Threading.Lock`, which needs .NET 9, and the CLI allocates
+  a `JsonSerializerOptions` per call, which the .NET 9 analyzer set rejects as CA1869.
+  Both are fine on .NET 10 and are recorded only so the constraint is not rediscovered.
 - The catalog parameter sets are contract-level minimums chosen to cover the reference
   graphs. M3 and M4 will refine them alongside the implementations, which may require
   version bumps on individual tool definitions.

@@ -67,4 +67,5 @@ persisted identity to Studio display structure.
 - The full `scripts/check.ps1` gate cannot run in the current environment. `global.json`
   requires .NET SDK 10.0.200 and only 9.0.312 is installed, so the managed build, the
   .NET tests, and `dotnet format --verify-no-changes` do not execute. This work changes
-  only native C++ and CMake files, and the native half of the gate is green.
+  only native C++ and CMake files, and the native half of the gate is green. Visual Studio
+  2026 with the .NET 10 SDK is the agreed resolution; .NET 10 stays the managed target.
