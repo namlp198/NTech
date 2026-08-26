@@ -2,6 +2,7 @@ add_library(nvision_core STATIC
     acquisition/src/file_camera.cpp
     acquisition/src/frame.cpp
     acquisition/src/image_view.cpp
+    core/src/builtin_catalog.cpp
     core/src/engine.cpp
     core/src/execution_result.cpp
     core/src/geometry.cpp
@@ -179,4 +180,40 @@ if(NVISION_BUILD_TESTS)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 
     add_test(NAME nvision_workflow_contract_tests COMMAND nvision_workflow_contract_tests)
+
+    add_executable(nvision_builtin_catalog_tests
+        tests/builtin_catalog_tests.cpp)
+
+    target_link_libraries(nvision_builtin_catalog_tests PRIVATE nvision_core)
+    target_compile_features(nvision_builtin_catalog_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_builtin_catalog_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_builtin_catalog_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_builtin_catalog_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_builtin_catalog_tests COMMAND nvision_builtin_catalog_tests)
+
+    add_executable(nvision_reference_graph_tests
+        tests/reference_graph_tests.cpp)
+
+    target_link_libraries(nvision_reference_graph_tests PRIVATE nvision_core)
+    target_compile_features(nvision_reference_graph_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_reference_graph_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_reference_graph_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_reference_graph_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_reference_graph_tests COMMAND nvision_reference_graph_tests)
 endif()
