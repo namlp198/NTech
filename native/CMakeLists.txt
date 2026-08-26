@@ -10,8 +10,10 @@ add_library(nvision_core STATIC
     core/src/parameter_schema.cpp
     core/src/resource_reference.cpp
     core/src/semantic_version.cpp
+    core/src/subworkflow.cpp
     core/src/tool_definition.cpp
-    core/src/tool_registry.cpp)
+    core/src/tool_registry.cpp
+    core/src/workflow_node.cpp)
 
 target_include_directories(nvision_core
     PUBLIC
@@ -158,4 +160,22 @@ if(NVISION_BUILD_TESTS)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 
     add_test(NAME nvision_parameter_schema_tests COMMAND nvision_parameter_schema_tests)
+
+    add_executable(nvision_workflow_contract_tests
+        tests/workflow_contract_tests.cpp)
+
+    target_link_libraries(nvision_workflow_contract_tests PRIVATE nvision_core)
+    target_compile_features(nvision_workflow_contract_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_workflow_contract_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_workflow_contract_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_workflow_contract_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_workflow_contract_tests COMMAND nvision_workflow_contract_tests)
 endif()

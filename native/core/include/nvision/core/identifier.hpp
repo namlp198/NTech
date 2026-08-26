@@ -32,6 +32,7 @@ private:
 
 struct ProjectIdTag final {};
 struct WorkflowIdTag final {};
+struct WorkflowNodeIdTag final {};
 struct JobIdTag final {};
 struct RecipeIdTag final {};
 struct ExecutionSessionIdTag final {};
@@ -47,6 +48,7 @@ struct EnumOptionKeyTag final {};
 
 using ProjectId = StableIdentifier<ProjectIdTag>;
 using WorkflowId = StableIdentifier<WorkflowIdTag>;
+using WorkflowNodeId = StableIdentifier<WorkflowNodeIdTag>;
 using JobId = StableIdentifier<JobIdTag>;
 using RecipeId = StableIdentifier<RecipeIdTag>;
 using ExecutionSessionId = StableIdentifier<ExecutionSessionIdTag>;
