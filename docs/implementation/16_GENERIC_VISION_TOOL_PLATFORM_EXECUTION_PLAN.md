@@ -1228,7 +1228,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | N1 — Native acquisition | Complete and merged | `ed53d73`, merge `bd46168` |
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
 | M1 — Native data contracts | Complete and merged | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results; merge `d01e54c` |
-| M2 — Tool definition/catalog | In progress, contracts complete | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` workflow nodes/subworkflows |
+| M2 — Tool definition/catalog | Complete, awaiting merge | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` nodes/subworkflows; `bc58e5a` typed graphs; `a777314` catalog and reference graphs |
 | M3 — Generic OpenCV foundation | Not started | |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
@@ -1243,14 +1243,14 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 
 ## 20. Immediate next action
 
-M2 is active. Its foundation is merged into `develop` by `d01e54c`, and
-`codex/generic-vision-m2-subworkflow` adds the remaining contracts in `00f86c6`:
-unresolved-node configuration preservation and the reusable subworkflow definition.
-Continue while keeping the M0 provenance gap explicit:
+M2 is complete on `codex/generic-vision-m2-subworkflow` and every exit gate of Section 15
+is met. The branch adds unresolved-node preservation and subworkflows (`00f86c6`), typed
+connections and graphs (`bc58e5a`), and the initial generic catalog plus both validated
+reference graphs (`a777314`). Continue while keeping the M0 provenance gap explicit:
 
-1. enumerate the initial generic built-in Tool Catalog tree from Section 8;
-2. validate both reference graphs against that catalog at contract level using the node,
-   subworkflow, and parameter contracts;
+1. review and merge the branch into `develop`;
+2. start M3, the generic OpenCV vision foundation, implementing the catalog definitions
+   behind their contracts and refining parameter sets against real behavior;
 3. keep every slice generic and prove both reference workflows without application
    vocabulary in production Core types.
 

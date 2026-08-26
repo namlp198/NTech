@@ -50,8 +50,15 @@ an acyclic dependency graph before a tool definition can enter the registry.
 Workflow nodes now persist only stable tool identity plus exact semantic version, and
 their parameter configuration survives binding unchanged. Unknown tools, unsupported
 versions, incompatible values, and undeclared parameter keys are reported as diagnostics
-instead of being repaired. Reusable subworkflows publish a generic graph through an
-ordinary versioned tool interface with mapped ports and promoted parameters.
+instead of being repaired. Typed connections form acyclic graphs whose ports are validated
+against the bound tool contracts, and reusable subworkflows publish a generic graph through
+an ordinary versioned tool interface with mapped ports and promoted parameters.
+
+M2 now enumerates the initial generic Tool Catalog: 66 versioned built-in definitions
+across acquisition, image processing, location and geometry, measurement, recognition and
+text, clustering and structure, and logic and results. Both reference inspection graphs
+validate against that single catalog at contract level, with application variation
+expressed as parameters rather than as application-specific tools.
 
 The first executable inspection path now runs deterministic File Camera frames through a compiled typed Workflow, real ONNX Runtime CPU inference, immutable result finalization, image evidence storage, and SQLite history. It proves the reference platform path and error semantics; the included synthetic model and PGM fixtures are engineering regression assets, not production inspection content.
 

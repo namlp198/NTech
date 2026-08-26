@@ -67,3 +67,18 @@ interface. Exposed ports map to internal node ports and exposed parameters are p
 to node parameters. Structural violations, including a subworkflow that contains itself,
 fail at construction. Mismatches that depend on registry resolution surface as
 diagnostics so that one missing plugin cannot mask the rest of the contract.
+
+`WorkflowConnection` and `WorkflowGraph` complete the node contracts. Topology is checked
+without a registry: unique node IDs, known endpoints, unique connections, no self edge, and
+no cycle. Binding adds the contract-dependent checks: an undeclared port, a data type
+mismatch, a second source on a single-source input, and a required input with no source. A
+caller may declare inputs that are fed from outside the graph, which is how a subworkflow
+satisfies the internal inputs its interface maps.
+
+`register_builtin_tools` enumerates the initial generic catalog: 66 versioned built-in
+definitions across Acquisition, Image Processing, Location and Geometry, Measurement,
+Recognition and Text, Clustering and Structure, and Logic and Results. The definitions are
+contracts only; the vision and recognition milestones add the implementations and refine
+the parameter sets. Both reference graphs bind against this one catalog with no
+application-specific tool, and a test asserts that no definition carries reference
+application vocabulary.

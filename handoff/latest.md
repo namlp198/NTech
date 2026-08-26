@@ -10,45 +10,43 @@
 
 ## Completed
 
-- Confirmed the M2 foundation is merged into `develop` by `d01e54c` and that local
-  `develop` is now in sync with `origin/develop`, which the previous handoff had not yet
-  recorded.
-- Added the remaining M2 contract slice in `00f86c6`.
-- Added `WorkflowNodeId` and immutable `WorkflowNode`. A node persists only the stable
-  tool type ID and its exact semantic version, never catalog display structure.
-- Added `NodeConfiguration`. Parameter assignments keep their authored order and values
-  and duplicate keys are rejected at construction.
-- Added `WorkflowDiagnostic` with stable result codes, warning/error severity, and
-  optional node, parameter, or port scope.
-- Added `bind_workflow_node`. An unknown tool or unsupported version is reported through
-  `UNKNOWN_TOOL_TYPE` or `UNSUPPORTED_TOOL_VERSION` and the configuration survives intact.
-  A resolved node reports `PARAMETER_TYPE_MISMATCH` and `MISSING_REQUIRED_PARAMETER` as
-  errors, and preserves an undeclared key as an `UNKNOWN_PARAMETER` warning rather than
-  deleting it.
-- Added `SubworkflowDefinition`, which publishes a reusable graph through an ordinary
-  versioned tool interface using port mappings and parameter promotions. An exposed input
-  may feed several internal ports; an exposed output has exactly one source.
-- Structural violations fail at construction: no nodes, duplicate node IDs, self
-  containment, an unmapped interface port, an output with several sources, a node port
-  mapped twice, and promotions that are not one to one.
-- Added `bind_subworkflow`. Registry-dependent checks report `MISSING_MAPPED_PORT`,
-  `PORT_TYPE_MISMATCH`, `MISSING_PROMOTED_PARAMETER`, and
-  `PROMOTED_PARAMETER_TYPE_MISMATCH`, warn on an `UNPROMOTED_PARAMETER`, and stay silent
-  for an unresolved node so one missing plugin cannot mask the real cause.
-- Added the `nvision_workflow_contract_tests` target covering unresolved-node
-  preservation, schema drift, structural rejection, and binding diagnostics.
+- Added the remaining M2 contract slice in `00f86c6`: `WorkflowNodeId`, immutable
+  `WorkflowNode`, `NodeConfiguration`, `WorkflowDiagnostic`, `bind_workflow_node`, and
+  `SubworkflowDefinition`. An unresolved tool never causes stored configuration to be
+  removed or rewritten, and an undeclared parameter key is preserved as a warning.
+- Added typed connections and graphs in `bc58e5a`. `WorkflowGraph` validates topology
+  without a registry: unique node IDs, known endpoints, unique connections, no self edge,
+  and no cycle. `bind_workflow_graph` adds the contract-dependent checks and reports
+  `MISSING_CONNECTED_PORT`, `CONNECTION_TYPE_MISMATCH`, `PORT_ALREADY_CONNECTED`, and
+  `MISSING_REQUIRED_INPUT`.
+- A caller may declare inputs fed from outside the graph. A subworkflow uses that for its
+  interface mappings, so an internal required input is not falsely reported.
+- `SubworkflowDefinition` now owns a `WorkflowGraph` rather than a node list. The previous
+  shape had no edges, so a reference graph could not be expressed. `SubworkflowBinding`
+  collapsed into `WorkflowGraphBinding` because both carried the same data.
+- Added the initial generic Tool Catalog in `a777314`: 66 built-in versioned definitions
+  across the seven categories of plan Section 8.
+- Validated all three reference graphs of plan Section 12 against that one catalog. Each
+  binds fully resolved with zero diagnostics. Verified the check is not vacuous by
+  mutating one edge to an incompatible type and confirming the test fails.
+- Added a test that no catalog definition carries reference application vocabulary, and
+  tests that orientation search, matcher backend, capture role, and the learned grid
+  resource are parameters rather than separate tools.
+- Added `contour_list` and `text_result_list` port kinds. The singular forms already
+  existed while the other collection kinds did not, so contour extraction and text split
+  had no typed output.
 
 ## Current Status
 
-M2 contracts are complete on the feature branch and not yet merged. The branch has not
-been pushed. The next M2 work is enumerating the initial generic built-in catalog tree and
-validating both reference graphs at contract level.
+M2 is complete on the feature branch and every Section 15 exit gate for the milestone is
+met. All eight acceptance criteria in `tasks/active.md` are checked. The branch has not
+been pushed and has not been merged into `develop`.
 
 ## Next Actions
 
-1. Enumerate the initial generic built-in Tool Catalog tree from plan Section 8.
-2. Validate the Wire Marker and Pin Insert reference graphs against that catalog using the
-   node, subworkflow, and parameter contracts.
+1. Review and merge `codex/generic-vision-m2-subworkflow` into `develop`.
+2. Start M3, the generic OpenCV vision foundation, implementing the catalog definitions
+   behind their contracts and refining parameter sets against real behavior.
 3. Keep the M0 asset provenance gap explicit and run the full repository check after each
    coherent behavior slice once the pinned .NET SDK is available.
 
@@ -56,9 +54,12 @@ validating both reference graphs at contract level.
 
 - The full `scripts/check.ps1` gate could not run. `global.json` pins .NET SDK 10.0.200
   and only 9.0.312 is installed, so the managed build, the .NET tests, and
-  `dotnet format --verify-no-changes` did not execute. This slice touches only native C++
+  `dotnet format --verify-no-changes` did not execute. This work touches only native C++
   and CMake files, so the managed plane is unaffected by the change itself, but the
   managed half of the gate is unverified in this session.
+- The catalog parameter sets are contract-level minimums chosen to cover the reference
+  graphs. M3 and M4 will refine them alongside the implementations, which may require
+  version bumps on individual tool definitions.
 - Pin Insert golden/regression images remain unavailable, so it is currently an
   architectural contract oracle rather than a parity suite.
 - ONNX Runtime and OpenCV distributions contain license files, but no license/provenance
@@ -70,6 +71,9 @@ validating both reference graphs at contract level.
 ## Verification
 
 - Native Release build with `/W4 /WX`: passed with 0 warnings.
-- CTest: 7 passed, 0 failed, including the new `nvision_workflow_contract_tests`.
+- CTest: 9 passed, 0 failed, including `nvision_workflow_contract_tests`,
+  `nvision_builtin_catalog_tests`, and `nvision_reference_graph_tests`.
+- Negative check: mutating one reference graph edge to an incompatible data type failed
+  the suite with `CONNECTION_TYPE_MISMATCH`, then the revert returned it to green.
 - Full `scripts/check.ps1 -NoRestore`: not completed; it failed at the managed build step
   because the pinned .NET SDK 10.0.200 is missing from this machine.
