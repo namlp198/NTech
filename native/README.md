@@ -54,3 +54,31 @@ coordinate-aware geometry, ROI shape constraints, and integrity-bearing versione
 resource/model/calibration references. Property editor metadata declares grouping, order,
 control, and numeric units without UI dependencies. Default values, editor compatibility,
 and conditional visibility dependency graphs are validated when definitions are finalized.
+
+Persisted `WorkflowNode` instances complete the M2 contract layer. A node stores the
+stable tool type ID, its exact semantic version, and a `NodeConfiguration` whose
+assignments keep their authored order and values. Binding a node against the registry
+reports an unknown tool, an unsupported version, a type-incompatible value, or a missing
+required parameter as diagnostics; it never removes or rewrites stored configuration, and
+an undeclared parameter key is preserved as a warning.
+
+`SubworkflowDefinition` publishes a reusable graph through an ordinary versioned tool
+interface. Exposed ports map to internal node ports and exposed parameters are promoted
+to node parameters. Structural violations, including a subworkflow that contains itself,
+fail at construction. Mismatches that depend on registry resolution surface as
+diagnostics so that one missing plugin cannot mask the rest of the contract.
+
+`WorkflowConnection` and `WorkflowGraph` complete the node contracts. Topology is checked
+without a registry: unique node IDs, known endpoints, unique connections, no self edge, and
+no cycle. Binding adds the contract-dependent checks: an undeclared port, a data type
+mismatch, a second source on a single-source input, and a required input with no source. A
+caller may declare inputs that are fed from outside the graph, which is how a subworkflow
+satisfies the internal inputs its interface maps.
+
+`register_builtin_tools` enumerates the initial generic catalog: 66 versioned built-in
+definitions across Acquisition, Image Processing, Location and Geometry, Measurement,
+Recognition and Text, Clustering and Structure, and Logic and Results. The definitions are
+contracts only; the vision and recognition milestones add the implementations and refine
+the parameter sets. Both reference graphs bind against this one catalog with no
+application-specific tool, and a test asserts that no definition carries reference
+application vocabulary.

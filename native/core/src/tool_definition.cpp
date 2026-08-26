@@ -49,6 +49,7 @@ bool is_valid(const PortDataType type) noexcept {
         case PortDataType::line_2d:
         case PortDataType::circle:
         case PortDataType::contour:
+        case PortDataType::contour_list:
         case PortDataType::bounding_box:
         case PortDataType::polygon:
         case PortDataType::transform:
@@ -58,6 +59,7 @@ bool is_valid(const PortDataType type) noexcept {
         case PortDataType::detection:
         case PortDataType::detection_list:
         case PortDataType::text_result:
+        case PortDataType::text_result_list:
         case PortDataType::barcode_result:
         case PortDataType::measurement:
         case PortDataType::measurement_list:

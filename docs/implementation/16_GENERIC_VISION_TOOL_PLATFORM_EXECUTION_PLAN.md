@@ -1228,7 +1228,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | N1 — Native acquisition | Complete and merged | `ed53d73`, merge `bd46168` |
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
 | M1 — Native data contracts | Complete and merged | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results; merge `d01e54c` |
-| M2 — Tool definition/catalog | In progress, foundation merged | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c` |
+| M2 — Tool definition/catalog | Complete, awaiting merge | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` nodes/subworkflows; `bc58e5a` typed graphs; `a777314` catalog and reference graphs |
 | M3 — Generic OpenCV foundation | Not started | |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
@@ -1243,13 +1243,17 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 
 ## 20. Immediate next action
 
-M2 is active, with its current foundation merged into `develop` by `d01e54c`. Versioned
-Tool Definition/Registry and declarative parameter/property-editor schemas are complete.
-Continue on a new feature branch with the remaining smallest generic contract slices while
-keeping the M0 provenance gap explicit:
+M2 is complete on `codex/generic-vision-m2-subworkflow` and every exit gate of Section 15
+is met. The branch adds unresolved-node preservation and subworkflows (`00f86c6`), typed
+connections and graphs (`bc58e5a`), and the initial generic catalog plus both validated
+reference graphs (`a777314`). Continue while keeping the M0 provenance gap explicit:
 
-1. preserve unresolved-node configuration and add the reusable subworkflow contract;
-2. enumerate the initial generic built-in Tool Catalog tree and validate both reference
-   graphs at contract level;
+1. review and merge the branch into `develop`;
+2. start M3, the generic OpenCV vision foundation, implementing the catalog definitions
+   behind their contracts and refining parameter sets against real behavior;
 3. keep every slice generic and prove both reference workflows without application
    vocabulary in production Core types.
+
+Note that the full repository gate currently needs .NET SDK 10.0.200 as pinned by
+`global.json`. Where only the native plane changes, record the native build and CTest
+result and state that the managed half could not run.

@@ -2,6 +2,7 @@ add_library(nvision_core STATIC
     acquisition/src/file_camera.cpp
     acquisition/src/frame.cpp
     acquisition/src/image_view.cpp
+    core/src/builtin_catalog.cpp
     core/src/engine.cpp
     core/src/execution_result.cpp
     core/src/geometry.cpp
@@ -10,8 +11,11 @@ add_library(nvision_core STATIC
     core/src/parameter_schema.cpp
     core/src/resource_reference.cpp
     core/src/semantic_version.cpp
+    core/src/subworkflow.cpp
     core/src/tool_definition.cpp
-    core/src/tool_registry.cpp)
+    core/src/tool_registry.cpp
+    core/src/workflow_graph.cpp
+    core/src/workflow_node.cpp)
 
 target_include_directories(nvision_core
     PUBLIC
@@ -158,4 +162,58 @@ if(NVISION_BUILD_TESTS)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 
     add_test(NAME nvision_parameter_schema_tests COMMAND nvision_parameter_schema_tests)
+
+    add_executable(nvision_workflow_contract_tests
+        tests/workflow_contract_tests.cpp)
+
+    target_link_libraries(nvision_workflow_contract_tests PRIVATE nvision_core)
+    target_compile_features(nvision_workflow_contract_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_workflow_contract_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_workflow_contract_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_workflow_contract_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_workflow_contract_tests COMMAND nvision_workflow_contract_tests)
+
+    add_executable(nvision_builtin_catalog_tests
+        tests/builtin_catalog_tests.cpp)
+
+    target_link_libraries(nvision_builtin_catalog_tests PRIVATE nvision_core)
+    target_compile_features(nvision_builtin_catalog_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_builtin_catalog_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_builtin_catalog_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_builtin_catalog_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_builtin_catalog_tests COMMAND nvision_builtin_catalog_tests)
+
+    add_executable(nvision_reference_graph_tests
+        tests/reference_graph_tests.cpp)
+
+    target_link_libraries(nvision_reference_graph_tests PRIVATE nvision_core)
+    target_compile_features(nvision_reference_graph_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_reference_graph_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_reference_graph_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_reference_graph_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_reference_graph_tests COMMAND nvision_reference_graph_tests)
 endif()
