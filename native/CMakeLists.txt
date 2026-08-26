@@ -13,6 +13,7 @@ add_library(nvision_core STATIC
     core/src/subworkflow.cpp
     core/src/tool_definition.cpp
     core/src/tool_registry.cpp
+    core/src/workflow_graph.cpp
     core/src/workflow_node.cpp)
 
 target_include_directories(nvision_core

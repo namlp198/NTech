@@ -71,28 +71,15 @@ const ParameterKey& SubworkflowParameterPromotion::node_parameter_key() const no
 
 SubworkflowDefinition::SubworkflowDefinition(
     ToolTypeDefinition interface_definition,
-    std::vector<WorkflowNode> nodes,
+    WorkflowGraph graph,
     std::vector<SubworkflowPortMapping> port_mappings,
     std::vector<SubworkflowParameterPromotion> parameter_promotions)
     : interface_definition_(std::move(interface_definition)),
-      nodes_(std::move(nodes)),
+      graph_(std::move(graph)),
       port_mappings_(std::move(port_mappings)),
       parameter_promotions_(std::move(parameter_promotions)) {
-    if (nodes_.empty()) {
-        throw std::invalid_argument("subworkflow must contain at least one node");
-    }
-
-    for (std::size_t index = 0U; index < nodes_.size(); ++index) {
-        const auto duplicate = std::find_if(
-            nodes_.begin() + static_cast<std::ptrdiff_t>(index + 1U),
-            nodes_.end(),
-            [this, index](const WorkflowNode& candidate) {
-                return candidate.id() == nodes_[index].id();
-            });
-        if (duplicate != nodes_.end()) {
-            throw std::invalid_argument("subworkflow node IDs must be unique");
-        }
-        if (nodes_[index].tool_type_id() == interface_definition_.id()) {
+    for (const auto& node : graph_.nodes()) {
+        if (node.tool_type_id() == interface_definition_.id()) {
             throw std::invalid_argument("subworkflow must not contain itself as a node");
         }
     }
@@ -103,7 +90,7 @@ SubworkflowDefinition::SubworkflowDefinition(
             nullptr) {
             throw std::invalid_argument("subworkflow port mapping targets an undeclared port");
         }
-        if (find_node(mapping.node_id()) == nullptr) {
+        if (graph_.find_node(mapping.node_id()) == nullptr) {
             throw std::invalid_argument("subworkflow port mapping targets an unknown node");
         }
         const auto duplicate_target = std::find_if(
@@ -140,7 +127,7 @@ SubworkflowDefinition::SubworkflowDefinition(
         if (interface_definition_.find_parameter(promotion.exposed_key()) == nullptr) {
             throw std::invalid_argument("subworkflow promotion targets an undeclared parameter");
         }
-        if (find_node(promotion.node_id()) == nullptr) {
+        if (graph_.find_node(promotion.node_id()) == nullptr) {
             throw std::invalid_argument("subworkflow promotion targets an unknown node");
         }
         const auto duplicate = std::find_if(
@@ -161,8 +148,8 @@ const ToolTypeDefinition& SubworkflowDefinition::interface_definition() const no
     return interface_definition_;
 }
 
-const std::vector<WorkflowNode>& SubworkflowDefinition::nodes() const noexcept {
-    return nodes_;
+const WorkflowGraph& SubworkflowDefinition::graph() const noexcept {
+    return graph_;
 }
 
 const std::vector<SubworkflowPortMapping>& SubworkflowDefinition::port_mappings() const noexcept {
@@ -174,75 +161,29 @@ SubworkflowDefinition::parameter_promotions() const noexcept {
     return parameter_promotions_;
 }
 
-const WorkflowNode* SubworkflowDefinition::find_node(const WorkflowNodeId& id) const noexcept {
-    const auto match = std::find_if(
-        nodes_.begin(), nodes_.end(), [&id](const WorkflowNode& node) { return node.id() == id; });
-    return match == nodes_.end() ? nullptr : &*match;
-}
-
-SubworkflowBinding::SubworkflowBinding(
-    std::vector<WorkflowNodeBinding> nodes,
-    std::vector<WorkflowDiagnostic> diagnostics)
-    : nodes_(std::move(nodes)), diagnostics_(std::move(diagnostics)) {}
-
-const std::vector<WorkflowNodeBinding>& SubworkflowBinding::nodes() const noexcept {
-    return nodes_;
-}
-
-const std::vector<WorkflowDiagnostic>& SubworkflowBinding::diagnostics() const noexcept {
-    return diagnostics_;
-}
-
-const WorkflowNodeBinding* SubworkflowBinding::find_node(
-    const WorkflowNodeId& id) const noexcept {
-    const auto match = std::find_if(
-        nodes_.begin(), nodes_.end(), [&id](const WorkflowNodeBinding& binding) {
-            return binding.node().id() == id;
-        });
-    return match == nodes_.end() ? nullptr : &*match;
-}
-
-bool SubworkflowBinding::is_fully_resolved() const noexcept {
-    return std::all_of(nodes_.begin(), nodes_.end(), [](const WorkflowNodeBinding& binding) {
-        return binding.is_resolved();
-    });
-}
-
-bool SubworkflowBinding::has_errors() const noexcept {
-    const bool node_errors =
-        std::any_of(nodes_.begin(), nodes_.end(), [](const WorkflowNodeBinding& binding) {
-            return binding.has_errors();
-        });
-    return node_errors ||
-           std::any_of(
-               diagnostics_.begin(),
-               diagnostics_.end(),
-               [](const WorkflowDiagnostic& diagnostic) {
-                   return diagnostic.severity() == DiagnosticSeverity::error;
-               });
-}
-
-SubworkflowBinding bind_subworkflow(
+WorkflowGraphBinding bind_subworkflow(
     const SubworkflowDefinition& definition,
     const ToolRegistry& registry) {
-    std::vector<WorkflowNodeBinding> bindings;
-    bindings.reserve(definition.nodes().size());
-    for (const auto& node : definition.nodes()) {
-        bindings.push_back(bind_workflow_node(node, registry));
+    std::vector<NodePortAddress> externally_fed_inputs;
+    for (const auto& mapping : definition.port_mappings()) {
+        if (mapping.direction() == PortDirection::input) {
+            externally_fed_inputs.emplace_back(mapping.node_id(), mapping.node_port_key());
+        }
     }
 
-    const auto resolved_definition =
-        [&bindings](const WorkflowNodeId& id) -> std::shared_ptr<const ToolTypeDefinition> {
-        const auto match = std::find_if(
-            bindings.begin(), bindings.end(), [&id](const WorkflowNodeBinding& binding) {
-                return binding.node().id() == id;
-            });
-        return match == bindings.end() ? nullptr : match->definition();
+    const WorkflowGraphBinding graph_binding =
+        bind_workflow_graph(definition.graph(), registry, externally_fed_inputs);
+
+    const auto definition_of =
+        [&graph_binding](
+            const WorkflowNodeId& id) -> std::shared_ptr<const ToolTypeDefinition> {
+        const auto* binding = graph_binding.find_node(id);
+        return binding == nullptr ? nullptr : binding->definition();
     };
 
-    std::vector<WorkflowDiagnostic> diagnostics;
+    std::vector<WorkflowDiagnostic> diagnostics = graph_binding.diagnostics();
     for (const auto& mapping : definition.port_mappings()) {
-        const auto node_definition = resolved_definition(mapping.node_id());
+        const auto node_definition = definition_of(mapping.node_id());
         if (!node_definition) {
             // The node binding already reports why it is unresolved. Mapping checks
             // stay silent so that one missing plugin cannot bury the real cause.
@@ -275,7 +216,7 @@ SubworkflowBinding bind_subworkflow(
     }
 
     for (const auto& promotion : definition.parameter_promotions()) {
-        const auto node_definition = resolved_definition(promotion.node_id());
+        const auto node_definition = definition_of(promotion.node_id());
         if (!node_definition) {
             continue;
         }
@@ -329,7 +270,7 @@ SubworkflowBinding bind_subworkflow(
         }
     }
 
-    return SubworkflowBinding(std::move(bindings), std::move(diagnostics));
+    return WorkflowGraphBinding(graph_binding.nodes(), std::move(diagnostics));
 }
 
 }  // namespace nvision::core

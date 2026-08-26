@@ -1,4 +1,5 @@
 #include "nvision/core/subworkflow.hpp"
+#include "nvision/core/workflow_graph.hpp"
 #include "nvision/core/workflow_node.hpp"
 
 #include <cstdlib>
@@ -22,6 +23,7 @@ using nvision::core::DiagnosticSeverity;
 using nvision::core::GeometryKind;
 using nvision::core::NodeConfiguration;
 using nvision::core::NodeParameterAssignment;
+using nvision::core::NodePortAddress;
 using nvision::core::NumericConstraint;
 using nvision::core::ParameterDefinition;
 using nvision::core::ParameterKey;
@@ -31,7 +33,6 @@ using nvision::core::PortDataType;
 using nvision::core::PortDirection;
 using nvision::core::PortKey;
 using nvision::core::SemanticVersion;
-using nvision::core::SubworkflowBinding;
 using nvision::core::SubworkflowDefinition;
 using nvision::core::SubworkflowParameterPromotion;
 using nvision::core::SubworkflowPortMapping;
@@ -41,7 +42,10 @@ using nvision::core::ToolRegistry;
 using nvision::core::ToolResolutionStatus;
 using nvision::core::ToolTypeDefinition;
 using nvision::core::ToolTypeId;
+using nvision::core::WorkflowConnection;
 using nvision::core::WorkflowDiagnostic;
+using nvision::core::WorkflowGraph;
+using nvision::core::WorkflowGraphBinding;
 using nvision::core::WorkflowNode;
 using nvision::core::WorkflowNodeBinding;
 using nvision::core::WorkflowNodeId;
@@ -59,13 +63,16 @@ bool rejects_invalid_argument(Action action) {
 ToolPortDefinition port(
     std::string key,
     const PortDirection direction,
-    const PortDataType type) {
+    const PortDataType type,
+    const bool required = true,
+    const bool allows_multiple = false) {
     return ToolPortDefinition(
         PortKey(std::move(key)),
         direction == PortDirection::input ? "Input" : "Output",
         direction,
         type,
-        true);
+        required,
+        allows_multiple);
 }
 
 AxisAlignedRectangle sample_rectangle() {
@@ -90,7 +97,15 @@ ParameterDefinition confidence_parameter() {
         ParameterValue::floating_point(0.5));
 }
 
-// Generic crop tool: image view in, image view out, ROI parameter with a default.
+// A source has no inputs, so a graph that starts here needs nothing from a caller.
+ToolTypeDefinition source_definition() {
+    return ToolTypeDefinition(
+        ToolTypeId("nvision.tool.acquisition.image-source"),
+        SemanticVersion(1U, 0U, 0U),
+        ToolCatalogMetadata("Image Source", {"Acquisition"}),
+        {port("image", PortDirection::output, PortDataType::image_view)});
+}
+
 ToolTypeDefinition crop_definition() {
     return ToolTypeDefinition(
         ToolTypeId("nvision.tool.processing.crop"),
@@ -103,7 +118,6 @@ ToolTypeDefinition crop_definition() {
         {roi_parameter()});
 }
 
-// Generic recognition tool: image view in, text result out.
 ToolTypeDefinition text_definition() {
     return ToolTypeDefinition(
         ToolTypeId("nvision.tool.recognition.text-recognition"),
@@ -116,6 +130,15 @@ ToolTypeDefinition text_definition() {
         {confidence_parameter()});
 }
 
+ToolTypeDefinition sharpness_definition() {
+    return ToolTypeDefinition(
+        ToolTypeId("nvision.tool.measurement.sharpness"),
+        SemanticVersion(1U, 0U, 0U),
+        ToolCatalogMetadata("Sharpness", {"Measurement"}),
+        {port("image", PortDirection::input, PortDataType::image_view),
+         port("value", PortDirection::output, PortDataType::floating_point)});
+}
+
 // Declares a required threshold without a default so that an unset value is an error.
 ToolTypeDefinition compare_definition() {
     return ToolTypeDefinition(
@@ -123,7 +146,8 @@ ToolTypeDefinition compare_definition() {
         SemanticVersion(1U, 0U, 0U),
         ToolCatalogMetadata("Compare", {"Logic and Results"}),
         {port("value", PortDirection::input, PortDataType::floating_point),
-         port("decision", PortDirection::output, PortDataType::decision)},
+         port("decision", PortDirection::output, PortDataType::decision),
+         port("passed", PortDirection::output, PortDataType::boolean)},
         nvision::core::ToolOrigin::built_in(),
         {},
         {ParameterDefinition(
@@ -133,24 +157,63 @@ ToolTypeDefinition compare_definition() {
             true)});
 }
 
-WorkflowNode crop_node() {
-    return WorkflowNode(
-        WorkflowNodeId("node.crop"),
-        ToolTypeId("nvision.tool.processing.crop"),
+// The only tool whose input accepts more than one source.
+ToolTypeDefinition boolean_logic_definition() {
+    return ToolTypeDefinition(
+        ToolTypeId("nvision.tool.logic.boolean-logic"),
         SemanticVersion(1U, 0U, 0U),
-        "Crop",
+        ToolCatalogMetadata("Boolean Logic", {"Logic and Results"}),
+        {port("operands", PortDirection::input, PortDataType::boolean, true, true),
+         port("result", PortDirection::output, PortDataType::boolean)});
+}
+
+WorkflowNode node(std::string id, std::string tool_type_id, NodeConfiguration configuration = {}) {
+    return WorkflowNode(
+        WorkflowNodeId(std::move(id)),
+        ToolTypeId(std::move(tool_type_id)),
+        SemanticVersion(1U, 0U, 0U),
+        "Node",
+        std::move(configuration));
+}
+
+WorkflowNode source_node() {
+    return node("node.source", "nvision.tool.acquisition.image-source");
+}
+
+WorkflowNode crop_node() {
+    return node(
+        "node.crop",
+        "nvision.tool.processing.crop",
         NodeConfiguration({NodeParameterAssignment(
             ParameterKey("roi"), ParameterValue::region_of_interest(sample_rectangle()))}));
 }
 
 WorkflowNode text_node() {
-    return WorkflowNode(
-        WorkflowNodeId("node.text"),
-        ToolTypeId("nvision.tool.recognition.text-recognition"),
-        SemanticVersion(1U, 0U, 0U),
-        "Text Recognition",
+    return node(
+        "node.text",
+        "nvision.tool.recognition.text-recognition",
         NodeConfiguration({NodeParameterAssignment(
             ParameterKey("minimum-confidence"), ParameterValue::floating_point(0.8))}));
+}
+
+WorkflowNode compare_node(std::string id) {
+    return node(
+        std::move(id),
+        "nvision.tool.logic.compare",
+        NodeConfiguration({NodeParameterAssignment(
+            ParameterKey("threshold"), ParameterValue::floating_point(0.7))}));
+}
+
+WorkflowConnection connect(
+    std::string source_node_id,
+    std::string source_port,
+    std::string target_node_id,
+    std::string target_port) {
+    return WorkflowConnection(
+        WorkflowNodeId(std::move(source_node_id)),
+        PortKey(std::move(source_port)),
+        WorkflowNodeId(std::move(target_node_id)),
+        PortKey(std::move(target_port)));
 }
 
 const WorkflowDiagnostic* find_diagnostic(
@@ -166,9 +229,12 @@ const WorkflowDiagnostic* find_diagnostic(
 
 ToolRegistry reference_registry() {
     ToolRegistry registry;
+    static_cast<void>(registry.register_definition(source_definition()));
     static_cast<void>(registry.register_definition(crop_definition()));
     static_cast<void>(registry.register_definition(text_definition()));
+    static_cast<void>(registry.register_definition(sharpness_definition()));
     static_cast<void>(registry.register_definition(compare_definition()));
+    static_cast<void>(registry.register_definition(boolean_logic_definition()));
     return registry;
 }
 
@@ -232,11 +298,9 @@ void resolved_nodes_report_schema_problems_without_dropping_values() {
     NVISION_REQUIRE(valid.diagnostics().empty());
     NVISION_REQUIRE(!valid.has_errors());
 
-    const WorkflowNode drifted(
-        WorkflowNodeId("node.text"),
-        ToolTypeId("nvision.tool.recognition.text-recognition"),
-        SemanticVersion(1U, 0U, 0U),
-        "Text Recognition",
+    const WorkflowNode drifted = node(
+        "node.text",
+        "nvision.tool.recognition.text-recognition",
         NodeConfiguration(
             {NodeParameterAssignment(
                  ParameterKey("minimum-confidence"), ParameterValue::floating_point(4.0)),
@@ -263,25 +327,17 @@ void resolved_nodes_report_schema_problems_without_dropping_values() {
         binding.node().configuration().find(ParameterKey("orientation-steps"))->integer_value() ==
         2);
 
-    const WorkflowNode incomplete(
-        WorkflowNodeId("node.compare"),
-        ToolTypeId("nvision.tool.logic.compare"),
-        SemanticVersion(1U, 0U, 0U),
-        "Compare");
-
-    const WorkflowNodeBinding missing = bind_workflow_node(incomplete, registry);
+    const WorkflowNodeBinding missing =
+        bind_workflow_node(node("node.compare", "nvision.tool.logic.compare"), registry);
     NVISION_REQUIRE(missing.is_resolved());
     NVISION_REQUIRE(missing.diagnostics().size() == 1U);
     NVISION_REQUIRE(missing.diagnostics()[0].code().value() == "MISSING_REQUIRED_PARAMETER");
     NVISION_REQUIRE(missing.diagnostics()[0].parameter_key()->value() == "threshold");
 
     // A required parameter that declares a default is already satisfied.
-    const WorkflowNode defaulted(
-        WorkflowNodeId("node.crop-default"),
-        ToolTypeId("nvision.tool.processing.crop"),
-        SemanticVersion(1U, 0U, 0U),
-        "Crop");
-    NVISION_REQUIRE(bind_workflow_node(defaulted, registry).diagnostics().empty());
+    const WorkflowNodeBinding defaulted =
+        bind_workflow_node(node("node.crop-default", "nvision.tool.processing.crop"), registry);
+    NVISION_REQUIRE(defaulted.diagnostics().empty());
 }
 
 void invalid_node_contracts_are_rejected() {
@@ -315,6 +371,113 @@ void invalid_node_contracts_are_rejected() {
     }));
 }
 
+void invalid_graph_topology_is_rejected() {
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        WorkflowGraph invalid({}, {});
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        WorkflowGraph invalid({crop_node(), crop_node()}, {});
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        WorkflowConnection invalid = connect("node.crop", "image", "node.crop", "image");
+        static_cast<void>(invalid);
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        WorkflowGraph invalid(
+            {crop_node(), text_node()}, {connect("node.crop", "image", "node.absent", "image")});
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        WorkflowGraph invalid(
+            {crop_node(), text_node()},
+            {connect("node.crop", "image", "node.text", "image"),
+             connect("node.crop", "image", "node.text", "image")});
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        // A cycle can never be ordered, so it is rejected without consulting a registry.
+        WorkflowGraph invalid(
+            {crop_node(), text_node()},
+            {connect("node.crop", "image", "node.text", "image"),
+             connect("node.text", "text", "node.crop", "image")});
+    }));
+}
+
+void graph_binding_validates_typed_connections() {
+    const ToolRegistry registry = reference_registry();
+
+    const WorkflowGraph pipeline(
+        {source_node(), crop_node(), text_node()},
+        {connect("node.source", "image", "node.crop", "image"),
+         connect("node.crop", "image", "node.text", "image")});
+
+    const WorkflowGraphBinding binding = bind_workflow_graph(pipeline, registry);
+    NVISION_REQUIRE(binding.is_fully_resolved());
+    NVISION_REQUIRE(!binding.has_errors());
+    NVISION_REQUIRE(binding.diagnostics().empty());
+    NVISION_REQUIRE(binding.nodes().size() == 3U);
+
+    // An unconnected required input is an error unless a caller declares it fed.
+    const WorkflowGraph open_input({crop_node(), text_node()},
+                                   {connect("node.crop", "image", "node.text", "image")});
+    const WorkflowGraphBinding unfed = bind_workflow_graph(open_input, registry);
+    NVISION_REQUIRE(unfed.has_errors());
+    const auto* missing_input = find_diagnostic(unfed.diagnostics(), "MISSING_REQUIRED_INPUT");
+    NVISION_REQUIRE(missing_input != nullptr);
+    NVISION_REQUIRE(missing_input->node_id()->value() == "node.crop");
+    NVISION_REQUIRE(missing_input->port_key()->value() == "image");
+
+    const WorkflowGraphBinding fed = bind_workflow_graph(
+        open_input, registry, {NodePortAddress(WorkflowNodeId("node.crop"), PortKey("image"))});
+    NVISION_REQUIRE(!fed.has_errors());
+
+    // A text result cannot feed a floating point input.
+    const WorkflowGraph mismatched(
+        {source_node(), text_node(), compare_node("node.compare")},
+        {connect("node.source", "image", "node.text", "image"),
+         connect("node.text", "text", "node.compare", "value")});
+    const WorkflowGraphBinding mismatch_binding = bind_workflow_graph(mismatched, registry);
+    NVISION_REQUIRE(mismatch_binding.has_errors());
+    NVISION_REQUIRE(
+        find_diagnostic(mismatch_binding.diagnostics(), "CONNECTION_TYPE_MISMATCH") != nullptr);
+
+    const WorkflowGraph undeclared_port(
+        {source_node(), crop_node()}, {connect("node.source", "frame", "node.crop", "image")});
+    const WorkflowGraphBinding undeclared_binding =
+        bind_workflow_graph(undeclared_port, registry);
+    const auto* undeclared =
+        find_diagnostic(undeclared_binding.diagnostics(), "MISSING_CONNECTED_PORT");
+    NVISION_REQUIRE(undeclared != nullptr);
+    NVISION_REQUIRE(undeclared->port_key()->value() == "frame");
+
+    // A single-source input rejects a second edge; a multi-source input accepts one.
+    const WorkflowGraph double_fed(
+        {source_node(),
+         node("node.sharpness-a", "nvision.tool.measurement.sharpness"),
+         node("node.sharpness-b", "nvision.tool.measurement.sharpness"),
+         compare_node("node.compare")},
+        {connect("node.source", "image", "node.sharpness-a", "image"),
+         connect("node.source", "image", "node.sharpness-b", "image"),
+         connect("node.sharpness-a", "value", "node.compare", "value"),
+         connect("node.sharpness-b", "value", "node.compare", "value")});
+    const WorkflowGraphBinding double_binding = bind_workflow_graph(double_fed, registry);
+    NVISION_REQUIRE(
+        find_diagnostic(double_binding.diagnostics(), "PORT_ALREADY_CONNECTED") != nullptr);
+
+    const WorkflowGraph multi_source(
+        {source_node(),
+         node("node.sharpness", "nvision.tool.measurement.sharpness"),
+         compare_node("node.compare-a"),
+         compare_node("node.compare-b"),
+         node("node.logic", "nvision.tool.logic.boolean-logic")},
+        {connect("node.source", "image", "node.sharpness", "image"),
+         connect("node.sharpness", "value", "node.compare-a", "value"),
+         connect("node.sharpness", "value", "node.compare-b", "value"),
+         connect("node.compare-a", "passed", "node.logic", "operands"),
+         connect("node.compare-b", "passed", "node.logic", "operands")});
+    const WorkflowGraphBinding multi_binding = bind_workflow_graph(multi_source, registry);
+    NVISION_REQUIRE(!multi_binding.has_errors());
+    NVISION_REQUIRE(multi_binding.diagnostics().empty());
+}
+
 SubworkflowDefinition text_region_subworkflow() {
     // A reusable "crop then recognize" pipeline published as an ordinary tool contract.
     return SubworkflowDefinition(
@@ -327,7 +490,8 @@ SubworkflowDefinition text_region_subworkflow() {
             nvision::core::ToolOrigin::built_in(),
             {},
             {roi_parameter(), confidence_parameter()}),
-        {crop_node(), text_node()},
+        WorkflowGraph(
+            {crop_node(), text_node()}, {connect("node.crop", "image", "node.text", "image")}),
         {SubworkflowPortMapping(
              PortKey("image"), PortDirection::input, WorkflowNodeId("node.crop"),
              PortKey("image")),
@@ -348,11 +512,13 @@ void subworkflows_expose_a_reusable_graph_through_a_tool_interface() {
 
     NVISION_REQUIRE(subworkflow.interface_definition().catalog().category_path()[0] ==
                     "Recognition");
-    NVISION_REQUIRE(subworkflow.nodes().size() == 2U);
-    NVISION_REQUIRE(subworkflow.find_node(WorkflowNodeId("node.text")) != nullptr);
-    NVISION_REQUIRE(subworkflow.find_node(WorkflowNodeId("node.absent")) == nullptr);
+    NVISION_REQUIRE(subworkflow.graph().nodes().size() == 2U);
+    NVISION_REQUIRE(subworkflow.graph().connections().size() == 1U);
+    NVISION_REQUIRE(subworkflow.graph().find_node(WorkflowNodeId("node.text")) != nullptr);
+    NVISION_REQUIRE(subworkflow.graph().find_node(WorkflowNodeId("node.absent")) == nullptr);
 
-    const SubworkflowBinding binding = bind_subworkflow(subworkflow, registry);
+    // The interface mapping satisfies the internal required input that no edge feeds.
+    const WorkflowGraphBinding binding = bind_subworkflow(subworkflow, registry);
     NVISION_REQUIRE(binding.is_fully_resolved());
     NVISION_REQUIRE(!binding.has_errors());
     NVISION_REQUIRE(binding.diagnostics().empty());
@@ -371,7 +537,7 @@ void subworkflows_expose_a_reusable_graph_through_a_tool_interface() {
             ToolCatalogMetadata("Dual Region Text", {"Recognition", "Text"}),
             {port("image", PortDirection::input, PortDataType::image_view),
              port("text", PortDirection::output, PortDataType::text_result)}),
-        {crop_node(), text_node()},
+        WorkflowGraph({crop_node(), text_node()}, {}),
         {SubworkflowPortMapping(
              PortKey("image"), PortDirection::input, WorkflowNodeId("node.crop"),
              PortKey("image")),
@@ -392,46 +558,35 @@ void invalid_subworkflow_structures_are_rejected() {
         {port("image", PortDirection::input, PortDataType::image_view),
          port("text", PortDirection::output, PortDataType::text_result)});
 
+    const WorkflowGraph graph(
+        {crop_node(), text_node()}, {connect("node.crop", "image", "node.text", "image")});
     const SubworkflowPortMapping image_mapping(
         PortKey("image"), PortDirection::input, WorkflowNodeId("node.crop"), PortKey("image"));
     const SubworkflowPortMapping text_mapping(
         PortKey("text"), PortDirection::output, WorkflowNodeId("node.text"), PortKey("text"));
 
-    NVISION_REQUIRE(rejects_invalid_argument([&interface_definition] {
-        SubworkflowDefinition invalid(interface_definition, {}, {});
-    }));
-    NVISION_REQUIRE(
-        rejects_invalid_argument([&interface_definition, &image_mapping, &text_mapping] {
-            SubworkflowDefinition invalid(
-                interface_definition,
-                {crop_node(), crop_node()},
-                {image_mapping, text_mapping});
-        }));
     NVISION_REQUIRE(rejects_invalid_argument([&interface_definition, &image_mapping] {
         // A subworkflow that contains itself can never be expanded.
         SubworkflowDefinition invalid(
             interface_definition,
-            {crop_node(),
-             WorkflowNode(
-                 WorkflowNodeId("node.self"),
-                 ToolTypeId("nvision.subworkflow.recognition.region-text"),
-                 SemanticVersion(1U, 0U, 0U),
-                 "Self")},
+            WorkflowGraph(
+                {crop_node(),
+                 node("node.self", "nvision.subworkflow.recognition.region-text")},
+                {}),
             {image_mapping,
              SubworkflowPortMapping(
                  PortKey("text"), PortDirection::output, WorkflowNodeId("node.self"),
                  PortKey("text"))});
     }));
-    NVISION_REQUIRE(rejects_invalid_argument([&interface_definition, &image_mapping] {
+    NVISION_REQUIRE(rejects_invalid_argument([&interface_definition, &graph, &image_mapping] {
         // The declared output port is never produced.
-        SubworkflowDefinition invalid(
-            interface_definition, {crop_node(), text_node()}, {image_mapping});
+        SubworkflowDefinition invalid(interface_definition, graph, {image_mapping});
     }));
     NVISION_REQUIRE(
-        rejects_invalid_argument([&interface_definition, &image_mapping, &text_mapping] {
+        rejects_invalid_argument([&interface_definition, &graph, &image_mapping, &text_mapping] {
             SubworkflowDefinition invalid(
                 interface_definition,
-                {crop_node(), text_node()},
+                graph,
                 {image_mapping,
                  text_mapping,
                  SubworkflowPortMapping(
@@ -439,17 +594,15 @@ void invalid_subworkflow_structures_are_rejected() {
                      PortKey("image"))});
         }));
     NVISION_REQUIRE(
-        rejects_invalid_argument([&interface_definition, &image_mapping, &text_mapping] {
+        rejects_invalid_argument([&interface_definition, &graph, &image_mapping, &text_mapping] {
             SubworkflowDefinition invalid(
-                interface_definition,
-                {crop_node(), text_node()},
-                {image_mapping, image_mapping, text_mapping});
+                interface_definition, graph, {image_mapping, image_mapping, text_mapping});
         }));
     NVISION_REQUIRE(
-        rejects_invalid_argument([&interface_definition, &image_mapping, &text_mapping] {
+        rejects_invalid_argument([&interface_definition, &graph, &image_mapping, &text_mapping] {
             SubworkflowDefinition invalid(
                 interface_definition,
-                {crop_node(), text_node()},
+                graph,
                 {image_mapping,
                  text_mapping,
                  SubworkflowPortMapping(
@@ -457,10 +610,10 @@ void invalid_subworkflow_structures_are_rejected() {
                      PortKey("mask"))});
         }));
     NVISION_REQUIRE(
-        rejects_invalid_argument([&interface_definition, &image_mapping, &text_mapping] {
+        rejects_invalid_argument([&interface_definition, &graph, &image_mapping, &text_mapping] {
             SubworkflowDefinition invalid(
                 interface_definition,
-                {crop_node(), text_node()},
+                graph,
                 {image_mapping,
                  text_mapping,
                  SubworkflowPortMapping(
@@ -468,10 +621,10 @@ void invalid_subworkflow_structures_are_rejected() {
                      PortKey("image"))});
         }));
     NVISION_REQUIRE(
-        rejects_invalid_argument([&interface_definition, &image_mapping, &text_mapping] {
+        rejects_invalid_argument([&interface_definition, &graph, &image_mapping, &text_mapping] {
             SubworkflowDefinition invalid(
                 interface_definition,
-                {crop_node(), text_node()},
+                graph,
                 {image_mapping, text_mapping},
                 {SubworkflowParameterPromotion(
                     ParameterKey("roi"), WorkflowNodeId("node.crop"), ParameterKey("roi"))});
@@ -487,20 +640,20 @@ void invalid_subworkflow_structures_are_rejected() {
         {},
         {roi_parameter()});
 
-    NVISION_REQUIRE(rejects_invalid_argument([&with_roi, &image_mapping, &text_mapping] {
+    NVISION_REQUIRE(rejects_invalid_argument([&with_roi, &graph, &image_mapping, &text_mapping] {
         SubworkflowDefinition invalid(
             with_roi,
-            {crop_node(), text_node()},
+            graph,
             {image_mapping, text_mapping},
             {SubworkflowParameterPromotion(
                  ParameterKey("roi"), WorkflowNodeId("node.crop"), ParameterKey("roi")),
              SubworkflowParameterPromotion(
                  ParameterKey("roi"), WorkflowNodeId("node.text"), ParameterKey("roi"))});
     }));
-    NVISION_REQUIRE(rejects_invalid_argument([&with_roi, &image_mapping, &text_mapping] {
+    NVISION_REQUIRE(rejects_invalid_argument([&with_roi, &graph, &image_mapping, &text_mapping] {
         SubworkflowDefinition invalid(
             with_roi,
-            {crop_node(), text_node()},
+            graph,
             {image_mapping, text_mapping},
             {SubworkflowParameterPromotion(
                 ParameterKey("roi"), WorkflowNodeId("node.absent"), ParameterKey("roi"))});
@@ -509,6 +662,8 @@ void invalid_subworkflow_structures_are_rejected() {
 
 void subworkflow_binding_reports_contract_mismatches() {
     const ToolRegistry registry = reference_registry();
+    const WorkflowGraph graph(
+        {crop_node(), text_node()}, {connect("node.crop", "image", "node.text", "image")});
 
     // The interface promises a decision, but the mapped node port produces text.
     const SubworkflowDefinition wrong_type(
@@ -518,7 +673,7 @@ void subworkflow_binding_reports_contract_mismatches() {
             ToolCatalogMetadata("Wrong Type", {"Recognition"}),
             {port("image", PortDirection::input, PortDataType::image_view),
              port("text", PortDirection::output, PortDataType::decision)}),
-        {crop_node(), text_node()},
+        graph,
         {SubworkflowPortMapping(
              PortKey("image"), PortDirection::input, WorkflowNodeId("node.crop"),
              PortKey("image")),
@@ -526,7 +681,7 @@ void subworkflow_binding_reports_contract_mismatches() {
              PortKey("text"), PortDirection::output, WorkflowNodeId("node.text"),
              PortKey("text"))});
 
-    const SubworkflowBinding type_binding = bind_subworkflow(wrong_type, registry);
+    const WorkflowGraphBinding type_binding = bind_subworkflow(wrong_type, registry);
     NVISION_REQUIRE(type_binding.is_fully_resolved());
     NVISION_REQUIRE(type_binding.has_errors());
     NVISION_REQUIRE(find_diagnostic(type_binding.diagnostics(), "PORT_TYPE_MISMATCH") != nullptr);
@@ -539,14 +694,14 @@ void subworkflow_binding_reports_contract_mismatches() {
             ToolCatalogMetadata("Missing Port", {"Recognition"}),
             {port("mask", PortDirection::input, PortDataType::mask),
              port("text", PortDirection::output, PortDataType::text_result)}),
-        {crop_node(), text_node()},
+        graph,
         {SubworkflowPortMapping(
              PortKey("mask"), PortDirection::input, WorkflowNodeId("node.crop"), PortKey("mask")),
          SubworkflowPortMapping(
              PortKey("text"), PortDirection::output, WorkflowNodeId("node.text"),
              PortKey("text"))});
 
-    const SubworkflowBinding port_binding = bind_subworkflow(missing_port, registry);
+    const WorkflowGraphBinding port_binding = bind_subworkflow(missing_port, registry);
     NVISION_REQUIRE(port_binding.has_errors());
     const auto* missing = find_diagnostic(port_binding.diagnostics(), "MISSING_MAPPED_PORT");
     NVISION_REQUIRE(missing != nullptr);
@@ -570,7 +725,7 @@ void subworkflow_binding_reports_contract_mismatches() {
                  ParameterType::integer(NumericConstraint(1.0, 4.0)),
                  true,
                  ParameterValue::integer(2))}),
-        {crop_node(), text_node()},
+        graph,
         {SubworkflowPortMapping(
              PortKey("image"), PortDirection::input, WorkflowNodeId("node.crop"),
              PortKey("image")),
@@ -586,7 +741,7 @@ void subworkflow_binding_reports_contract_mismatches() {
              WorkflowNodeId("node.text"),
              ParameterKey("orientation-steps"))});
 
-    const SubworkflowBinding promotion_binding = bind_subworkflow(wrong_promotion, registry);
+    const WorkflowGraphBinding promotion_binding = bind_subworkflow(wrong_promotion, registry);
     NVISION_REQUIRE(promotion_binding.has_errors());
     NVISION_REQUIRE(
         find_diagnostic(promotion_binding.diagnostics(), "PROMOTED_PARAMETER_TYPE_MISMATCH") !=
@@ -605,7 +760,7 @@ void subworkflow_binding_reports_contract_mismatches() {
             nvision::core::ToolOrigin::built_in(),
             {},
             {roi_parameter()}),
-        {crop_node(), text_node()},
+        graph,
         {SubworkflowPortMapping(
              PortKey("image"), PortDirection::input, WorkflowNodeId("node.crop"),
              PortKey("image")),
@@ -613,7 +768,7 @@ void subworkflow_binding_reports_contract_mismatches() {
              PortKey("text"), PortDirection::output, WorkflowNodeId("node.text"),
              PortKey("text"))});
 
-    const SubworkflowBinding unpromoted_binding = bind_subworkflow(unpromoted, registry);
+    const WorkflowGraphBinding unpromoted_binding = bind_subworkflow(unpromoted, registry);
     NVISION_REQUIRE(!unpromoted_binding.has_errors());
     const auto* warning = find_diagnostic(unpromoted_binding.diagnostics(), "UNPROMOTED_PARAMETER");
     NVISION_REQUIRE(warning != nullptr);
@@ -626,14 +781,15 @@ void unresolved_nodes_do_not_hide_behind_mapping_diagnostics() {
     static_cast<void>(registry.register_definition(text_definition()));
 
     const SubworkflowDefinition subworkflow = text_region_subworkflow();
-    const SubworkflowBinding binding = bind_subworkflow(subworkflow, registry);
+    const WorkflowGraphBinding binding = bind_subworkflow(subworkflow, registry);
 
     NVISION_REQUIRE(!binding.is_fully_resolved());
     NVISION_REQUIRE(binding.has_errors());
     NVISION_REQUIRE(!binding.find_node(WorkflowNodeId("node.crop"))->is_resolved());
     NVISION_REQUIRE(binding.find_node(WorkflowNodeId("node.text"))->is_resolved());
 
-    // Only the missing tool is reported; its mapping and promotion stay untouched.
+    // Only the missing tool is reported. Its edge, mapping, and promotion stay silent, and
+    // the input it feeds is still counted as connected.
     NVISION_REQUIRE(binding.diagnostics().empty());
     NVISION_REQUIRE(
         binding.find_node(WorkflowNodeId("node.crop"))->diagnostics()[0].code().value() ==
@@ -642,8 +798,6 @@ void unresolved_nodes_do_not_hide_behind_mapping_diagnostics() {
                         ->node()
                         .configuration()
                         .contains(ParameterKey("roi")));
-    NVISION_REQUIRE(subworkflow.port_mappings().size() == 2U);
-    NVISION_REQUIRE(subworkflow.parameter_promotions().size() == 2U);
 }
 
 }  // namespace
@@ -652,6 +806,8 @@ int main() {
     unresolved_nodes_keep_identity_and_configuration();
     resolved_nodes_report_schema_problems_without_dropping_values();
     invalid_node_contracts_are_rejected();
+    invalid_graph_topology_is_rejected();
+    graph_binding_validates_typed_connections();
     subworkflows_expose_a_reusable_graph_through_a_tool_interface();
     invalid_subworkflow_structures_are_rejected();
     subworkflow_binding_reports_contract_mismatches();
