@@ -55,8 +55,9 @@ target_compile_features(nvision_vision PUBLIC cxx_std_20)
 target_link_libraries(nvision_vision PUBLIC nvision_workflow)
 
 # OpenCV is opt-in and located through the standard CMake search, so no build file in
-# this repository contains a machine-specific path. Configure with
-# -DNVISION_ENABLE_OPENCV=ON -DOpenCV_DIR=<path to the OpenCV CMake config>.
+# this repository contains a machine-specific path. Either set the OpenCV_DIR environment
+# variable to the OpenCV CMake config directory, or pass -DOpenCV_DIR=<path>, together
+# with -DNVISION_ENABLE_OPENCV=ON.
 if(NVISION_ENABLE_OPENCV)
     find_package(OpenCV REQUIRED CONFIG)
     target_link_libraries(nvision_vision PRIVATE ${OpenCV_LIBS})
@@ -279,6 +280,16 @@ if(NVISION_BUILD_TESTS)
 
     set_target_properties(nvision_tool_execution_tests PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    # A test executable that links the vision library needs the OpenCV runtime beside it,
+    # otherwise the suite fails to start rather than reporting a real assertion.
+    if(NVISION_ENABLE_OPENCV AND WIN32)
+        add_custom_command(TARGET nvision_tool_execution_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_RUNTIME_DLLS:nvision_tool_execution_tests>
+                $<TARGET_FILE_DIR:nvision_tool_execution_tests>
+            COMMAND_EXPAND_LISTS)
+    endif()
 
     add_test(NAME nvision_tool_execution_tests COMMAND nvision_tool_execution_tests)
 endif()

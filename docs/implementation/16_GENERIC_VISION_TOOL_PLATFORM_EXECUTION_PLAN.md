@@ -1257,12 +1257,12 @@ actual native layout; ADR-0006 records the move of the tool platform contracts o
 `core`. Concrete image-processing, geometry, measurement, and clustering tools follow in
 later slices.
 
-Those slices are blocked on one external decision. No usable OpenCV exists on the current
-machine: the CUDA build requires a CUDA toolkit version that is not installed and depends
-on the removed `FindCUDA` module, and the stock build is missing the binary directory its
-own imported targets reference. `NVISION_ENABLE_OPENCV` therefore defaults to OFF. A
-complete OpenCV 4.x package with documented provenance and license must be sourced before
-the OpenCV-backed tools can be written.
+OpenCV 4.14.0 is installed and verified against the real build. Discovery uses the standard
+`OpenCV_DIR` environment variable, so no path to an OpenCV installation is stored in this
+repository and `scripts/native-build.ps1` enables `NVISION_ENABLE_OPENCV` whenever that
+variable is set. A machine without it still builds and passes the gate, without the
+OpenCV-backed tools; when OpenCV becomes a required dependency of `nvision_vision` rather
+than an opt-in one is still an open decision.
 
 Continue while keeping the M0 provenance gap explicit, and keep every slice generic so both
 reference workflows are proven without application vocabulary in production Core types.

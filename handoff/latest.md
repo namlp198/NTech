@@ -50,8 +50,15 @@
   execution and the contracts it executes share one area, as Section 13 of the plan
   requires. The change is mechanical, the resulting dependency is strictly one way, and no
   core, acquisition, or ABI header includes a workflow header.
-- Probed both OpenCV distributions on this machine with a real CMake configure. Both fail,
-  so no OpenCV-backed tool can be written yet. Details are in `tasks/active.md`.
+- Probed both OpenCV distributions under `D:\src\learn_opencv_all\Libraries` with a real
+  CMake configure and both failed. `opencv480_CUDA` demands CUDA exactly 11.8 against an
+  installed 11.2 and uses the removed `FindCUDA` module; the stock `opencv/build` is
+  missing the `x64/vc16/bin` directory its own imported targets reference.
+- OpenCV 4.14.0 was then installed at `D:\setups\opencv` and verified against the real
+  build, which clears that blocker. Setting the `OpenCV_DIR` environment variable is how a
+  machine opts in: `scripts/native-build.ps1` turns on `NVISION_ENABLE_OPENCV` when it is
+  set, `find_package` resolves the installation from the same standard variable, and the
+  OpenCV runtime DLL is copied beside the native test executables.
 
 ## Current Status
 
@@ -63,15 +70,12 @@ boundary now matches the plan. The branch has not been pushed and has not been m
 ## Next Actions
 
 1. Review and merge `codex/m3-tool-execution-foundation` into `develop`.
-2. Source a complete OpenCV 4.x package with documented provenance and license before the
-   next slice. Neither distribution on this machine configures: `opencv480_CUDA` demands
-   CUDA exactly 11.8 against an installed 11.2 and relies on the removed `FindCUDA`
-   module, and the stock `opencv/build` is missing the `x64/vc16/bin` directory its own
-   imported targets reference. A mandatory CUDA dependency is also wrong for a CPU-first
-   portable Core. This is the one decision blocking the next slice.
-3. Implement the image-processing tool group against the foundation, golden-tested. That
+2. Implement the image-processing tool group against the foundation, golden-tested. That
    slice must decide how an operation which materializes a new image owns its buffer;
    crop deliberately did not have to answer that because it only produces another view.
+3. Decide when OpenCV stops being opt-in and becomes a required dependency of
+   `nvision_vision`. While discovery is environment-driven, a machine without `OpenCV_DIR`
+   passes the gate without ever compiling the OpenCV-backed tools.
 4. Continue through location/geometry, measurement, and clustering/point-grid groups.
 5. Keep the M0 asset provenance gap explicit and run the full repository check after each
    coherent behavior slice.
@@ -105,10 +109,13 @@ boundary now matches the plan. The branch has not been pushed and has not been m
 
 ## Verification
 
-- Full `scripts/check.ps1 -Configuration Release`: passed, both before and after the
-  ADR-0006 relocation. Native Release build with `/W4 /WX` reported 0 warnings, CTest
-  reported 10 passed and 0 failed, the .NET suites reported 119 passed and 0 failed, and
-  `dotnet format --verify-no-changes` was clean.
+- Full `scripts/check.ps1 -Configuration Release`: passed, before and after the ADR-0006
+  relocation and again with OpenCV enabled. Native Release build with `/W4 /WX` reported
+  0 warnings, CTest reported 10 passed and 0 failed, the .NET suites reported 119 passed
+  and 0 failed, and `dotnet format --verify-no-changes` was clean.
+- OpenCV check: with `OpenCV_DIR=D:\setups\opencv\build`, configure reported
+  `Found OpenCV 4.14.0`, `nvision_vision` linked it, `opencv_world4140.dll` was copied
+  into the native test output directory, and the gate stayed green.
 - This is the first session in which the managed half of the gate actually ran.
 - Negative check: removing the crop transform output made `nvision_tool_execution_tests`
   fail with `OUTPUT_CONTRACT_VIOLATION`, and restoring it returned the suite to green.

@@ -33,6 +33,11 @@ isolation, without any public contract exposing an OpenCV type.
 - OpenCV is opt-in through `NVISION_ENABLE_OPENCV` and found by the standard CMake search.
   No build file holds a machine-specific path, and the dependency is PRIVATE to
   `nvision_vision` so no public header can expose an OpenCV type.
+- Verified OpenCV 4.14.0 at `D:\setups\opencv\build` against the real build. Setting the
+  `OpenCV_DIR` environment variable is now how a machine opts into the OpenCV-backed
+  tools: `scripts/native-build.ps1` turns on `NVISION_ENABLE_OPENCV` when it is set, and
+  the OpenCV runtime DLL is copied beside the native test executables so a suite that
+  links the vision library starts.
 - Added the `nvision_tool_execution_tests` target. The native gate passes with 10 CTests.
 - Relocated the M2 tool platform contracts from `nvision::core` to `nvision::workflow`:
   `parameter_schema`, `tool_definition`, `tool_registry`, `builtin_catalog`,
@@ -78,20 +83,10 @@ isolation, without any public contract exposing an OpenCV type.
 
 ## Open Items
 
-- No usable OpenCV is available on this machine, so `NVISION_ENABLE_OPENCV` defaults to
-  OFF and no OpenCV-backed tool exists yet. Both distributions under
-  `D:\src\learn_opencv_all\Libraries` were probed with a real CMake configure and both
-  fail:
-  - `opencv480_CUDA` requires CUDA toolkit exactly 11.8 and the machine has 11.2. Its
-    config also uses the removed `FindCUDA` module, which CMake policy CMP0146 warns about
-    and CMake 4 drops. A mandatory CUDA dependency is also wrong for a CPU-first portable
-    Core.
-  - `opencv/build` (4.8.0, vc16) is incomplete. Its `x64/vc16/bin` directory is gone
-    because the DLLs were moved to `D:\src\learn_opencv_all\output\Release`, so the
-    imported `opencv_world` target references files that do not exist.
-
-  Sourcing a complete OpenCV 4.x package with documented provenance and license is a
-  prerequisite for the next slice.
+- OpenCV discovery is environment-driven, so a machine without `OpenCV_DIR` set builds and
+  passes the gate without the OpenCV-backed tools. That is correct while the tools are
+  being added, but it means the gate cannot yet prove they compile everywhere. Decide when
+  OpenCV becomes a required dependency of `nvision_vision` rather than an opt-in one.
 
 - External Wire Marker model and Pin Insert asset provenance/license evidence is still
   unresolved. Do not import or redistribute those assets until it is.
