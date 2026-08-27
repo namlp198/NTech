@@ -2,7 +2,7 @@
 
 ## Current Task
 
-M3 — Generic OpenCV Vision Foundation — Slices S0 and S1 complete
+M3 — Generic OpenCV Vision Foundation — Slices S0 through S2 complete
 
 ## Goal
 
@@ -16,16 +16,17 @@ parameter sets against real behaviour, with no public contract exposing an OpenC
 | S0a | Computed image ownership, ADR-0007 | Complete, `5475413` |
 | S0b | OpenCV required, interop substrate, public-contract guard | Complete, `fe432d4` |
 | S1 | Image Processing, 15 tools | Complete, `43edcd8` |
-| S2 | Location and Geometry, 11 tools | Not started |
+| S2a | Location and geometry data contracts | Complete, `9f2c0d3` |
+| S2b | Location and Geometry, 11 tools | Complete, `ab9b17c` |
 | S3 | Measurement, 11 tools | Not started |
 | S4 | Clustering and Structure, 6 tools | Not started |
 | S5 | Overlay and evidence primitives, 1 tool | Not started |
 | S6 | Exit gate: parameter refinement, Pin Insert representation, Linux build | Not started |
 
-Catalog coverage is 15 of 66 definitions. The remaining 22 outside M3 belong to M4
+Catalog coverage is 26 of 66 definitions. The remaining 22 outside M3 belong to M4
 (Recognition and Text, 9) and M5 (Acquisition 5, Logic and Results 8).
 
-## Completed in S0 and S1
+## Completed in S0 through S2
 
 - `Image` is a computed raster that owns its pixels and carries no acquisition metadata,
   so a derived image can never be mistaken for a capture. `ImageSource` names which raster
@@ -41,15 +42,21 @@ Catalog coverage is 15 of 66 definitions. The remaining 22 outside M3 belong to 
   Runtime spellings, so the no-third-party-type rule is enforced rather than trusted.
 - All 15 Image Processing tools execute, each refusing what it cannot do correctly.
 - `PixelFormat` gained `bayer_gr8`, `hsv8`, and `mono_float32`.
+- Added the data contracts the geometry tools report through: `Contour`, `Measurement`,
+  `Detection`, `Feature`, `FeatureSet`, `FeatureMatch`, and `MatchSet`. A contour may be
+  degenerate where a polygon may not, a measurement in image units must name its
+  coordinate space, and a match set carries both feature sets so a later node recovers the
+  point pairs without the images.
+- All 11 Location and Geometry tools execute. Coordinate space is checked wherever two
+  inputs must agree, and algorithmic failure is separated from configuration failure.
+- `PortValue::point_list` rejects a list that crosses coordinate spaces.
 
 ## Next Steps
 
-1. S2, Location and Geometry. It needs native types the platform does not have yet:
-   contour, detection list, feature set, match set. Homography reuses `Transform2D`.
-2. S3, Measurement. It needs a measurement and measurement-list contract.
-3. S4, Clustering and Structure. It needs a point-grid model and result contract.
-4. S5, overlay and evidence primitives.
-5. S6, close the M3 exit gate.
+1. S3, Measurement, 11 tools. The measurement contract it needs already exists.
+2. S4, Clustering and Structure, 6 tools. It needs a point-grid model and result contract.
+3. S5, overlay and evidence primitives.
+4. S6, close the M3 exit gate.
 
 ## Acceptance Criteria
 
@@ -61,7 +68,8 @@ Catalog coverage is 15 of 66 definitions. The remaining 22 outside M3 belong to 
 - [x] No public header or public contract exposes an OpenCV type, enforced by a test.
 - [x] The native and managed halves of `scripts/check.ps1` are both green.
 - [x] Image Processing tools are independently tested against exact properties.
-- [ ] Location, Measurement, Clustering, and evidence tools are implemented and tested.
+- [x] Location and Geometry tools are implemented and tested.
+- [ ] Measurement, Clustering, and evidence tools are implemented and tested.
 - [ ] Pin Insert source algorithms are representable without a Pin Insert engine class.
 - [ ] The Linux native headless build compiles the vision library.
 

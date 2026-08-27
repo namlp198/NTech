@@ -73,24 +73,33 @@
   morphology, distance transform, perspective warp, and affine transform, alongside the
   crop and threshold tools that landed with the substrate. `PixelFormat` gained
   `bayer_gr8`, `hsv8`, and `mono_float32`.
-- Catalog coverage is 15 of 66 definitions, and every Image Processing definition is
-  implemented.
+- Added the location and geometry data contracts in `9f2c0d3`: `Contour`, `Measurement`,
+  `Detection`, `Feature`, `FeatureSet`, `FeatureMatch`, and `MatchSet`. A contour is
+  deliberately not a polygon, because a single-pixel or collinear region is a real result a
+  detector must be able to report. A measurement carries a unit, and one in image units
+  must name the coordinate space it was taken in. A match set carries both feature sets, so
+  a homography estimate recovers the point pairs without being handed the images again.
+- Implemented all 11 Location and Geometry tools in `ab9b17c`. Coordinate space is checked
+  wherever two inputs must agree, contour parent indices are remapped through the area
+  filter rather than passed through stale, point assignment consumes each candidate once,
+  and algorithmic failure is reported as a recoverable vision error while a contract
+  problem is reported as a configuration error.
+- Catalog coverage is 26 of 66 definitions. Image Processing and Location and Geometry are
+  both complete.
 
 ## Current Status
 
 M2 is complete and merged. M3 is in progress and green: the tool execution foundation, the
 computed-image ownership contract, the OpenCV interop substrate, and the complete Image
-Processing group are landed, and the native area boundary now matches the plan. Slices S2
-through S6 remain. The branch has not been pushed and has not been merged into `develop`.
+Processing and Location and Geometry groups are landed, and the native area boundary now
+matches the plan. Slices S3 through S6 remain. The branch has not been pushed and has not been merged into `develop`.
 
 ## Next Actions
 
-1. Continue with slice S2, Location and Geometry, 11 tools. It needs native types the
-   platform does not have yet: contour, detection list, feature set, and match set.
-   Homography reuses `Transform2D`, which already guarantees an inverse exists.
-2. Then S3 Measurement (11 tools, needs a measurement contract), S4 Clustering and
-   Structure (6 tools, needs a point-grid model and result), and S5 overlay and evidence
-   primitives.
+1. Continue with slice S3, Measurement, 11 tools. The measurement contract it needs
+   already exists, so it needs no new data type.
+2. Then S4 Clustering and Structure (6 tools, needs a point-grid model and result) and S5
+   overlay and evidence primitives.
 3. Then S6 to close the M3 exit gate: refine the parameter sets that implementation
    showed to be wrong, prove the Pin Insert algorithms are representable without a Pin
    Insert engine class, and run the Linux native headless build.
@@ -108,9 +117,13 @@ through S6 remain. The branch has not been pushed and has not been merged into `
 - `PixelFormat` gained one Bayer pattern, `bayer_gr8`, because that is the only one the
   catalog and the reference application need. The other three 8-bit patterns are absent on
   purpose and should be added with the tool or parameter that requires them.
-- `PortValue` covers the port data kinds that have a native representation today. Kinds
-  such as `feature_set`, `match_set`, `detection_list`, and `point_grid_model` have no
-  factory yet and gain one with the milestone that introduces their native type.
+- `PortValue` covers the port data kinds that have a native representation today.
+  `point_grid_model`, `point_grid_result`, `overlay`, `evidence`, and `any_metadata` have
+  no factory yet and gain one with the slice that needs them.
+- Feature matching is tested for the contracts it must keep rather than for a number of
+  matches, because how many correspondences a detector finds on a synthetic fixture is not
+  a property worth pinning. The homography test builds its correspondences by hand so its
+  expectation stays exact.
 - The execution budget is enforced after the fact by `execute_tool`, which measures elapsed
   time and reports a timeout. It does not interrupt a running tool. A tool that must stop
   early has to observe the cancellation token itself.
