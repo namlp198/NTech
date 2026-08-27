@@ -1228,8 +1228,8 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | N1 — Native acquisition | Complete and merged | `ed53d73`, merge `bd46168` |
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
 | M1 — Native data contracts | Complete and merged | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results; merge `d01e54c` |
-| M2 — Tool definition/catalog | Complete, awaiting merge | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` nodes/subworkflows; `bc58e5a` typed graphs; `a777314` catalog and reference graphs |
-| M3 — Generic OpenCV foundation | Not started | |
+| M2 — Tool definition/catalog | Complete and merged | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` nodes/subworkflows; `bc58e5a` typed graphs; `a777314` catalog and reference graphs; merge `f1c0abd` |
+| M3 — Generic OpenCV foundation | In progress | Tool execution foundation slice on `codex/m3-tool-execution-foundation` |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
 | M6 — Wire Marker headless parity | Not started | |
@@ -1243,17 +1243,22 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 
 ## 20. Immediate next action
 
-M2 is complete on `codex/generic-vision-m2-subworkflow` and every exit gate of Section 15
-is met. The branch adds unresolved-node preservation and subworkflows (`00f86c6`), typed
-connections and graphs (`bc58e5a`), and the initial generic catalog plus both validated
-reference graphs (`a777314`). Continue while keeping the M0 provenance gap explicit:
+M2 is complete and merged into `develop` by `f1c0abd`. The milestone delivered
+unresolved-node preservation and subworkflows (`00f86c6`), typed connections and graphs
+(`bc58e5a`), and the initial 66-tool generic catalog with both validated reference graphs
+(`a777314`). Every Section 15 exit gate for M2 is met.
 
-1. review and merge the branch into `develop`;
-2. start M3, the generic OpenCV vision foundation, implementing the catalog definitions
-   behind their contracts and refining parameter sets against real behavior;
-3. keep every slice generic and prove both reference workflows without application
-   vocabulary in production Core types.
+M3, the generic OpenCV vision foundation, is the current milestone. Its first slice is the
+tool execution foundation: the native contract that turns a resolved `ToolTypeDefinition`
+into an invocable implementation, the registry that binds definition identity to that
+implementation, the typed port value carrier used at execution time, and the OpenCV
+dependency wiring in CMake. Concrete image-processing, geometry, measurement, and
+clustering tools are implemented on top of that foundation in later slices.
 
-Note that the full repository gate currently needs .NET SDK 10.0.200 as pinned by
-`global.json`. Where only the native plane changes, record the native build and CTest
-result and state that the managed half could not run.
+Continue while keeping the M0 provenance gap explicit, and keep every slice generic so both
+reference workflows are proven without application vocabulary in production Core types.
+
+The full repository gate now runs on this machine. `scripts/check.ps1` resolves .NET SDK
+10.0.200 from the repository-local `artifacts/dotnet/` installation, which satisfies the
+`global.json` pin even though the machine-wide SDKs are 9.0.302 and 10.0.400. Record both
+the native and the managed halves of the gate from now on.
