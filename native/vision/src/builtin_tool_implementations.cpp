@@ -6,6 +6,7 @@
 #include "color_tools.hpp"
 #include "count_tools.hpp"
 #include "crop_tool.hpp"
+#include "evidence_tools.hpp"
 #include "filter_tools.hpp"
 #include "grid_tools.hpp"
 #include "morphology_tools.hpp"
@@ -69,6 +70,10 @@ void register_vision_tool_implementations(workflow::ToolImplementationRegistry& 
     registry.register_implementation(create_sort_points_along_line_tool());
     registry.register_implementation(create_point_grid_learn_tool());
     registry.register_implementation(create_grid_deviation_tool());
+
+    // Logic and Results. Only evidence output belongs to the vision milestone; the rest of
+    // the category is workflow logic that arrives with job and recipe execution.
+    registry.register_implementation(create_evidence_output_tool());
 }
 
 workflow::ToolImplementationRegistry create_vision_implementation_registry() {

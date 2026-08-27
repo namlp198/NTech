@@ -5,6 +5,7 @@
 #include "nvision/core/geometry.hpp"
 #include "nvision/core/inspection_outcome.hpp"
 #include "nvision/core/measurement.hpp"
+#include "nvision/core/overlay.hpp"
 #include "nvision/core/point_grid.hpp"
 #include "nvision/core/resource_reference.hpp"
 #include "nvision/core/semantic_version.hpp"
@@ -604,6 +605,44 @@ void a_point_grid_model_records_a_layout_and_nothing_about_its_meaning() {
     }));
 }
 
+void an_overlay_is_data_a_renderer_reads_rather_than_something_already_drawn() {
+    using nvision::core::Overlay;
+    using nvision::core::OverlayItem;
+    using nvision::core::OverlayStyle;
+    const CoordinateSpaceId space("nvision.image.node.evidence.image-pixel");
+
+    const OverlayItem marker(
+        Circle(Point2D(space, 12.0, 8.0), 4.0), OverlayStyle(255U, 0U, 0U, 2.0), "pin 3");
+    NVISION_REQUIRE(marker.coordinate_space() == space);
+    // The anchor is where a renderer would place the label, derived from the shape itself.
+    NVISION_REQUIRE(marker.anchor().x() == 12.0);
+    NVISION_REQUIRE(marker.label() == "pin 3");
+
+    const Overlay overlay(
+        space,
+        {marker,
+         OverlayItem(
+             AxisAlignedRectangle(space, 0.0, 0.0, 20.0, 20.0), OverlayStyle(0U, 255U, 0U))});
+    NVISION_REQUIRE(overlay.size() == 2U);
+    NVISION_REQUIRE(overlay.items()[1].anchor().x() == 0.0);
+
+    // A shape from another raster would be drawn somewhere it never was.
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(Overlay(
+            space,
+            {OverlayItem(
+                Point2D(CoordinateSpaceId("nvision.image.other.image-pixel"), 1.0, 1.0),
+                OverlayStyle(0U, 0U, 255U))}));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        static_cast<void>(OverlayStyle(0U, 0U, 0U, 0.0));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(
+            OverlayItem(Point2D(space, 1.0, 1.0), OverlayStyle(0U, 0U, 0U), "line\nbreak"));
+    }));
+}
+
 void resource_references_are_versioned_and_content_addressed() {
     constexpr std::string_view checksum =
         "3bec1d7190001d1dc1f4ef009013b1abafb1d6a7d725840f15c54920e639e313";
@@ -693,6 +732,7 @@ int main() {
     detections_stay_consistent_with_the_region_they_describe();
     match_sets_relate_two_spaces_and_resolve_their_own_point_pairs();
     a_point_grid_model_records_a_layout_and_nothing_about_its_meaning();
+    an_overlay_is_data_a_renderer_reads_rather_than_something_already_drawn();
     resource_references_are_versioned_and_content_addressed();
     resource_integrity_rejects_noncanonical_or_incomplete_metadata();
     return 0;

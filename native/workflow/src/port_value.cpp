@@ -110,6 +110,14 @@ PortValue PortValue::point_grid_model(core::PointGridModel value) {
     return PortValue(PortDataType::point_grid_model, std::move(value));
 }
 
+PortValue PortValue::overlay(core::Overlay value) {
+    return PortValue(PortDataType::overlay, std::move(value));
+}
+
+PortValue PortValue::evidence(core::EvidenceArtifact value) {
+    return PortValue(PortDataType::evidence, std::move(value));
+}
+
 PortValue PortValue::boolean(const bool value) {
     return PortValue(PortDataType::boolean, value);
 }
@@ -212,6 +220,14 @@ const core::MatchSet& PortValue::match_set_value() const {
 
 const core::PointGridModel& PortValue::point_grid_model_value() const {
     return payload_of<core::PointGridModel>(payload_, "point grid model");
+}
+
+const core::Overlay& PortValue::overlay_value() const {
+    return payload_of<core::Overlay>(payload_, "overlay");
+}
+
+const core::EvidenceArtifact& PortValue::evidence_value() const {
+    return payload_of<core::EvidenceArtifact>(payload_, "evidence");
 }
 
 const core::InspectionDecision& PortValue::decision_value() const {

@@ -11,6 +11,7 @@ add_library(nvision_core STATIC
     core/src/identifier.cpp
     core/src/inspection_outcome.cpp
     core/src/measurement.cpp
+    core/src/overlay.cpp
     core/src/point_grid.cpp
     core/src/resource_reference.cpp
     core/src/semantic_version.cpp)
@@ -59,6 +60,7 @@ add_library(nvision_vision STATIC
     vision/src/color_tools.cpp
     vision/src/count_tools.cpp
     vision/src/crop_tool.cpp
+    vision/src/evidence_tools.cpp
     vision/src/filter_tools.cpp
     vision/src/grid_tools.cpp
     vision/src/morphology_tools.cpp

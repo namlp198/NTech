@@ -139,14 +139,16 @@ ToolExecutionContext::ToolExecutionContext(
     PortValueMap inputs,
     ParameterBinding parameters,
     CancellationToken cancellation,
-    ExecutionBudget budget)
+    ExecutionBudget budget,
+    EvidenceSink* evidence_sink)
     : definition_(std::move(definition)),
       session_id_(std::move(session_id)),
       node_id_(std::move(node_id)),
       inputs_(std::move(inputs)),
       parameters_(std::move(parameters)),
       cancellation_(std::move(cancellation)),
-      budget_(budget) {
+      budget_(budget),
+      evidence_sink_(evidence_sink) {
     if (!definition_) {
         throw std::invalid_argument("a tool execution context requires a bound tool definition");
     }
@@ -199,6 +201,10 @@ const ExecutionBudget& ToolExecutionContext::budget() const noexcept {
     return budget_;
 }
 
+EvidenceSink* ToolExecutionContext::evidence_sink() const noexcept {
+    return evidence_sink_;
+}
+
 bool ToolExecutionContext::is_cancellation_requested() const noexcept {
     return cancellation_.is_cancellation_requested();
 }
@@ -223,6 +229,11 @@ core::ImageId ToolExecutionContext::output_image_id(const core::PortKey& output_
             " has a name too long to derive an output image identity");
     }
     return core::ImageId(std::move(identity));
+}
+
+core::EvidenceId ToolExecutionContext::output_evidence_id(
+    const core::PortKey& output_port) const {
+    return core::EvidenceId(node_id_.value() + "." + output_port.value());
 }
 
 ToolExecutionOutcome::ToolExecutionOutcome(

@@ -4,6 +4,7 @@
 #include "nvision/core/identifier.hpp"
 #include "nvision/core/inspection_outcome.hpp"
 #include "nvision/core/semantic_version.hpp"
+#include "nvision/workflow/evidence_sink.hpp"
 #include "nvision/workflow/parameter_schema.hpp"
 #include "nvision/workflow/port_value.hpp"
 #include "nvision/workflow/tool_definition.hpp"
@@ -103,7 +104,8 @@ public:
         PortValueMap inputs,
         ParameterBinding parameters,
         CancellationToken cancellation = CancellationToken::none(),
-        ExecutionBudget budget = ExecutionBudget::unbounded());
+        ExecutionBudget budget = ExecutionBudget::unbounded(),
+        EvidenceSink* evidence_sink = nullptr);
 
     [[nodiscard]] const ToolTypeDefinition& definition() const noexcept;
     [[nodiscard]] const core::ExecutionSessionId& session_id() const noexcept;
@@ -111,6 +113,9 @@ public:
     [[nodiscard]] const PortValueMap& inputs() const noexcept;
     [[nodiscard]] const ParameterBinding& parameters() const noexcept;
     [[nodiscard]] const ExecutionBudget& budget() const noexcept;
+    // Null when nothing is collecting evidence for this run, which a tool that produces
+    // evidence must report rather than quietly discard what it made.
+    [[nodiscard]] EvidenceSink* evidence_sink() const noexcept;
     [[nodiscard]] bool is_cancellation_requested() const noexcept;
 
     [[nodiscard]] const PortValue& input(const core::PortKey& key) const;
@@ -121,6 +126,10 @@ public:
     // run reproducing the same coordinate space for the same output.
     [[nodiscard]] core::ImageId output_image_id(const core::PortKey& output_port) const;
 
+    // The identity of an evidence artifact this node publishes on one of its output ports,
+    // derived the same way and for the same reason as an output image identity.
+    [[nodiscard]] core::EvidenceId output_evidence_id(const core::PortKey& output_port) const;
+
 private:
     std::shared_ptr<const ToolTypeDefinition> definition_;
     core::ExecutionSessionId session_id_;
@@ -129,6 +138,7 @@ private:
     ParameterBinding parameters_;
     CancellationToken cancellation_;
     ExecutionBudget budget_;
+    EvidenceSink* evidence_sink_;
 };
 
 // The technical result of one tool invocation. A non-success status always carries at

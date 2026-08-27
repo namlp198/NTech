@@ -11,9 +11,11 @@
 #include "nvision/core/feature.hpp"
 #include "nvision/core/geometry.hpp"
 #include "nvision/core/measurement.hpp"
+#include "nvision/core/overlay.hpp"
 #include "nvision/core/point_grid.hpp"
 #include "nvision/vision/builtin_tool_implementations.hpp"
 #include "nvision/workflow/builtin_catalog.hpp"
+#include "nvision/workflow/evidence_sink.hpp"
 #include "nvision/workflow/parameter_schema.hpp"
 #include "nvision/workflow/port_value.hpp"
 #include "nvision/workflow/tool_execution.hpp"
@@ -28,6 +30,7 @@
 #include <cstring>
 #include <exception>
 #include <memory>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -1390,6 +1393,148 @@ void a_learned_grid_becomes_the_reference_a_later_run_deviates_from() {
             std::move(crossed))) == ResultCode("COORDINATE_SPACE_MISMATCH"));
 }
 
+// Stands in for the engine's evidence store. It records what it was handed and answers
+// with an integrity derived from the content, which is what a real store does after
+// writing bytes somewhere durable.
+class RecordingEvidenceSink final : public nvision::workflow::EvidenceSink {
+public:
+    [[nodiscard]] nvision::core::ResourceIntegrity store(
+        const std::string& storage_key,
+        std::span<const std::uint8_t> content) override {
+        last_key_ = storage_key;
+        last_length_ = content.size();
+        ++stored_;
+        // A stand-in digest: the test cares that the store is the one answering, not that
+        // this is a real SHA-256.
+        std::string hex(64U, '0');
+        for (std::size_t index = 0U; index < content.size(); ++index) {
+            const std::size_t slot = index % 64U;
+            hex[slot] = "0123456789abcdef"[(hex[slot] + content[index]) % 16U];
+        }
+        return nvision::core::ResourceIntegrity(
+            nvision::core::IntegrityDigest(
+                nvision::core::IntegrityAlgorithm::sha256, std::move(hex)),
+            static_cast<std::uint64_t>(content.size()));
+    }
+
+    [[nodiscard]] const std::string& last_key() const noexcept {
+        return last_key_;
+    }
+    [[nodiscard]] std::size_t last_length() const noexcept {
+        return last_length_;
+    }
+    [[nodiscard]] std::size_t stored() const noexcept {
+        return stored_;
+    }
+
+private:
+    std::string last_key_;
+    std::size_t last_length_ = 0U;
+    std::size_t stored_ = 0U;
+};
+
+ToolExecutionOutcome run_with_sink(
+    const std::string& tool_id,
+    const std::string& node,
+    PortValueMap inputs,
+    NodeConfiguration configuration,
+    nvision::workflow::EvidenceSink* sink) {
+    const ToolRegistry definitions = create_builtin_registry();
+    const ToolImplementationRegistry implementations = create_vision_implementation_registry();
+    const auto binding =
+        implementations.bind(ToolTypeId(tool_id), initial_version(), definitions);
+    NVISION_REQUIRE(binding.is_bound());
+    const ToolExecutionContext context(
+        binding.definition(),
+        ExecutionSessionId("session.01"),
+        WorkflowNodeId(node),
+        std::move(inputs),
+        ParameterBinding::resolve(*binding.definition(), configuration),
+        nvision::workflow::CancellationToken::none(),
+        nvision::workflow::ExecutionBudget::unbounded(),
+        sink);
+    return execute_tool(*binding.implementation(), context);
+}
+
+void evidence_records_what_was_inspected_and_leaves_storage_to_the_engine() {
+    const CoordinateSpaceId space("nvision.image.node.shot.image-pixel");
+    const ImageView image = constant_mono("test.shot", 8U, 100U);
+
+    RecordingEvidenceSink sink;
+    PortValueMap plain;
+    plain.set(PortKey("image"), PortValue::image(image));
+    const ToolExecutionOutcome bare = run_with_sink(
+        "nvision.tool.logic.evidence-output", "node.evidence", std::move(plain), {}, &sink);
+    NVISION_REQUIRE(bare.is_success());
+
+    const auto& artifact = bare.outputs().find(PortKey("evidence"))->evidence_value();
+    // The raster was computed rather than captured, and the artifact says so instead of
+    // claiming a camera produced it.
+    NVISION_REQUIRE(artifact.kind() == nvision::core::EvidenceKind::derived_image);
+    NVISION_REQUIRE(artifact.coordinate_space() == image.coordinate_space());
+    // Sixty-four single-channel pixels were handed over, packed without any stride.
+    NVISION_REQUIRE(sink.last_length() == 64U);
+    // An empty storage key falls back to the node, so evidence is never stored anonymously.
+    NVISION_REQUIRE(sink.last_key() == "node.evidence");
+    NVISION_REQUIRE(sink.stored() == 1U);
+
+    RecordingEvidenceSink annotated_sink;
+    PortValueMap annotated;
+    annotated.set(PortKey("image"), PortValue::image(image));
+    annotated.set(
+        PortKey("overlay"),
+        PortValue::overlay(nvision::core::Overlay(
+            image.coordinate_space(),
+            {nvision::core::OverlayItem(
+                nvision::core::Circle(Point2D(image.coordinate_space(), 4.0, 4.0), 2.0),
+                nvision::core::OverlayStyle(255U, 0U, 0U))})));
+    const ToolExecutionOutcome drawn = run_with_sink(
+        "nvision.tool.logic.evidence-output",
+        "node.evidence-drawn",
+        std::move(annotated),
+        configure({NodeParameterAssignment(
+            ParameterKey("storage-key"), ParameterValue::string("run-42.overlay"))}),
+        &annotated_sink);
+    NVISION_REQUIRE(drawn.is_success());
+    NVISION_REQUIRE(
+        drawn.outputs().find(PortKey("evidence"))->evidence_value().kind() ==
+        nvision::core::EvidenceKind::overlay);
+    // Annotating widens grey to colour, so three channels of sixty-four pixels are stored.
+    NVISION_REQUIRE(annotated_sink.last_length() == 192U);
+    NVISION_REQUIRE(annotated_sink.last_key() == "run-42.overlay");
+
+    // An overlay authored against another raster would be drawn where it never was.
+    RecordingEvidenceSink unused_sink;
+    PortValueMap crossed;
+    crossed.set(PortKey("image"), PortValue::image(image));
+    crossed.set(
+        PortKey("overlay"),
+        PortValue::overlay(nvision::core::Overlay(
+            space,
+            {nvision::core::OverlayItem(
+                Point2D(space, 1.0, 1.0), nvision::core::OverlayStyle(0U, 255U, 0U))})));
+    NVISION_REQUIRE(
+        refusal(run_with_sink(
+            "nvision.tool.logic.evidence-output",
+            "node.evidence-crossed",
+            std::move(crossed),
+            {},
+            &unused_sink)) == ResultCode("COORDINATE_SPACE_MISMATCH"));
+    NVISION_REQUIRE(unused_sink.stored() == 0U);
+
+    // With nothing collecting evidence the tool reports it rather than quietly discarding
+    // what it made.
+    PortValueMap unstored;
+    unstored.set(PortKey("image"), PortValue::image(image));
+    NVISION_REQUIRE(
+        refusal(run_with_sink(
+            "nvision.tool.logic.evidence-output",
+            "node.evidence-nosink",
+            std::move(unstored),
+            {},
+            nullptr)) == ResultCode("EVIDENCE_SINK_UNAVAILABLE"));
+}
+
 void the_image_processing_group_is_fully_implemented() {
     const ToolRegistry definitions = create_builtin_registry();
     const ToolImplementationRegistry implementations = create_vision_implementation_registry();
@@ -1527,6 +1672,7 @@ int main() {
     NVISION_RUN(every_clustering_method_finds_the_same_two_groups);
     NVISION_RUN(sorting_orders_points_by_how_far_along_a_line_they_lie);
     NVISION_RUN(a_learned_grid_becomes_the_reference_a_later_run_deviates_from);
+    NVISION_RUN(evidence_records_what_was_inspected_and_leaves_storage_to_the_engine);
     NVISION_RUN(the_measurement_group_is_fully_implemented);
     NVISION_RUN(every_structure_tool_except_point_grid_inspect_is_implemented);
     return 0;
