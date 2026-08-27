@@ -78,10 +78,10 @@
 
 ## Current Status
 
-M2 is complete and merged. M3 has started: the tool execution foundation is landed and
-green, the first catalog definition executes through it end to end, and the native area
-boundary now matches the plan. The branch has not been pushed and has not been merged into
-`develop`.
+M2 is complete and merged. M3 is in progress and green: the tool execution foundation, the
+computed-image ownership contract, the OpenCV interop substrate, and the complete Image
+Processing group are landed, and the native area boundary now matches the plan. Slices S2
+through S6 remain. The branch has not been pushed and has not been merged into `develop`.
 
 ## Next Actions
 
