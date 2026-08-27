@@ -52,8 +52,8 @@ The current focus is M3, the generic OpenCV vision foundation. Its first slice i
 validated execution context, cancellation and budget, and an implementation registry keyed
 by the same stable ID and exact version, while `nvision_vision` carries the first real
 implementation. A catalogued definition without an implementation binds as not_implemented,
-so coverage stays measurable, and it currently stands at 26 of 66 with Image Processing
-and Location and Geometry complete. The native area boundary was also brought in line
+so coverage stays measurable, and it currently stands at 36 of 66 with Image Processing,
+Location and Geometry, and Measurement complete. The native area boundary was also brought in line
 with the plan: the tool platform contracts moved from `nvision::core` to
 `nvision::workflow` under ADR-0006, leaving core as the data vocabulary and workflow as the
 tool platform plus execution. The remaining tool groups follow on top of that foundation. Keep the M0 provenance gap explicit, use the managed P2 path as a behavior

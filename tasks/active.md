@@ -2,7 +2,7 @@
 
 ## Current Task
 
-M3 — Generic OpenCV Vision Foundation — Slices S0 through S2 complete
+M3 — Generic OpenCV Vision Foundation — Slices S0 through S3 complete
 
 ## Goal
 
@@ -18,15 +18,15 @@ parameter sets against real behaviour, with no public contract exposing an OpenC
 | S1 | Image Processing, 15 tools | Complete, `43edcd8` |
 | S2a | Location and geometry data contracts | Complete, `9f2c0d3` |
 | S2b | Location and Geometry, 11 tools | Complete, `ab9b17c` |
-| S3 | Measurement, 11 tools | Not started |
-| S4 | Clustering and Structure, 6 tools | Not started |
+| S3 | Measurement, 10 tools | Complete, `a4c2108` |
+| S4 | Clustering and Structure, 6 tools plus grid deviation | Not started |
 | S5 | Overlay and evidence primitives, 1 tool | Not started |
 | S6 | Exit gate: parameter refinement, Pin Insert representation, Linux build | Not started |
 
-Catalog coverage is 26 of 66 definitions. The remaining 22 outside M3 belong to M4
+Catalog coverage is 36 of 66 definitions. The remaining 22 outside M3 belong to M4
 (Recognition and Text, 9) and M5 (Acquisition 5, Logic and Results 8).
 
-## Completed in S0 through S2
+## Completed in S0 through S3
 
 - `Image` is a computed raster that owns its pixels and carries no acquisition metadata,
   so a derived image can never be mistaken for a capture. `ImageSource` names which raster
@@ -50,13 +50,18 @@ Catalog coverage is 26 of 66 definitions. The remaining 22 outside M3 belong to 
 - All 11 Location and Geometry tools execute. Coordinate space is checked wherever two
   inputs must agree, and algorithmic failure is separated from configuration failure.
 - `PortValue::point_list` rejects a list that crosses coordinate spaces.
+- 10 of the 11 Measurement tools execute. Lengths carry the coordinate space they were
+  measured in; counts and quality figures name none. Comparing two rasters requires a
+  shared format and extent.
+- Grid deviation moved to S4 because it measures against a point-grid model, and that
+  contract is designed alongside the tools that produce it.
 
 ## Next Steps
 
-1. S3, Measurement, 11 tools. The measurement contract it needs already exists.
-2. S4, Clustering and Structure, 6 tools. It needs a point-grid model and result contract.
-3. S5, overlay and evidence primitives.
-4. S6, close the M3 exit gate.
+1. S4, Clustering and Structure, 6 tools plus grid deviation. It needs a point-grid model
+   and a point-grid result contract, which grid deviation then measures against.
+2. S5, overlay and evidence primitives.
+3. S6, close the M3 exit gate.
 
 ## Acceptance Criteria
 
@@ -69,7 +74,8 @@ Catalog coverage is 26 of 66 definitions. The remaining 22 outside M3 belong to 
 - [x] The native and managed halves of `scripts/check.ps1` are both green.
 - [x] Image Processing tools are independently tested against exact properties.
 - [x] Location and Geometry tools are implemented and tested.
-- [ ] Measurement, Clustering, and evidence tools are implemented and tested.
+- [x] Measurement tools are implemented and tested, except grid deviation.
+- [ ] Clustering, point-grid, and evidence tools are implemented and tested.
 - [ ] Pin Insert source algorithms are representable without a Pin Insert engine class.
 - [ ] The Linux native headless build compiles the vision library.
 

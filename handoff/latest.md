@@ -84,22 +84,31 @@
   filter rather than passed through stale, point assignment consumes each candidate once,
   and algorithmic failure is reported as a recoverable vision error while a contract
   problem is reported as a configuration error.
-- Catalog coverage is 26 of 66 definitions. Image Processing and Location and Geometry are
-  both complete.
+- Implemented 10 of the 11 Measurement tools in `a4c2108`. Lengths carry the coordinate
+  space they were measured in, counts and quality figures name none, and comparing two
+  rasters requires a shared pixel format and extent.
+- Grid deviation is deliberately not implemented yet. It measures against a point-grid
+  model, and designing that contract with no producer to check it against would be
+  guessing, so it lands with the point-grid tools in S4. The coverage test asserts the gap
+  explicitly rather than leaving it silent.
+- The tool execution suite no longer names a specific unimplemented tool. It asks the
+  registry which definitions are still pending, so filling in the catalog no longer breaks
+  a test that is not about the tool being added.
+- Catalog coverage is 36 of 66 definitions. Image Processing and Location and Geometry are
+  complete, and Measurement is complete apart from grid deviation.
 
 ## Current Status
 
 M2 is complete and merged. M3 is in progress and green: the tool execution foundation, the
 computed-image ownership contract, the OpenCV interop substrate, and the complete Image
-Processing and Location and Geometry groups are landed, and the native area boundary now
-matches the plan. Slices S3 through S6 remain. The branch has not been pushed and has not been merged into `develop`.
+Processing, Location and Geometry, and Measurement groups are landed, and the native area boundary now
+matches the plan. Slices S4 through S6 remain. The branch has not been pushed and has not been merged into `develop`.
 
 ## Next Actions
 
-1. Continue with slice S3, Measurement, 11 tools. The measurement contract it needs
-   already exists, so it needs no new data type.
-2. Then S4 Clustering and Structure (6 tools, needs a point-grid model and result) and S5
-   overlay and evidence primitives.
+1. Continue with slice S4, Clustering and Structure: 6 tools plus grid deviation. It needs
+   a point-grid model and a point-grid result contract.
+2. Then S5, overlay and evidence primitives.
 3. Then S6 to close the M3 exit gate: refine the parameter sets that implementation
    showed to be wrong, prove the Pin Insert algorithms are representable without a Pin
    Insert engine class, and run the Linux native headless build.
