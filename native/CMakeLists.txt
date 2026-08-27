@@ -3,11 +3,14 @@ add_library(nvision_core STATIC
     acquisition/src/frame.cpp
     acquisition/src/image.cpp
     acquisition/src/image_view.cpp
+    core/src/detection.cpp
     core/src/engine.cpp
     core/src/execution_result.cpp
+    core/src/feature.cpp
     core/src/geometry.cpp
     core/src/identifier.cpp
     core/src/inspection_outcome.cpp
+    core/src/measurement.cpp
     core/src/resource_reference.cpp
     core/src/semantic_version.cpp)
 

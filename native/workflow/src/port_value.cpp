@@ -56,6 +56,46 @@ PortValue PortValue::point_list(std::vector<core::Point2D> values) {
     return PortValue(PortDataType::point_list, std::move(values));
 }
 
+PortValue PortValue::line(core::Line2D value) {
+    return PortValue(PortDataType::line_2d, std::move(value));
+}
+
+PortValue PortValue::circle(core::Circle value) {
+    return PortValue(PortDataType::circle, std::move(value));
+}
+
+PortValue PortValue::contour(core::Contour value) {
+    return PortValue(PortDataType::contour, std::move(value));
+}
+
+PortValue PortValue::contour_list(std::vector<core::Contour> values) {
+    return PortValue(PortDataType::contour_list, std::move(values));
+}
+
+PortValue PortValue::detection(core::Detection value) {
+    return PortValue(PortDataType::detection, std::move(value));
+}
+
+PortValue PortValue::detection_list(core::DetectionList values) {
+    return PortValue(PortDataType::detection_list, std::move(values));
+}
+
+PortValue PortValue::measurement(core::Measurement value) {
+    return PortValue(PortDataType::measurement, std::move(value));
+}
+
+PortValue PortValue::measurement_list(core::MeasurementList values) {
+    return PortValue(PortDataType::measurement_list, std::move(values));
+}
+
+PortValue PortValue::feature_set(core::FeatureSet value) {
+    return PortValue(PortDataType::feature_set, std::move(value));
+}
+
+PortValue PortValue::match_set(core::MatchSet value) {
+    return PortValue(PortDataType::match_set, std::move(value));
+}
+
 PortValue PortValue::boolean(const bool value) {
     return PortValue(PortDataType::boolean, value);
 }
@@ -114,6 +154,46 @@ double PortValue::floating_point_value() const {
 
 const std::string& PortValue::text_value() const {
     return payload_of<std::string>(payload_, "text");
+}
+
+const core::Line2D& PortValue::line_value() const {
+    return payload_of<core::Line2D>(payload_, "line");
+}
+
+const core::Circle& PortValue::circle_value() const {
+    return payload_of<core::Circle>(payload_, "circle");
+}
+
+const core::Contour& PortValue::contour_value() const {
+    return payload_of<core::Contour>(payload_, "contour");
+}
+
+const std::vector<core::Contour>& PortValue::contour_list_value() const {
+    return payload_of<std::vector<core::Contour>>(payload_, "contour list");
+}
+
+const core::Detection& PortValue::detection_value() const {
+    return payload_of<core::Detection>(payload_, "detection");
+}
+
+const core::DetectionList& PortValue::detection_list_value() const {
+    return payload_of<core::DetectionList>(payload_, "detection list");
+}
+
+const core::Measurement& PortValue::measurement_value() const {
+    return payload_of<core::Measurement>(payload_, "measurement");
+}
+
+const core::MeasurementList& PortValue::measurement_list_value() const {
+    return payload_of<core::MeasurementList>(payload_, "measurement list");
+}
+
+const core::FeatureSet& PortValue::feature_set_value() const {
+    return payload_of<core::FeatureSet>(payload_, "feature set");
+}
+
+const core::MatchSet& PortValue::match_set_value() const {
+    return payload_of<core::MatchSet>(payload_, "match set");
 }
 
 const core::InspectionDecision& PortValue::decision_value() const {

@@ -2,9 +2,12 @@
 
 #include "nvision/acquisition/image_view.hpp"
 #include "nvision/core/data_type.hpp"
+#include "nvision/core/detection.hpp"
 #include "nvision/core/execution_result.hpp"
+#include "nvision/core/feature.hpp"
 #include "nvision/core/geometry.hpp"
 #include "nvision/core/identifier.hpp"
+#include "nvision/core/measurement.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -33,6 +36,16 @@ public:
     [[nodiscard]] static PortValue region(core::AxisAlignedRectangle value);
     [[nodiscard]] static PortValue point(core::Point2D value);
     [[nodiscard]] static PortValue point_list(std::vector<core::Point2D> values);
+    [[nodiscard]] static PortValue line(core::Line2D value);
+    [[nodiscard]] static PortValue circle(core::Circle value);
+    [[nodiscard]] static PortValue contour(core::Contour value);
+    [[nodiscard]] static PortValue contour_list(std::vector<core::Contour> values);
+    [[nodiscard]] static PortValue detection(core::Detection value);
+    [[nodiscard]] static PortValue detection_list(core::DetectionList values);
+    [[nodiscard]] static PortValue measurement(core::Measurement value);
+    [[nodiscard]] static PortValue measurement_list(core::MeasurementList values);
+    [[nodiscard]] static PortValue feature_set(core::FeatureSet value);
+    [[nodiscard]] static PortValue match_set(core::MatchSet value);
     [[nodiscard]] static PortValue boolean(bool value);
     [[nodiscard]] static PortValue integer(std::int64_t value);
     [[nodiscard]] static PortValue floating_point(double value);
@@ -46,6 +59,16 @@ public:
     [[nodiscard]] const core::AxisAlignedRectangle& region_value() const;
     [[nodiscard]] const core::Point2D& point_value() const;
     [[nodiscard]] const std::vector<core::Point2D>& point_list_value() const;
+    [[nodiscard]] const core::Line2D& line_value() const;
+    [[nodiscard]] const core::Circle& circle_value() const;
+    [[nodiscard]] const core::Contour& contour_value() const;
+    [[nodiscard]] const std::vector<core::Contour>& contour_list_value() const;
+    [[nodiscard]] const core::Detection& detection_value() const;
+    [[nodiscard]] const core::DetectionList& detection_list_value() const;
+    [[nodiscard]] const core::Measurement& measurement_value() const;
+    [[nodiscard]] const core::MeasurementList& measurement_list_value() const;
+    [[nodiscard]] const core::FeatureSet& feature_set_value() const;
+    [[nodiscard]] const core::MatchSet& match_set_value() const;
     [[nodiscard]] bool boolean_value() const;
     [[nodiscard]] std::int64_t integer_value() const;
     [[nodiscard]] double floating_point_value() const;
@@ -63,6 +86,16 @@ private:
         core::AxisAlignedRectangle,
         core::Point2D,
         std::vector<core::Point2D>,
+        core::Line2D,
+        core::Circle,
+        core::Contour,
+        std::vector<core::Contour>,
+        core::Detection,
+        core::DetectionList,
+        core::Measurement,
+        core::MeasurementList,
+        core::FeatureSet,
+        core::MatchSet,
         core::InspectionDecision>;
 
     PortValue(core::PortDataType type, Payload payload);

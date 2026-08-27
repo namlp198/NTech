@@ -168,6 +168,39 @@ const std::vector<Point2D>& Polygon::vertices() const noexcept {
     return vertices_;
 }
 
+Contour::Contour(
+    std::vector<Point2D> points,
+    const bool closed,
+    std::optional<std::size_t> parent)
+    : points_(std::move(points)), closed_(closed), parent_(std::move(parent)) {
+    if (points_.empty()) {
+        throw std::invalid_argument("contour must contain at least one point");
+    }
+
+    const CoordinateSpaceId& space = points_.front().coordinate_space();
+    if (!std::all_of(points_.begin(), points_.end(), [&space](const Point2D& point) {
+            return point.coordinate_space() == space;
+        })) {
+        throw std::invalid_argument("contour points must use the same coordinate space");
+    }
+}
+
+const CoordinateSpaceId& Contour::coordinate_space() const noexcept {
+    return points_.front().coordinate_space();
+}
+
+const std::vector<Point2D>& Contour::points() const noexcept {
+    return points_;
+}
+
+bool Contour::closed() const noexcept {
+    return closed_;
+}
+
+const std::optional<std::size_t>& Contour::parent() const noexcept {
+    return parent_;
+}
+
 Transform2D::Transform2D(
     CoordinateSpaceId source_space,
     CoordinateSpaceId target_space,
