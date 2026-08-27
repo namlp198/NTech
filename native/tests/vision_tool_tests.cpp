@@ -1003,6 +1003,186 @@ void point_assignment_pairs_each_expected_position_at_most_once() {
             std::move(crossed))) == ResultCode("COORDINATE_SPACE_MISMATCH"));
 }
 
+const nvision::core::Measurement& measurement(
+    const ToolExecutionOutcome& outcome,
+    const std::string& port) {
+    NVISION_REQUIRE(outcome.is_success());
+    return outcome.outputs().find(PortKey(port))->measurement_value();
+}
+
+void counting_reports_both_how_many_and_what_share() {
+    const Harness harness;
+    const ImageView mask = two_blocks("test.counting");
+
+    // Two 2 by 2 regions inside an 8 by 8 mask: eight selected pixels out of sixty-four.
+    const ToolExecutionOutcome counted =
+        harness.run("nvision.tool.measurement.pixel-count", "node.pixels", mask_input(mask));
+    NVISION_REQUIRE(counted.outputs().find(PortKey("count"))->integer_value() == 8);
+    NVISION_REQUIRE(counted.outputs().find(PortKey("ratio"))->floating_point_value() == 0.125);
+
+    const CoordinateSpaceId space("nvision.image.node.objects.image-pixel");
+    nvision::core::DetectionList objects;
+    objects.emplace_back(
+        AxisAlignedRectangle(space, 0.0, 0.0, 2.0, 2.0), Point2D(space, 1.0, 1.0), 4.0);
+    objects.emplace_back(
+        AxisAlignedRectangle(space, 4.0, 4.0, 2.0, 2.0), Point2D(space, 5.0, 5.0), 4.0);
+    PortValueMap detected;
+    detected.set(PortKey("objects"), PortValue::detection_list(std::move(objects)));
+    const ToolExecutionOutcome objects_counted =
+        harness.run("nvision.tool.measurement.object-count", "node.objects", std::move(detected));
+    NVISION_REQUIRE(objects_counted.outputs().find(PortKey("count"))->integer_value() == 2);
+}
+
+void distance_and_radius_are_reported_in_the_space_they_were_measured_in() {
+    const Harness harness;
+    const CoordinateSpaceId space("nvision.image.node.measured.image-pixel");
+
+    PortValueMap separation;
+    separation.set(PortKey("from"), PortValue::point(Point2D(space, 0.0, 0.0)));
+    separation.set(PortKey("to"), PortValue::point(Point2D(space, 3.0, 4.0)));
+    const ToolExecutionOutcome measured =
+        harness.run("nvision.tool.measurement.distance", "node.distance", std::move(separation));
+    const auto& gap = measurement(measured, "measurement");
+    NVISION_REQUIRE(gap.value() == 5.0);
+    NVISION_REQUIRE(gap.unit() == MeasurementUnit::pixel);
+    NVISION_REQUIRE(gap.coordinate_space() == space);
+
+    // A separation between two spaces is not a length, so it is refused rather than
+    // reported as a number that means nothing.
+    PortValueMap crossed;
+    crossed.set(PortKey("from"), PortValue::point(Point2D(space, 0.0, 0.0)));
+    crossed.set(
+        PortKey("to"),
+        PortValue::point(
+            Point2D(CoordinateSpaceId("nvision.image.node.other.image-pixel"), 3.0, 4.0)));
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.measurement.distance", "node.distance-crossed", std::move(crossed))) ==
+        ResultCode("COORDINATE_SPACE_MISMATCH"));
+
+    PortValueMap round;
+    round.set(
+        PortKey("circle"),
+        PortValue::circle(nvision::core::Circle(Point2D(space, 10.0, 10.0), 2.5)));
+    const ToolExecutionOutcome sized =
+        harness.run("nvision.tool.measurement.radius-diameter", "node.radius", std::move(round));
+    const auto& sizes = measurements(sized, "measurements");
+    NVISION_REQUIRE(sizes.size() == 2U);
+    NVISION_REQUIRE(sizes[0].value() == 2.5);
+    NVISION_REQUIRE(sizes[1].value() == 5.0);
+    NVISION_REQUIRE(sizes[1].coordinate_space() == space);
+}
+
+void a_histogram_places_every_pixel_in_exactly_one_bin() {
+    const Harness harness;
+    const ImageView flat = constant_mono("test.histogram", 4U, 7U);
+
+    const ToolExecutionOutcome outcome =
+        harness.run("nvision.tool.measurement.histogram", "node.histogram", image_input(flat));
+    const auto& histogram = measurements(outcome, "histogram");
+    NVISION_REQUIRE(histogram.size() == 256U);
+
+    // Sixteen pixels all holding the value seven land in bin seven and nowhere else.
+    double total = 0.0;
+    for (std::size_t bin = 0U; bin < histogram.size(); ++bin) {
+        NVISION_REQUIRE(histogram[bin].unit() == MeasurementUnit::count);
+        // A count is not a length, so it names no coordinate space.
+        NVISION_REQUIRE(!histogram[bin].coordinate_space().has_value());
+        NVISION_REQUIRE(histogram[bin].value() == (bin == 7U ? 16.0 : 0.0));
+        total += histogram[bin].value();
+    }
+    NVISION_REQUIRE(total == 16.0);
+
+    const ImageView color =
+        make_image("test.hist-color", PixelFormat::bgr8, 1U, 1U, {1U, 2U, 3U});
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.measurement.histogram", "node.hist-color", image_input(color))) ==
+        ResultCode("UNSUPPORTED_PIXEL_FORMAT"));
+}
+
+void quality_figures_are_zero_for_an_image_with_no_structure() {
+    const Harness harness;
+    const ImageView flat = constant_mono("test.quality-flat", 16U, 120U);
+    const ImageView structured = textured("test.quality-structured", 0U);
+
+    // A constant image has no second derivative, no spread around its mean and no edges,
+    // so all three figures are exactly zero.
+    NVISION_REQUIRE(
+        measurement(
+            harness.run("nvision.tool.measurement.sharpness", "node.sharp-flat", image_input(flat)),
+            "measurement")
+            .value() == 0.0);
+    NVISION_REQUIRE(
+        measurement(
+            harness.run(
+                "nvision.tool.measurement.contrast", "node.contrast-flat", image_input(flat)),
+            "measurement")
+            .value() == 0.0);
+    const auto& density = measurement(
+        harness.run("nvision.tool.measurement.edge-density", "node.edges-flat", image_input(flat)),
+        "measurement");
+    NVISION_REQUIRE(density.value() == 0.0);
+    NVISION_REQUIRE(density.unit() == MeasurementUnit::ratio);
+
+    // A textured image has all three, and a quality figure is a pure number rather than a
+    // length, so none of them names a coordinate space.
+    const auto& sharpness = measurement(
+        harness.run(
+            "nvision.tool.measurement.sharpness", "node.sharp-real", image_input(structured)),
+        "measurement");
+    NVISION_REQUIRE(sharpness.value() > 0.0);
+    NVISION_REQUIRE(sharpness.unit() == MeasurementUnit::none);
+    NVISION_REQUIRE(!sharpness.coordinate_space().has_value());
+    NVISION_REQUIRE(
+        measurement(
+            harness.run(
+                "nvision.tool.measurement.contrast", "node.contrast-real", image_input(structured)),
+            "measurement")
+            .value() > 0.0);
+
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.measurement.edge-density",
+            "node.edges-range",
+            image_input(flat),
+            configure({number("low-threshold", 200.0), number("high-threshold", 50.0)}))) ==
+        ResultCode("INVALID_RANGE"));
+}
+
+void comparing_a_raster_with_itself_scores_perfectly() {
+    const Harness harness;
+    const ImageView structured = textured("test.compare", 0U);
+    const ImageView same_pixels = textured("test.compare-copy", 0U);
+
+    PortValueMap ncc_inputs;
+    ncc_inputs.set(PortKey("image"), PortValue::image(structured));
+    ncc_inputs.set(PortKey("reference"), PortValue::image(same_pixels));
+    const ToolExecutionOutcome correlated =
+        harness.run("nvision.tool.measurement.ncc", "node.ncc", std::move(ncc_inputs));
+    NVISION_REQUIRE(correlated.is_success());
+    NVISION_REQUIRE(
+        std::abs(correlated.outputs().find(PortKey("score"))->floating_point_value() - 1.0) < 1e-5);
+
+    PortValueMap ssim_inputs;
+    ssim_inputs.set(PortKey("image"), PortValue::image(structured));
+    ssim_inputs.set(PortKey("reference"), PortValue::image(same_pixels));
+    const ToolExecutionOutcome similar =
+        harness.run("nvision.tool.measurement.ssim", "node.ssim", std::move(ssim_inputs));
+    NVISION_REQUIRE(similar.is_success());
+    NVISION_REQUIRE(
+        std::abs(similar.outputs().find(PortKey("score"))->floating_point_value() - 1.0) < 1e-9);
+
+    // Two rasters of different extents describe different things and cannot be compared.
+    PortValueMap mismatched;
+    mismatched.set(PortKey("image"), PortValue::image(structured));
+    mismatched.set(PortKey("reference"), PortValue::image(constant_mono("test.small", 8U, 10U)));
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.measurement.ssim", "node.ssim-size", std::move(mismatched))) ==
+        ResultCode("SIZE_MISMATCH"));
+}
+
 void the_image_processing_group_is_fully_implemented() {
     const ToolRegistry definitions = create_builtin_registry();
     const ToolImplementationRegistry implementations = create_vision_implementation_registry();
@@ -1041,6 +1221,30 @@ void the_location_and_geometry_group_is_fully_implemented() {
 
     NVISION_REQUIRE(geometry_definitions == 11U);
     NVISION_REQUIRE(geometry_implemented == geometry_definitions);
+}
+
+void every_measurement_tool_except_grid_deviation_is_implemented() {
+    const ToolRegistry definitions = create_builtin_registry();
+    const ToolImplementationRegistry implementations = create_vision_implementation_registry();
+
+    std::size_t measurement_definitions = 0U;
+    std::size_t measurement_implemented = 0U;
+    for (const auto& definition : definitions.definitions()) {
+        if (definition->id().value().rfind("nvision.tool.measurement.", 0U) != 0U) {
+            continue;
+        }
+        ++measurement_definitions;
+        if (implementations.contains(definition->id(), definition->version())) {
+            ++measurement_implemented;
+        }
+    }
+
+    NVISION_REQUIRE(measurement_definitions == 11U);
+    // Grid deviation measures against a point-grid model, a contract that belongs with the
+    // point-grid tools, so it is implemented alongside them rather than guessed at here.
+    NVISION_REQUIRE(measurement_implemented == 10U);
+    NVISION_REQUIRE(!implementations.contains(
+        ToolTypeId("nvision.tool.measurement.grid-deviation"), initial_version()));
 }
 
 }  // namespace
@@ -1085,7 +1289,13 @@ int main() {
     NVISION_RUN(ecc_refinement_starts_from_a_transform_between_the_two_spaces_it_was_given);
     NVISION_RUN(points_are_transformed_into_the_space_the_transform_names);
     NVISION_RUN(point_assignment_pairs_each_expected_position_at_most_once);
+    NVISION_RUN(counting_reports_both_how_many_and_what_share);
+    NVISION_RUN(distance_and_radius_are_reported_in_the_space_they_were_measured_in);
+    NVISION_RUN(a_histogram_places_every_pixel_in_exactly_one_bin);
+    NVISION_RUN(quality_figures_are_zero_for_an_image_with_no_structure);
+    NVISION_RUN(comparing_a_raster_with_itself_scores_perfectly);
     NVISION_RUN(the_image_processing_group_is_fully_implemented);
     NVISION_RUN(the_location_and_geometry_group_is_fully_implemented);
+    NVISION_RUN(every_measurement_tool_except_grid_deviation_is_implemented);
     return 0;
 }

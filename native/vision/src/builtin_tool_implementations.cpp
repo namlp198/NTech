@@ -3,9 +3,11 @@
 #include "alignment_tools.hpp"
 #include "binarize_tools.hpp"
 #include "color_tools.hpp"
+#include "count_tools.hpp"
 #include "crop_tool.hpp"
 #include "filter_tools.hpp"
 #include "morphology_tools.hpp"
+#include "quality_tools.hpp"
 #include "region_tools.hpp"
 #include "threshold_tool.hpp"
 #include "warp_tools.hpp"
@@ -42,6 +44,19 @@ void register_vision_tool_implementations(workflow::ToolImplementationRegistry& 
     registry.register_implementation(create_ecc_refine_tool());
     registry.register_implementation(create_point_transform_tool());
     registry.register_implementation(create_point_assignment_tool());
+
+    // Measurement. Grid deviation is registered with the point-grid tools, because the
+    // model it measures against is defined there.
+    registry.register_implementation(create_pixel_count_tool());
+    registry.register_implementation(create_object_count_tool());
+    registry.register_implementation(create_distance_tool());
+    registry.register_implementation(create_radius_diameter_tool());
+    registry.register_implementation(create_histogram_tool());
+    registry.register_implementation(create_sharpness_tool());
+    registry.register_implementation(create_contrast_tool());
+    registry.register_implementation(create_edge_density_tool());
+    registry.register_implementation(create_ncc_tool());
+    registry.register_implementation(create_ssim_tool());
 }
 
 workflow::ToolImplementationRegistry create_vision_implementation_registry() {

@@ -419,9 +419,13 @@ void the_implementation_registry_reports_unimplemented_definitions_explicitly() 
     NVISION_REQUIRE(bound.is_bound());
     NVISION_REQUIRE(bound.definition()->id() == crop);
 
-    // A catalogued tool without an implementation is not a missing tool.
+    // A catalogued tool without an implementation is not a missing tool. Which tool is
+    // still unimplemented changes as the catalog is filled in, so the test asks the
+    // registry rather than naming one and having to be edited every milestone.
+    const auto still_pending = implementations.unimplemented(definitions);
+    NVISION_REQUIRE(!still_pending.empty());
     const auto pending = implementations.bind(
-        ToolTypeId("nvision.tool.measurement.histogram"), initial_version(), definitions);
+        still_pending.front()->id(), still_pending.front()->version(), definitions);
     NVISION_REQUIRE(pending.status() == ToolImplementationStatus::not_implemented);
     NVISION_REQUIRE(pending.definition() != nullptr);
     NVISION_REQUIRE(pending.implementation() == nullptr);

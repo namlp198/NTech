@@ -55,10 +55,12 @@ add_library(nvision_vision STATIC
     vision/src/binarize_tools.cpp
     vision/src/builtin_tool_implementations.cpp
     vision/src/color_tools.cpp
+    vision/src/count_tools.cpp
     vision/src/crop_tool.cpp
     vision/src/filter_tools.cpp
     vision/src/morphology_tools.cpp
     vision/src/opencv_interop.cpp
+    vision/src/quality_tools.cpp
     vision/src/region_tools.cpp
     vision/src/threshold_tool.cpp
     vision/src/tool_support.cpp
