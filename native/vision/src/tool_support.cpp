@@ -32,6 +32,14 @@ core::ExecutionError configuration_error(std::string code, std::string detail) {
         false);
 }
 
+core::ExecutionError vision_error(std::string code, std::string detail) {
+    return core::ExecutionError(
+        core::ResultCode(std::move(code)),
+        core::ErrorCategory::vision,
+        std::move(detail),
+        true);
+}
+
 bool is_single_channel(const PixelFormat format) noexcept {
     return format == PixelFormat::mono8 || format == PixelFormat::mono16 ||
            format == PixelFormat::bayer_gr8 || format == PixelFormat::mono_float32;
@@ -57,6 +65,20 @@ workflow::PortValue produced_mask(
     const cv::Mat& produced) {
     return workflow::PortValue::mask(acquisition::ImageView(interop::materialize(
         context.output_image_id(output_port), produced, PixelFormat::mono8)));
+}
+
+core::Point2D point_in(const core::CoordinateSpaceId& space, const cv::Point2f& point) {
+    return core::Point2D(space, static_cast<double>(point.x), static_cast<double>(point.y));
+}
+
+std::vector<cv::Point2f> as_opencv_points(const std::vector<core::Point2D>& points) {
+    std::vector<cv::Point2f> converted;
+    converted.reserve(points.size());
+    for (const core::Point2D& point : points) {
+        converted.emplace_back(
+            static_cast<float>(point.x()), static_cast<float>(point.y()));
+    }
+    return converted;
 }
 
 int odd_size_parameter(

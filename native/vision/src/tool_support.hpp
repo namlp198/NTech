@@ -6,6 +6,7 @@
 #include "opencv_interop.hpp"
 
 #include "nvision/core/execution_result.hpp"
+#include "nvision/core/geometry.hpp"
 #include "nvision/core/identifier.hpp"
 #include "nvision/core/semantic_version.hpp"
 #include "nvision/workflow/parameter_schema.hpp"
@@ -14,6 +15,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace nvision::vision {
 
@@ -37,6 +39,10 @@ private:
 // A tool refusing work it cannot do correctly, as opposed to a fault while doing it.
 [[nodiscard]] core::ExecutionError configuration_error(std::string code, std::string detail);
 
+// An algorithm that ran but could not reach a usable answer on this input. Unlike a
+// configuration error it is recoverable: the next frame may well succeed.
+[[nodiscard]] core::ExecutionError vision_error(std::string code, std::string detail);
+
 [[nodiscard]] bool is_single_channel(acquisition::PixelFormat format) noexcept;
 [[nodiscard]] bool is_three_channel(acquisition::PixelFormat format) noexcept;
 
@@ -53,6 +59,15 @@ private:
     const workflow::ToolExecutionContext& context,
     const core::PortKey& output_port,
     const cv::Mat& produced);
+
+// Converts between OpenCV point representations and NVision geometry. A coordinate space
+// has to be supplied on the way in, because an OpenCV point does not carry one and a
+// point without a space is not safe for a general vision workflow.
+[[nodiscard]] core::Point2D point_in(
+    const core::CoordinateSpaceId& space,
+    const cv::Point2f& point);
+[[nodiscard]] std::vector<cv::Point2f> as_opencv_points(
+    const std::vector<core::Point2D>& points);
 
 // Reads an integer parameter that OpenCV requires to be an odd size, such as a kernel or
 // a neighbourhood block. Returns 0 when the value is even, so the caller can refuse.

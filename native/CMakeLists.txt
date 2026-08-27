@@ -51,6 +51,7 @@ find_package(OpenCV REQUIRED CONFIG)
 message(STATUS "NVision vision tools build against OpenCV ${OpenCV_VERSION}")
 
 add_library(nvision_vision STATIC
+    vision/src/alignment_tools.cpp
     vision/src/binarize_tools.cpp
     vision/src/builtin_tool_implementations.cpp
     vision/src/color_tools.cpp
@@ -58,6 +59,7 @@ add_library(nvision_vision STATIC
     vision/src/filter_tools.cpp
     vision/src/morphology_tools.cpp
     vision/src/opencv_interop.cpp
+    vision/src/region_tools.cpp
     vision/src/threshold_tool.cpp
     vision/src/tool_support.cpp
     vision/src/warp_tools.cpp)

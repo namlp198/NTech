@@ -1,10 +1,12 @@
 #include "nvision/vision/builtin_tool_implementations.hpp"
 
+#include "alignment_tools.hpp"
 #include "binarize_tools.hpp"
 #include "color_tools.hpp"
 #include "crop_tool.hpp"
 #include "filter_tools.hpp"
 #include "morphology_tools.hpp"
+#include "region_tools.hpp"
 #include "threshold_tool.hpp"
 #include "warp_tools.hpp"
 
@@ -27,6 +29,19 @@ void register_vision_tool_implementations(workflow::ToolImplementationRegistry& 
     registry.register_implementation(create_distance_transform_tool());
     registry.register_implementation(create_perspective_warp_tool());
     registry.register_implementation(create_affine_transform_tool());
+
+    // Location and Geometry.
+    registry.register_implementation(create_connected_components_tool());
+    registry.register_implementation(create_contour_extraction_tool());
+    registry.register_implementation(create_blob_analysis_tool());
+    registry.register_implementation(create_minimum_enclosing_circle_tool());
+    registry.register_implementation(create_line_fit_tool());
+    registry.register_implementation(create_feature_detect_and_match_tool());
+    registry.register_implementation(create_homography_estimate_tool());
+    registry.register_implementation(create_homography_validate_tool());
+    registry.register_implementation(create_ecc_refine_tool());
+    registry.register_implementation(create_point_transform_tool());
+    registry.register_implementation(create_point_assignment_tool());
 }
 
 workflow::ToolImplementationRegistry create_vision_implementation_registry() {

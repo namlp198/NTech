@@ -53,6 +53,16 @@ PortValue PortValue::point(core::Point2D value) {
 }
 
 PortValue PortValue::point_list(std::vector<core::Point2D> values) {
+    // Points that do not share a space cannot be compared, fitted, or matched against one
+    // another, so a mixed list is rejected where it is built rather than where it is used.
+    if (!values.empty()) {
+        const core::CoordinateSpaceId& space = values.front().coordinate_space();
+        if (!std::all_of(values.begin(), values.end(), [&space](const core::Point2D& point) {
+                return point.coordinate_space() == space;
+            })) {
+            throw std::invalid_argument("a point list must use one coordinate space");
+        }
+    }
     return PortValue(PortDataType::point_list, std::move(values));
 }
 

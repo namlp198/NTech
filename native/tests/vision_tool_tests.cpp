@@ -7,7 +7,10 @@
 
 #include "nvision/acquisition/image.hpp"
 #include "nvision/acquisition/image_view.hpp"
+#include "nvision/core/detection.hpp"
+#include "nvision/core/feature.hpp"
 #include "nvision/core/geometry.hpp"
+#include "nvision/core/measurement.hpp"
 #include "nvision/vision/builtin_tool_implementations.hpp"
 #include "nvision/workflow/builtin_catalog.hpp"
 #include "nvision/workflow/parameter_schema.hpp"
@@ -17,6 +20,7 @@
 #include "nvision/workflow/workflow_node.hpp"
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -44,11 +48,18 @@ using nvision::acquisition::Image;
 using nvision::acquisition::ImageView;
 using nvision::acquisition::PixelFormat;
 using nvision::core::AxisAlignedRectangle;
+using nvision::core::Contour;
 using nvision::core::CoordinateSpaceId;
 using nvision::core::EnumOptionKey;
 using nvision::core::ExecutionSessionId;
+using nvision::core::Feature;
+using nvision::core::FeatureMatch;
+using nvision::core::FeatureSet;
 using nvision::core::ImageId;
+using nvision::core::MatchSet;
+using nvision::core::MeasurementUnit;
 using nvision::core::ParameterKey;
+using nvision::core::Point2D;
 using nvision::core::PortKey;
 using nvision::core::ResultCode;
 using nvision::core::SemanticVersion;
@@ -559,6 +570,439 @@ void warping_refuses_a_mapping_it_cannot_honour() {
             std::move(projective))) == ResultCode("TRANSFORM_NOT_AFFINE"));
 }
 
+// An 8x8 mask holding two separated 2x2 selected regions, so counts, areas and bounds are
+// all known without depending on how an algorithm orders its results.
+ImageView two_blocks(const std::string& identity) {
+    std::vector<std::uint8_t> pixels(64U, 0U);
+    for (std::uint32_t row = 1U; row < 3U; ++row) {
+        for (std::uint32_t column = 1U; column < 3U; ++column) {
+            pixels[row * 8U + column] = 255U;
+        }
+    }
+    for (std::uint32_t row = 5U; row < 7U; ++row) {
+        for (std::uint32_t column = 5U; column < 7U; ++column) {
+            pixels[row * 8U + column] = 255U;
+        }
+    }
+    return make_image(identity, PixelFormat::mono8, 8U, 8U, std::move(pixels));
+}
+
+// A deterministic textured image. Feature detection and ECC both need local structure,
+// and a fixed generator keeps the fixture reproducible without storing an asset.
+ImageView textured(const std::string& identity, const std::uint32_t shift) {
+    std::vector<std::uint8_t> pixels(64U * 64U);
+    for (std::uint32_t row = 0U; row < 64U; ++row) {
+        for (std::uint32_t column = 0U; column < 64U; ++column) {
+            const std::uint32_t x = (column + shift) % 64U;
+            const std::uint32_t y = (row + shift) % 64U;
+            const std::uint32_t value = (x * 7U + y * 13U + (x * y) % 29U) * 37U;
+            pixels[row * 64U + column] = static_cast<std::uint8_t>(value % 256U);
+        }
+    }
+    return make_image(identity, PixelFormat::mono8, 64U, 64U, std::move(pixels));
+}
+
+const nvision::core::DetectionList& detections(
+    const ToolExecutionOutcome& outcome,
+    const std::string& port) {
+    NVISION_REQUIRE(outcome.is_success());
+    return outcome.outputs().find(PortKey(port))->detection_list_value();
+}
+
+const nvision::core::MeasurementList& measurements(
+    const ToolExecutionOutcome& outcome,
+    const std::string& port) {
+    NVISION_REQUIRE(outcome.is_success());
+    return outcome.outputs().find(PortKey(port))->measurement_list_value();
+}
+
+Transform2D translation(
+    const CoordinateSpaceId& from,
+    const CoordinateSpaceId& to,
+    const double x,
+    const double y) {
+    return Transform2D(from, to, std::array<double, 9>{1.0, 0.0, x, 0.0, 1.0, y, 0.0, 0.0, 1.0});
+}
+
+void connected_components_reports_each_region_with_its_own_geometry() {
+    const Harness harness;
+    const ImageView mask = two_blocks("test.components");
+
+    const ToolExecutionOutcome outcome = harness.run(
+        "nvision.tool.geometry.connected-components", "node.components", mask_input(mask));
+    NVISION_REQUIRE(outcome.outputs().find(PortKey("count"))->integer_value() == 2);
+
+    const auto& components = detections(outcome, "components");
+    NVISION_REQUIRE(components.size() == 2U);
+    for (const auto& component : components) {
+        NVISION_REQUIRE(component.area() == 4.0);
+        NVISION_REQUIRE(component.bounds().width() == 2.0);
+        NVISION_REQUIRE(component.bounds().height() == 2.0);
+        // A region is reported in the space of the mask it was found in.
+        NVISION_REQUIRE(component.coordinate_space() == mask.coordinate_space());
+    }
+
+    // A minimum area larger than either region leaves nothing to report.
+    const ToolExecutionOutcome filtered = harness.run(
+        "nvision.tool.geometry.connected-components",
+        "node.components-filtered",
+        mask_input(mask),
+        configure({number("minimum-area", 5.0)}));
+    NVISION_REQUIRE(filtered.outputs().find(PortKey("count"))->integer_value() == 0);
+
+    const ImageView color = make_image("test.cc-color", PixelFormat::bgr8, 1U, 1U, {1U, 2U, 3U});
+    PortValueMap wrong_format;
+    wrong_format.set(PortKey("mask"), PortValue::mask(color));
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.geometry.connected-components",
+            "node.cc-format",
+            std::move(wrong_format))) == ResultCode("UNSUPPORTED_PIXEL_FORMAT"));
+}
+
+void contour_extraction_and_blob_analysis_agree_on_what_is_there() {
+    const Harness harness;
+    const ImageView mask = two_blocks("test.contours");
+
+    const ToolExecutionOutcome extracted = harness.run(
+        "nvision.tool.geometry.contour-extraction", "node.contours", mask_input(mask));
+    NVISION_REQUIRE(extracted.is_success());
+    const auto& contours =
+        extracted.outputs().find(PortKey("contours"))->contour_list_value();
+    NVISION_REQUIRE(contours.size() == 2U);
+    for (const Contour& contour : contours) {
+        NVISION_REQUIRE(contour.coordinate_space() == mask.coordinate_space());
+        NVISION_REQUIRE(!contour.points().empty());
+        // External retrieval reports no enclosure, so no contour claims a parent.
+        NVISION_REQUIRE(!contour.parent().has_value());
+    }
+
+    const ToolExecutionOutcome analysed = harness.run(
+        "nvision.tool.geometry.blob-analysis", "node.blobs", mask_input(mask));
+    NVISION_REQUIRE(detections(analysed, "blobs").size() == 2U);
+    // One area and one perimeter per blob, each naming the space it was measured in.
+    const auto& blob_measurements = measurements(analysed, "measurements");
+    NVISION_REQUIRE(blob_measurements.size() == 4U);
+    NVISION_REQUIRE(blob_measurements[0].unit() == MeasurementUnit::square_pixel);
+    NVISION_REQUIRE(blob_measurements[1].unit() == MeasurementUnit::pixel);
+    NVISION_REQUIRE(blob_measurements[0].coordinate_space() == mask.coordinate_space());
+
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.geometry.blob-analysis",
+            "node.blobs-range",
+            mask_input(mask),
+            configure({number("minimum-area", 10.0), number("maximum-area", 5.0)}))) ==
+        ResultCode("INVALID_RANGE"));
+}
+
+void the_minimum_enclosing_circle_covers_its_contour() {
+    const Harness harness;
+    const CoordinateSpaceId space("nvision.image.node.square.image-pixel");
+    // The corners of a 4 by 4 square, whose enclosing circle is centred on the middle with
+    // a radius of half the diagonal.
+    const Contour square({
+        Point2D(space, 0.0, 0.0),
+        Point2D(space, 4.0, 0.0),
+        Point2D(space, 4.0, 4.0),
+        Point2D(space, 0.0, 4.0),
+    });
+
+    PortValueMap inputs;
+    inputs.set(PortKey("contours"), PortValue::contour_list({square}));
+    const ToolExecutionOutcome outcome = harness.run(
+        "nvision.tool.geometry.minimum-enclosing-circle", "node.circles", std::move(inputs));
+    NVISION_REQUIRE(outcome.is_success());
+
+    const auto& centers = outcome.outputs().find(PortKey("centers"))->point_list_value();
+    NVISION_REQUIRE(centers.size() == 1U);
+    NVISION_REQUIRE(std::abs(centers[0].x() - 2.0) < 0.01);
+    NVISION_REQUIRE(std::abs(centers[0].y() - 2.0) < 0.01);
+    NVISION_REQUIRE(centers[0].coordinate_space() == space);
+
+    const auto& radii = measurements(outcome, "radii");
+    NVISION_REQUIRE(radii.size() == 1U);
+    NVISION_REQUIRE(radii[0].unit() == MeasurementUnit::pixel);
+    NVISION_REQUIRE(std::abs(radii[0].value() - std::sqrt(8.0)) < 0.01);
+}
+
+void line_fit_recovers_a_line_the_points_lie_on() {
+    const Harness harness;
+    const CoordinateSpaceId space("nvision.image.node.line.image-pixel");
+    std::vector<Point2D> collinear;
+    for (int step = 0; step < 5; ++step) {
+        // y = 2x + 1, so a correct fit has no residual left over.
+        collinear.emplace_back(space, static_cast<double>(step), 2.0 * step + 1.0);
+    }
+
+    PortValueMap inputs;
+    inputs.set(PortKey("points"), PortValue::point_list(collinear));
+    const ToolExecutionOutcome outcome =
+        harness.run("nvision.tool.geometry.line-fit", "node.line", std::move(inputs));
+    NVISION_REQUIRE(outcome.is_success());
+    NVISION_REQUIRE(
+        outcome.outputs().find(PortKey("residual"))->floating_point_value() < 1.0e-6);
+
+    const auto& line = outcome.outputs().find(PortKey("line"))->line_value();
+    NVISION_REQUIRE(line.coordinate_space() == space);
+    // The reported segment spans the fitted points rather than an arbitrary length.
+    NVISION_REQUIRE(std::abs(std::hypot(
+                        line.end().x() - line.start().x(),
+                        line.end().y() - line.start().y()) -
+                        std::sqrt(80.0)) < 0.01);
+
+    PortValueMap single;
+    single.set(PortKey("points"), PortValue::point_list({Point2D(space, 1.0, 1.0)}));
+    NVISION_REQUIRE(
+        refusal(harness.run("nvision.tool.geometry.line-fit", "node.line-one", std::move(single))) ==
+        ResultCode("NOT_ENOUGH_POINTS"));
+
+    PortValueMap repeated;
+    repeated.set(
+        PortKey("points"),
+        PortValue::point_list({Point2D(space, 1.0, 1.0), Point2D(space, 1.0, 1.0)}));
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.geometry.line-fit", "node.line-same", std::move(repeated))) ==
+        ResultCode("DEGENERATE_POINTS"));
+}
+
+void feature_matching_relates_two_rasters_and_refuses_to_match_one_with_itself() {
+    const Harness harness;
+    const ImageView live = textured("test.live", 0U);
+    const ImageView golden = textured("test.golden", 3U);
+
+    PortValueMap inputs;
+    inputs.set(PortKey("image"), PortValue::image(live));
+    inputs.set(PortKey("reference"), PortValue::image(golden));
+    const ToolExecutionOutcome outcome = harness.run(
+        "nvision.tool.geometry.feature-detect-and-match",
+        "node.match",
+        std::move(inputs),
+        configure({option("backend", "orb")}));
+    NVISION_REQUIRE(outcome.is_success());
+
+    const auto& matches = outcome.outputs().find(PortKey("matches"))->match_set_value();
+    NVISION_REQUIRE(matches.query().coordinate_space() == live.coordinate_space());
+    NVISION_REQUIRE(matches.reference().coordinate_space() == golden.coordinate_space());
+    // Whatever the detector found, every reported correspondence must resolve to a real
+    // point pair through the sets the match set carries.
+    for (std::size_t index = 0U; index < matches.size(); ++index) {
+        NVISION_REQUIRE(matches.query_point(index).coordinate_space() == live.coordinate_space());
+        NVISION_REQUIRE(
+            matches.reference_point(index).coordinate_space() == golden.coordinate_space());
+    }
+    const auto& features = outcome.outputs().find(PortKey("features"))->feature_set_value();
+    NVISION_REQUIRE(features.coordinate_space() == live.coordinate_space());
+
+    PortValueMap same;
+    same.set(PortKey("image"), PortValue::image(live));
+    same.set(PortKey("reference"), PortValue::image(live));
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.geometry.feature-detect-and-match",
+            "node.match-self",
+            std::move(same))) == ResultCode("SAME_COORDINATE_SPACE"));
+}
+
+void a_homography_is_estimated_from_correspondences_and_then_judged() {
+    const Harness harness;
+    const CoordinateSpaceId query_space("nvision.image.node.live.image-pixel");
+    const CoordinateSpaceId reference_space("nvision.image.node.golden.image-pixel");
+
+    // Four correspondences describing a pure shift of five across and seven down, built by
+    // hand so the expectation does not depend on what a detector happens to find.
+    std::vector<Feature> query_features;
+    std::vector<Feature> reference_features;
+    std::vector<FeatureMatch> pairs;
+    const double positions[4][2] = {{0.0, 0.0}, {20.0, 0.0}, {20.0, 30.0}, {0.0, 30.0}};
+    for (std::size_t index = 0U; index < 4U; ++index) {
+        query_features.emplace_back(
+            Point2D(query_space, positions[index][0], positions[index][1]), 3.0, 0.0, 1.0);
+        reference_features.emplace_back(
+            Point2D(reference_space, positions[index][0] + 5.0, positions[index][1] + 7.0),
+            3.0,
+            0.0,
+            1.0);
+        pairs.emplace_back(index, index, 0.1);
+    }
+
+    PortValueMap inputs;
+    inputs.set(
+        PortKey("matches"),
+        PortValue::match_set(MatchSet(
+            FeatureSet(query_space, query_features),
+            FeatureSet(reference_space, reference_features),
+            pairs)));
+    const ToolExecutionOutcome outcome = harness.run(
+        "nvision.tool.geometry.homography-estimate", "node.homography", std::move(inputs));
+    NVISION_REQUIRE(outcome.is_success());
+    NVISION_REQUIRE(
+        outcome.outputs().find(PortKey("inlier-ratio"))->floating_point_value() == 1.0);
+
+    const auto& homography = outcome.outputs().find(PortKey("homography"))->transform_value();
+    NVISION_REQUIRE(homography.source_space() == query_space);
+    NVISION_REQUIRE(homography.target_space() == reference_space);
+    const Point2D mapped = homography.apply(Point2D(query_space, 10.0, 10.0));
+    NVISION_REQUIRE(std::abs(mapped.x() - 15.0) < 0.01);
+    NVISION_REQUIRE(std::abs(mapped.y() - 17.0) < 0.01);
+
+    PortValueMap too_few;
+    too_few.set(
+        PortKey("matches"),
+        PortValue::match_set(MatchSet(
+            FeatureSet(query_space, query_features),
+            FeatureSet(reference_space, reference_features),
+            {pairs[0], pairs[1]})));
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.geometry.homography-estimate",
+            "node.homography-few",
+            std::move(too_few))) == ResultCode("NOT_ENOUGH_MATCHES"));
+
+    PortValueMap sound;
+    sound.set(PortKey("homography"), PortValue::homography(homography));
+    const ToolExecutionOutcome judged = harness.run(
+        "nvision.tool.geometry.homography-validate", "node.validate", std::move(sound));
+    NVISION_REQUIRE(judged.outputs().find(PortKey("valid"))->boolean_value());
+    const auto& judgement = measurements(judged, "measurements");
+    NVISION_REQUIRE(judgement.size() == 2U);
+    NVISION_REQUIRE(std::abs(judgement[0].value() - 1.0) < 0.01);
+    NVISION_REQUIRE(judgement[1].value() < 0.01);
+
+    // A mapping that stretches one axis twice as far as the other is reported as such.
+    PortValueMap stretched;
+    stretched.set(
+        PortKey("homography"),
+        PortValue::homography(Transform2D(
+            query_space,
+            reference_space,
+            std::array<double, 9>{2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0})));
+    const ToolExecutionOutcome rejected = harness.run(
+        "nvision.tool.geometry.homography-validate",
+        "node.validate-stretch",
+        std::move(stretched),
+        configure({number("maximum-scale-deviation", 0.1)}));
+    NVISION_REQUIRE(!rejected.outputs().find(PortKey("valid"))->boolean_value());
+    NVISION_REQUIRE(std::abs(measurements(rejected, "measurements")[1].value() - 0.5) < 0.01);
+}
+
+void ecc_refinement_starts_from_a_transform_between_the_two_spaces_it_was_given() {
+    const Harness harness;
+    const ImageView live = textured("test.ecc-live", 0U);
+    const ImageView golden = textured("test.ecc-golden", 0U);
+
+    PortValueMap inputs;
+    inputs.set(PortKey("image"), PortValue::image(live));
+    inputs.set(PortKey("reference"), PortValue::image(golden));
+    inputs.set(
+        PortKey("transform"),
+        PortValue::transform(
+            translation(live.coordinate_space(), golden.coordinate_space(), 0.0, 0.0)));
+    const ToolExecutionOutcome outcome =
+        harness.run("nvision.tool.geometry.ecc-refine", "node.ecc", std::move(inputs));
+    NVISION_REQUIRE(outcome.is_success());
+    // The two rasters hold identical pixels, so an identity start is already the answer.
+    NVISION_REQUIRE(
+        outcome.outputs().find(PortKey("correlation"))->floating_point_value() > 0.99);
+    const auto& refined = outcome.outputs().find(PortKey("transform"))->transform_value();
+    NVISION_REQUIRE(refined.source_space() == live.coordinate_space());
+    NVISION_REQUIRE(refined.target_space() == golden.coordinate_space());
+
+    PortValueMap wrong_direction;
+    wrong_direction.set(PortKey("image"), PortValue::image(live));
+    wrong_direction.set(PortKey("reference"), PortValue::image(golden));
+    wrong_direction.set(
+        PortKey("transform"),
+        PortValue::transform(
+            translation(golden.coordinate_space(), live.coordinate_space(), 0.0, 0.0)));
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.geometry.ecc-refine",
+            "node.ecc-reversed",
+            std::move(wrong_direction))) == ResultCode("COORDINATE_SPACE_MISMATCH"));
+}
+
+void points_are_transformed_into_the_space_the_transform_names() {
+    const Harness harness;
+    const CoordinateSpaceId from("nvision.image.node.detected.image-pixel");
+    const CoordinateSpaceId to("nvision.image.node.model.image-pixel");
+
+    PortValueMap inputs;
+    inputs.set(
+        PortKey("points"),
+        PortValue::point_list({Point2D(from, 1.0, 2.0), Point2D(from, 3.0, 4.0)}));
+    inputs.set(PortKey("transform"), PortValue::transform(translation(from, to, 10.0, 20.0)));
+    const ToolExecutionOutcome outcome = harness.run(
+        "nvision.tool.geometry.point-transform", "node.transform", std::move(inputs));
+    NVISION_REQUIRE(outcome.is_success());
+
+    const auto& moved = outcome.outputs().find(PortKey("points"))->point_list_value();
+    NVISION_REQUIRE(moved.size() == 2U);
+    NVISION_REQUIRE(moved[0].x() == 11.0 && moved[0].y() == 22.0);
+    NVISION_REQUIRE(moved[1].coordinate_space() == to);
+
+    PortValueMap mismatched;
+    mismatched.set(PortKey("points"), PortValue::point_list({Point2D(to, 1.0, 2.0)}));
+    mismatched.set(PortKey("transform"), PortValue::transform(translation(from, to, 1.0, 1.0)));
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.geometry.point-transform",
+            "node.transform-mismatch",
+            std::move(mismatched))) == ResultCode("COORDINATE_SPACE_MISMATCH"));
+}
+
+void point_assignment_pairs_each_expected_position_at_most_once() {
+    const Harness harness;
+    const CoordinateSpaceId space("nvision.image.node.grid.image-pixel");
+
+    PortValueMap inputs;
+    // Two detected points sit close to the first two expected positions; the third
+    // detection is far from every one of them.
+    inputs.set(
+        PortKey("points"),
+        PortValue::point_list({
+            Point2D(space, 1.0, 1.0),
+            Point2D(space, 11.0, 1.0),
+            Point2D(space, 500.0, 500.0),
+        }));
+    inputs.set(
+        PortKey("reference"),
+        PortValue::point_list({
+            Point2D(space, 0.0, 0.0),
+            Point2D(space, 10.0, 0.0),
+            Point2D(space, 20.0, 0.0),
+        }));
+    const ToolExecutionOutcome outcome = harness.run(
+        "nvision.tool.geometry.point-assignment",
+        "node.assign",
+        std::move(inputs),
+        configure({number("maximum-distance", 3.0)}));
+    NVISION_REQUIRE(outcome.is_success());
+
+    const auto& assignments = measurements(outcome, "assignments");
+    NVISION_REQUIRE(assignments.size() == 2U);
+    NVISION_REQUIRE(assignments[0].unit() == MeasurementUnit::pixel);
+    NVISION_REQUIRE(std::abs(assignments[0].value() - std::sqrt(2.0)) < 0.01);
+
+    // The far detection was never claimed, so it is reported as unmatched.
+    const auto& unmatched = outcome.outputs().find(PortKey("unmatched"))->point_list_value();
+    NVISION_REQUIRE(unmatched.size() == 1U);
+    NVISION_REQUIRE(unmatched[0].x() == 500.0);
+
+    PortValueMap crossed;
+    crossed.set(PortKey("points"), PortValue::point_list({Point2D(space, 0.0, 0.0)}));
+    crossed.set(
+        PortKey("reference"),
+        PortValue::point_list(
+            {Point2D(CoordinateSpaceId("nvision.image.node.other.image-pixel"), 0.0, 0.0)}));
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.geometry.point-assignment",
+            "node.assign-crossed",
+            std::move(crossed))) == ResultCode("COORDINATE_SPACE_MISMATCH"));
+}
+
 void the_image_processing_group_is_fully_implemented() {
     const ToolRegistry definitions = create_builtin_registry();
     const ToolImplementationRegistry implementations = create_vision_implementation_registry();
@@ -577,6 +1021,26 @@ void the_image_processing_group_is_fully_implemented() {
 
     NVISION_REQUIRE(processing_definitions == 15U);
     NVISION_REQUIRE(processing_implemented == processing_definitions);
+}
+
+void the_location_and_geometry_group_is_fully_implemented() {
+    const ToolRegistry definitions = create_builtin_registry();
+    const ToolImplementationRegistry implementations = create_vision_implementation_registry();
+
+    std::size_t geometry_definitions = 0U;
+    std::size_t geometry_implemented = 0U;
+    for (const auto& definition : definitions.definitions()) {
+        if (definition->id().value().rfind("nvision.tool.geometry.", 0U) != 0U) {
+            continue;
+        }
+        ++geometry_definitions;
+        if (implementations.contains(definition->id(), definition->version())) {
+            ++geometry_implemented;
+        }
+    }
+
+    NVISION_REQUIRE(geometry_definitions == 11U);
+    NVISION_REQUIRE(geometry_implemented == geometry_definitions);
 }
 
 }  // namespace
@@ -612,6 +1076,16 @@ int main() {
     NVISION_RUN(the_distance_transform_reports_pixels_not_intensity);
     NVISION_RUN(warping_by_an_identity_mapping_returns_the_same_pixels);
     NVISION_RUN(warping_refuses_a_mapping_it_cannot_honour);
+    NVISION_RUN(connected_components_reports_each_region_with_its_own_geometry);
+    NVISION_RUN(contour_extraction_and_blob_analysis_agree_on_what_is_there);
+    NVISION_RUN(the_minimum_enclosing_circle_covers_its_contour);
+    NVISION_RUN(line_fit_recovers_a_line_the_points_lie_on);
+    NVISION_RUN(feature_matching_relates_two_rasters_and_refuses_to_match_one_with_itself);
+    NVISION_RUN(a_homography_is_estimated_from_correspondences_and_then_judged);
+    NVISION_RUN(ecc_refinement_starts_from_a_transform_between_the_two_spaces_it_was_given);
+    NVISION_RUN(points_are_transformed_into_the_space_the_transform_names);
+    NVISION_RUN(point_assignment_pairs_each_expected_position_at_most_once);
     NVISION_RUN(the_image_processing_group_is_fully_implemented);
+    NVISION_RUN(the_location_and_geometry_group_is_fully_implemented);
     return 0;
 }
