@@ -1,4 +1,4 @@
-#include "nvision/core/parameter_schema.hpp"
+#include "nvision/workflow/parameter_schema.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -7,7 +7,7 @@
 #include <string_view>
 #include <utility>
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 namespace {
 
@@ -82,16 +82,16 @@ void validate_required_text(
 }
 
 GeometryKind kind_of(const GeometryValue& value) noexcept {
-    if (std::holds_alternative<Point2D>(value)) {
+    if (std::holds_alternative<core::Point2D>(value)) {
         return GeometryKind::point;
     }
-    if (std::holds_alternative<Line2D>(value)) {
+    if (std::holds_alternative<core::Line2D>(value)) {
         return GeometryKind::line;
     }
-    if (std::holds_alternative<Circle>(value)) {
+    if (std::holds_alternative<core::Circle>(value)) {
         return GeometryKind::circle;
     }
-    if (std::holds_alternative<AxisAlignedRectangle>(value)) {
+    if (std::holds_alternative<core::AxisAlignedRectangle>(value)) {
         return GeometryKind::rectangle;
     }
     return GeometryKind::polygon;
@@ -99,16 +99,16 @@ GeometryKind kind_of(const GeometryValue& value) noexcept {
 
 bool is_reference_kind_compatible(
     const ParameterKind parameter_kind,
-    const ResourceKind resource_kind) noexcept {
+    const core::ResourceKind resource_kind) noexcept {
     switch (parameter_kind) {
         case ParameterKind::resource_reference:
-            return resource_kind == ResourceKind::resource ||
-                   resource_kind == ResourceKind::template_asset ||
-                   resource_kind == ResourceKind::dictionary;
+            return resource_kind == core::ResourceKind::resource ||
+                   resource_kind == core::ResourceKind::template_asset ||
+                   resource_kind == core::ResourceKind::dictionary;
         case ParameterKind::model_reference:
-            return resource_kind == ResourceKind::model;
+            return resource_kind == core::ResourceKind::model;
         case ParameterKind::calibration_reference:
-            return resource_kind == ResourceKind::calibration;
+            return resource_kind == core::ResourceKind::calibration;
         default:
             return false;
     }
@@ -172,7 +172,7 @@ ParameterValue ParameterValue::string(std::string value) {
     return ParameterValue(ParameterKind::string, std::move(value));
 }
 
-ParameterValue ParameterValue::enumeration(EnumOptionKey value) {
+ParameterValue ParameterValue::enumeration(core::EnumOptionKey value) {
     return ParameterValue(ParameterKind::enumeration, std::move(value));
 }
 
@@ -193,21 +193,21 @@ ParameterValue ParameterValue::region_of_interest(GeometryValue value) {
     return ParameterValue(ParameterKind::region_of_interest, std::move(value));
 }
 
-ParameterValue ParameterValue::resource_reference(ResourceReference value) {
+ParameterValue ParameterValue::resource_reference(core::ResourceReference value) {
     if (!is_reference_kind_compatible(ParameterKind::resource_reference, value.kind())) {
         throw std::invalid_argument("generic resource parameter contains an incompatible kind");
     }
     return ParameterValue(ParameterKind::resource_reference, std::move(value));
 }
 
-ParameterValue ParameterValue::model_reference(ResourceReference value) {
+ParameterValue ParameterValue::model_reference(core::ResourceReference value) {
     if (!is_reference_kind_compatible(ParameterKind::model_reference, value.kind())) {
         throw std::invalid_argument("model parameter requires a model reference");
     }
     return ParameterValue(ParameterKind::model_reference, std::move(value));
 }
 
-ParameterValue ParameterValue::calibration_reference(ResourceReference value) {
+ParameterValue ParameterValue::calibration_reference(core::ResourceReference value) {
     if (!is_reference_kind_compatible(ParameterKind::calibration_reference, value.kind())) {
         throw std::invalid_argument("calibration parameter requires a calibration reference");
     }
@@ -234,8 +234,8 @@ const std::string& ParameterValue::string_value() const {
     return std::get<std::string>(payload_);
 }
 
-const EnumOptionKey& ParameterValue::enumeration_value() const {
-    return std::get<EnumOptionKey>(payload_);
+const core::EnumOptionKey& ParameterValue::enumeration_value() const {
+    return std::get<core::EnumOptionKey>(payload_);
 }
 
 const std::vector<ParameterValue>& ParameterValue::array_value() const {
@@ -250,8 +250,8 @@ GeometryKind ParameterValue::geometry_kind() const {
     return kind_of(geometry_value());
 }
 
-const ResourceReference& ParameterValue::reference_value() const {
-    return std::get<ResourceReference>(payload_);
+const core::ResourceReference& ParameterValue::reference_value() const {
+    return std::get<core::ResourceReference>(payload_);
 }
 
 NumericConstraint::NumericConstraint(
@@ -291,7 +291,7 @@ bool NumericConstraint::accepts(const double value) const noexcept {
 }
 
 EnumOption::EnumOption(
-    EnumOptionKey key,
+    core::EnumOptionKey key,
     std::string display_name,
     std::string description)
     : key_(std::move(key)),
@@ -303,7 +303,7 @@ EnumOption::EnumOption(
     }
 }
 
-const EnumOptionKey& EnumOption::key() const noexcept {
+const core::EnumOptionKey& EnumOption::key() const noexcept {
     return key_;
 }
 
@@ -530,7 +530,7 @@ const std::string& PropertyEditorMetadata::unit() const noexcept {
 }
 
 VisibilityCondition::VisibilityCondition(
-    ParameterKey controller,
+    core::ParameterKey controller,
     const VisibilityOperator operation,
     ParameterValue expected_value)
     : controller_(std::move(controller)),
@@ -541,7 +541,7 @@ VisibilityCondition::VisibilityCondition(
     }
 }
 
-const ParameterKey& VisibilityCondition::controller() const noexcept {
+const core::ParameterKey& VisibilityCondition::controller() const noexcept {
     return controller_;
 }
 
@@ -554,7 +554,7 @@ const ParameterValue& VisibilityCondition::expected_value() const noexcept {
 }
 
 ParameterDefinition::ParameterDefinition(
-    ParameterKey key,
+    core::ParameterKey key,
     std::string display_name,
     ParameterType type,
     const bool required,
@@ -590,7 +590,7 @@ ParameterDefinition::ParameterDefinition(
     }
 }
 
-const ParameterKey& ParameterDefinition::key() const noexcept {
+const core::ParameterKey& ParameterDefinition::key() const noexcept {
     return key_;
 }
 
@@ -630,4 +630,4 @@ bool ParameterDefinition::runtime_bindable() const noexcept {
     return runtime_bindable_;
 }
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

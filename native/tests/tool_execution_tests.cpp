@@ -1,14 +1,14 @@
 #include "nvision/acquisition/frame.hpp"
 #include "nvision/acquisition/image_view.hpp"
-#include "nvision/core/builtin_catalog.hpp"
-#include "nvision/core/parameter_schema.hpp"
-#include "nvision/core/tool_definition.hpp"
-#include "nvision/core/tool_registry.hpp"
-#include "nvision/core/workflow_node.hpp"
 #include "nvision/vision/builtin_tool_implementations.hpp"
+#include "nvision/workflow/builtin_catalog.hpp"
+#include "nvision/workflow/parameter_schema.hpp"
 #include "nvision/workflow/port_value.hpp"
+#include "nvision/workflow/tool_definition.hpp"
 #include "nvision/workflow/tool_execution.hpp"
 #include "nvision/workflow/tool_implementation_registry.hpp"
+#include "nvision/workflow/tool_registry.hpp"
+#include "nvision/workflow/workflow_node.hpp"
 
 #include <array>
 #include <chrono>
@@ -40,27 +40,27 @@ using nvision::acquisition::PixelFormat;
 using nvision::acquisition::TimestampQuality;
 using nvision::core::AxisAlignedRectangle;
 using nvision::core::Circle;
-using nvision::core::create_builtin_registry;
+using nvision::workflow::create_builtin_registry;
 using nvision::core::ErrorCategory;
 using nvision::core::ExecutionError;
 using nvision::core::ExecutionSessionId;
 using nvision::core::ExecutionStatus;
-using nvision::core::NodeConfiguration;
-using nvision::core::NodeParameterAssignment;
-using nvision::core::ParameterDefinition;
+using nvision::workflow::NodeConfiguration;
+using nvision::workflow::NodeParameterAssignment;
+using nvision::workflow::ParameterDefinition;
 using nvision::core::ParameterKey;
-using nvision::core::ParameterType;
-using nvision::core::ParameterValue;
+using nvision::workflow::ParameterType;
+using nvision::workflow::ParameterValue;
 using nvision::core::Point2D;
 using nvision::core::PortDataType;
-using nvision::core::PortDirection;
+using nvision::workflow::PortDirection;
 using nvision::core::PortKey;
 using nvision::core::ResultCode;
 using nvision::core::SemanticVersion;
-using nvision::core::ToolCatalogMetadata;
-using nvision::core::ToolPortDefinition;
-using nvision::core::ToolRegistry;
-using nvision::core::ToolTypeDefinition;
+using nvision::workflow::ToolCatalogMetadata;
+using nvision::workflow::ToolPortDefinition;
+using nvision::workflow::ToolRegistry;
+using nvision::workflow::ToolTypeDefinition;
 using nvision::core::ToolTypeId;
 using nvision::core::WorkflowNodeId;
 using nvision::vision::create_vision_implementation_registry;
@@ -140,7 +140,7 @@ ToolTypeDefinition counting_definition() {
              PortDirection::output,
              PortDataType::integer,
              true)},
-        nvision::core::ToolOrigin::built_in(),
+        nvision::workflow::ToolOrigin::built_in(),
         {},
         {ParameterDefinition(
              ParameterKey("scale"),

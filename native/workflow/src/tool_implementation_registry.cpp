@@ -20,7 +20,7 @@ ToolImplementationBinding::ToolImplementationBinding(
     core::ToolTypeId requested_id,
     core::SemanticVersion requested_version,
     const ToolImplementationStatus status,
-    std::shared_ptr<const core::ToolTypeDefinition> definition,
+    std::shared_ptr<const ToolTypeDefinition> definition,
     std::shared_ptr<const ToolImplementation> implementation)
     : requested_id_(std::move(requested_id)),
       requested_version_(std::move(requested_version)),
@@ -61,7 +61,7 @@ bool ToolImplementationBinding::is_bound() const noexcept {
     return status_ == ToolImplementationStatus::bound;
 }
 
-const std::shared_ptr<const core::ToolTypeDefinition>& ToolImplementationBinding::definition()
+const std::shared_ptr<const ToolTypeDefinition>& ToolImplementationBinding::definition()
     const noexcept {
     return definition_;
 }
@@ -88,12 +88,12 @@ void ToolImplementationRegistry::register_implementation(
 ToolImplementationBinding ToolImplementationRegistry::bind(
     const core::ToolTypeId& id,
     const core::SemanticVersion& version,
-    const core::ToolRegistry& definitions) const {
+    const ToolRegistry& definitions) const {
     // Definition resolution comes first so a workflow sees the same unknown-tool and
     // unsupported-version states at execution time that authoring already reported.
-    const core::ToolResolution resolution = definitions.resolve_exact(id, version);
+    const ToolResolution resolution = definitions.resolve_exact(id, version);
     if (!resolution.is_resolved()) {
-        const bool unknown = resolution.status() == core::ToolResolutionStatus::unknown_tool;
+        const bool unknown = resolution.status() == ToolResolutionStatus::unknown_tool;
         return ToolImplementationBinding(
             id,
             version,
@@ -126,9 +126,9 @@ bool ToolImplementationRegistry::contains(
     return implementations_by_key_.contains(key(id, version));
 }
 
-std::vector<std::shared_ptr<const core::ToolTypeDefinition>>
-ToolImplementationRegistry::unimplemented(const core::ToolRegistry& definitions) const {
-    std::vector<std::shared_ptr<const core::ToolTypeDefinition>> pending;
+std::vector<std::shared_ptr<const ToolTypeDefinition>>
+ToolImplementationRegistry::unimplemented(const ToolRegistry& definitions) const {
+    std::vector<std::shared_ptr<const ToolTypeDefinition>> pending;
     for (const auto& definition : definitions.definitions()) {
         if (!contains(definition->id(), definition->version())) {
             pending.push_back(definition);

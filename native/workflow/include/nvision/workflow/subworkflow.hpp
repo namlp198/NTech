@@ -1,14 +1,14 @@
 #pragma once
 
 #include "nvision/core/identifier.hpp"
-#include "nvision/core/tool_definition.hpp"
-#include "nvision/core/tool_registry.hpp"
-#include "nvision/core/workflow_graph.hpp"
-#include "nvision/core/workflow_node.hpp"
+#include "nvision/workflow/tool_definition.hpp"
+#include "nvision/workflow/tool_registry.hpp"
+#include "nvision/workflow/workflow_graph.hpp"
+#include "nvision/workflow/workflow_node.hpp"
 
 #include <vector>
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 // Binds one port of the subworkflow interface to a port of one internal node.
 // Direction is carried explicitly because a tool may declare the same port key
@@ -16,39 +16,39 @@ namespace nvision::core {
 class SubworkflowPortMapping final {
 public:
     SubworkflowPortMapping(
-        PortKey exposed_key,
+        core::PortKey exposed_key,
         PortDirection direction,
-        WorkflowNodeId node_id,
-        PortKey node_port_key);
+        core::WorkflowNodeId node_id,
+        core::PortKey node_port_key);
 
-    [[nodiscard]] const PortKey& exposed_key() const noexcept;
+    [[nodiscard]] const core::PortKey& exposed_key() const noexcept;
     [[nodiscard]] PortDirection direction() const noexcept;
-    [[nodiscard]] const WorkflowNodeId& node_id() const noexcept;
-    [[nodiscard]] const PortKey& node_port_key() const noexcept;
+    [[nodiscard]] const core::WorkflowNodeId& node_id() const noexcept;
+    [[nodiscard]] const core::PortKey& node_port_key() const noexcept;
 
 private:
-    PortKey exposed_key_;
+    core::PortKey exposed_key_;
     PortDirection direction_;
-    WorkflowNodeId node_id_;
-    PortKey node_port_key_;
+    core::WorkflowNodeId node_id_;
+    core::PortKey node_port_key_;
 };
 
 // Forwards one interface parameter to the parameter of one internal node.
 class SubworkflowParameterPromotion final {
 public:
     SubworkflowParameterPromotion(
-        ParameterKey exposed_key,
-        WorkflowNodeId node_id,
-        ParameterKey node_parameter_key);
+        core::ParameterKey exposed_key,
+        core::WorkflowNodeId node_id,
+        core::ParameterKey node_parameter_key);
 
-    [[nodiscard]] const ParameterKey& exposed_key() const noexcept;
-    [[nodiscard]] const WorkflowNodeId& node_id() const noexcept;
-    [[nodiscard]] const ParameterKey& node_parameter_key() const noexcept;
+    [[nodiscard]] const core::ParameterKey& exposed_key() const noexcept;
+    [[nodiscard]] const core::WorkflowNodeId& node_id() const noexcept;
+    [[nodiscard]] const core::ParameterKey& node_parameter_key() const noexcept;
 
 private:
-    ParameterKey exposed_key_;
-    WorkflowNodeId node_id_;
-    ParameterKey node_parameter_key_;
+    core::ParameterKey exposed_key_;
+    core::WorkflowNodeId node_id_;
+    core::ParameterKey node_parameter_key_;
 };
 
 // A reusable graph published through an ordinary tool interface. The catalog sees a
@@ -82,4 +82,4 @@ private:
     const SubworkflowDefinition& definition,
     const ToolRegistry& registry);
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

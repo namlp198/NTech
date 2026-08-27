@@ -1,18 +1,18 @@
-#include "nvision/core/workflow_graph.hpp"
+#include "nvision/workflow/workflow_graph.hpp"
 
 #include <algorithm>
 #include <cstddef>
 #include <stdexcept>
 #include <utility>
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 namespace {
 
 bool feeds(
     const std::vector<NodePortAddress>& addresses,
-    const WorkflowNodeId& node_id,
-    const PortKey& port_key) {
+    const core::WorkflowNodeId& node_id,
+    const core::PortKey& port_key) {
     return std::any_of(
         addresses.begin(), addresses.end(), [&node_id, &port_key](const NodePortAddress& address) {
             return address.node_id() == node_id && address.port_key() == port_key;
@@ -23,7 +23,7 @@ bool feeds(
 bool has_cycle(
     const std::vector<WorkflowNode>& nodes,
     const std::vector<WorkflowConnection>& connections) {
-    const auto index_of = [&nodes](const WorkflowNodeId& id) {
+    const auto index_of = [&nodes](const core::WorkflowNodeId& id) {
         const auto match = std::find_if(
             nodes.begin(), nodes.end(), [&id](const WorkflowNode& node) {
                 return node.id() == id;
@@ -64,10 +64,10 @@ bool has_cycle(
 }  // namespace
 
 WorkflowConnection::WorkflowConnection(
-    WorkflowNodeId source_node_id,
-    PortKey source_port_key,
-    WorkflowNodeId target_node_id,
-    PortKey target_port_key)
+    core::WorkflowNodeId source_node_id,
+    core::PortKey source_port_key,
+    core::WorkflowNodeId target_node_id,
+    core::PortKey target_port_key)
     : source_node_id_(std::move(source_node_id)),
       source_port_key_(std::move(source_port_key)),
       target_node_id_(std::move(target_node_id)),
@@ -77,30 +77,30 @@ WorkflowConnection::WorkflowConnection(
     }
 }
 
-const WorkflowNodeId& WorkflowConnection::source_node_id() const noexcept {
+const core::WorkflowNodeId& WorkflowConnection::source_node_id() const noexcept {
     return source_node_id_;
 }
 
-const PortKey& WorkflowConnection::source_port_key() const noexcept {
+const core::PortKey& WorkflowConnection::source_port_key() const noexcept {
     return source_port_key_;
 }
 
-const WorkflowNodeId& WorkflowConnection::target_node_id() const noexcept {
+const core::WorkflowNodeId& WorkflowConnection::target_node_id() const noexcept {
     return target_node_id_;
 }
 
-const PortKey& WorkflowConnection::target_port_key() const noexcept {
+const core::PortKey& WorkflowConnection::target_port_key() const noexcept {
     return target_port_key_;
 }
 
-NodePortAddress::NodePortAddress(WorkflowNodeId node_id, PortKey port_key)
+NodePortAddress::NodePortAddress(core::WorkflowNodeId node_id, core::PortKey port_key)
     : node_id_(std::move(node_id)), port_key_(std::move(port_key)) {}
 
-const WorkflowNodeId& NodePortAddress::node_id() const noexcept {
+const core::WorkflowNodeId& NodePortAddress::node_id() const noexcept {
     return node_id_;
 }
 
-const PortKey& NodePortAddress::port_key() const noexcept {
+const core::PortKey& NodePortAddress::port_key() const noexcept {
     return port_key_;
 }
 
@@ -152,7 +152,7 @@ const std::vector<WorkflowConnection>& WorkflowGraph::connections() const noexce
     return connections_;
 }
 
-const WorkflowNode* WorkflowGraph::find_node(const WorkflowNodeId& id) const noexcept {
+const WorkflowNode* WorkflowGraph::find_node(const core::WorkflowNodeId& id) const noexcept {
     const auto match = std::find_if(
         nodes_.begin(), nodes_.end(), [&id](const WorkflowNode& node) { return node.id() == id; });
     return match == nodes_.end() ? nullptr : &*match;
@@ -172,7 +172,7 @@ const std::vector<WorkflowDiagnostic>& WorkflowGraphBinding::diagnostics() const
 }
 
 const WorkflowNodeBinding* WorkflowGraphBinding::find_node(
-    const WorkflowNodeId& id) const noexcept {
+    const core::WorkflowNodeId& id) const noexcept {
     const auto match = std::find_if(
         nodes_.begin(), nodes_.end(), [&id](const WorkflowNodeBinding& binding) {
             return binding.node().id() == id;
@@ -211,7 +211,7 @@ WorkflowGraphBinding bind_workflow_graph(
     }
 
     const auto definition_of =
-        [&bindings](const WorkflowNodeId& id) -> std::shared_ptr<const ToolTypeDefinition> {
+        [&bindings](const core::WorkflowNodeId& id) -> std::shared_ptr<const ToolTypeDefinition> {
         const auto match = std::find_if(
             bindings.begin(), bindings.end(), [&id](const WorkflowNodeBinding& binding) {
                 return binding.node().id() == id;
@@ -240,7 +240,7 @@ WorkflowGraphBinding bind_workflow_graph(
             source->find_port(connection.source_port_key(), PortDirection::output);
         if (source_port == nullptr) {
             diagnostics.push_back(WorkflowDiagnostic::port(
-                ResultCode("MISSING_CONNECTED_PORT"),
+                core::ResultCode("MISSING_CONNECTED_PORT"),
                 DiagnosticSeverity::error,
                 "output port " + connection.source_port_key().value() +
                     " is not declared by the bound tool version",
@@ -253,7 +253,7 @@ WorkflowGraphBinding bind_workflow_graph(
             target->find_port(connection.target_port_key(), PortDirection::input);
         if (target_port == nullptr) {
             diagnostics.push_back(WorkflowDiagnostic::port(
-                ResultCode("MISSING_CONNECTED_PORT"),
+                core::ResultCode("MISSING_CONNECTED_PORT"),
                 DiagnosticSeverity::error,
                 "input port " + connection.target_port_key().value() +
                     " is not declared by the bound tool version",
@@ -264,7 +264,7 @@ WorkflowGraphBinding bind_workflow_graph(
 
         if (source_port->data_type() != target_port->data_type()) {
             diagnostics.push_back(WorkflowDiagnostic::port(
-                ResultCode("CONNECTION_TYPE_MISMATCH"),
+                core::ResultCode("CONNECTION_TYPE_MISMATCH"),
                 DiagnosticSeverity::error,
                 "output port " + connection.source_port_key().value() + " of node " +
                     connection.source_node_id().value() + " does not match input port " +
@@ -275,7 +275,7 @@ WorkflowGraphBinding bind_workflow_graph(
 
         if (already_fed && !target_port->allows_multiple()) {
             diagnostics.push_back(WorkflowDiagnostic::port(
-                ResultCode("PORT_ALREADY_CONNECTED"),
+                core::ResultCode("PORT_ALREADY_CONNECTED"),
                 DiagnosticSeverity::error,
                 "input port " + connection.target_port_key().value() +
                     " accepts a single source",
@@ -297,7 +297,7 @@ WorkflowGraphBinding bind_workflow_graph(
                 continue;
             }
             diagnostics.push_back(WorkflowDiagnostic::port(
-                ResultCode("MISSING_REQUIRED_INPUT"),
+                core::ResultCode("MISSING_REQUIRED_INPUT"),
                 DiagnosticSeverity::error,
                 "required input port " + port.key().value() + " has no source",
                 binding.node().id(),
@@ -308,4 +308,4 @@ WorkflowGraphBinding bind_workflow_graph(
     return WorkflowGraphBinding(std::move(bindings), std::move(diagnostics));
 }
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

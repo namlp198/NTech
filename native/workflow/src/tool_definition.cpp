@@ -1,4 +1,4 @@
-#include "nvision/core/tool_definition.hpp"
+#include "nvision/workflow/tool_definition.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -6,7 +6,7 @@
 #include <string_view>
 #include <utility>
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 namespace {
 
@@ -37,44 +37,44 @@ bool is_valid(const ToolDeviceRequirement requirement) noexcept {
            requirement == ToolDeviceRequirement::external_device;
 }
 
-bool is_valid(const PortDataType type) noexcept {
+bool is_valid(const core::PortDataType type) noexcept {
     switch (type) {
-        case PortDataType::frame:
-        case PortDataType::image:
-        case PortDataType::image_view:
-        case PortDataType::mask:
-        case PortDataType::region:
-        case PortDataType::point_2d:
-        case PortDataType::point_list:
-        case PortDataType::line_2d:
-        case PortDataType::circle:
-        case PortDataType::contour:
-        case PortDataType::contour_list:
-        case PortDataType::bounding_box:
-        case PortDataType::polygon:
-        case PortDataType::transform:
-        case PortDataType::homography:
-        case PortDataType::feature_set:
-        case PortDataType::match_set:
-        case PortDataType::detection:
-        case PortDataType::detection_list:
-        case PortDataType::text_result:
-        case PortDataType::text_result_list:
-        case PortDataType::barcode_result:
-        case PortDataType::measurement:
-        case PortDataType::measurement_list:
-        case PortDataType::defect:
-        case PortDataType::defect_list:
-        case PortDataType::point_grid_model:
-        case PortDataType::point_grid_result:
-        case PortDataType::boolean:
-        case PortDataType::integer:
-        case PortDataType::floating_point:
-        case PortDataType::string:
-        case PortDataType::decision:
-        case PortDataType::evidence:
-        case PortDataType::overlay:
-        case PortDataType::any_metadata:
+        case core::PortDataType::frame:
+        case core::PortDataType::image:
+        case core::PortDataType::image_view:
+        case core::PortDataType::mask:
+        case core::PortDataType::region:
+        case core::PortDataType::point_2d:
+        case core::PortDataType::point_list:
+        case core::PortDataType::line_2d:
+        case core::PortDataType::circle:
+        case core::PortDataType::contour:
+        case core::PortDataType::contour_list:
+        case core::PortDataType::bounding_box:
+        case core::PortDataType::polygon:
+        case core::PortDataType::transform:
+        case core::PortDataType::homography:
+        case core::PortDataType::feature_set:
+        case core::PortDataType::match_set:
+        case core::PortDataType::detection:
+        case core::PortDataType::detection_list:
+        case core::PortDataType::text_result:
+        case core::PortDataType::text_result_list:
+        case core::PortDataType::barcode_result:
+        case core::PortDataType::measurement:
+        case core::PortDataType::measurement_list:
+        case core::PortDataType::defect:
+        case core::PortDataType::defect_list:
+        case core::PortDataType::point_grid_model:
+        case core::PortDataType::point_grid_result:
+        case core::PortDataType::boolean:
+        case core::PortDataType::integer:
+        case core::PortDataType::floating_point:
+        case core::PortDataType::string:
+        case core::PortDataType::decision:
+        case core::PortDataType::evidence:
+        case core::PortDataType::overlay:
+        case core::PortDataType::any_metadata:
             return true;
     }
     return false;
@@ -118,10 +118,10 @@ bool supports_visibility_condition(const ParameterKind kind) noexcept {
 }  // namespace
 
 ToolPortDefinition::ToolPortDefinition(
-    PortKey key,
+    core::PortKey key,
     std::string display_name,
     const PortDirection direction,
-    const PortDataType data_type,
+    const core::PortDataType data_type,
     const bool required,
     const bool allows_multiple)
     : key_(std::move(key)),
@@ -139,7 +139,7 @@ ToolPortDefinition::ToolPortDefinition(
     }
 }
 
-const PortKey& ToolPortDefinition::key() const noexcept {
+const core::PortKey& ToolPortDefinition::key() const noexcept {
     return key_;
 }
 
@@ -151,7 +151,7 @@ PortDirection ToolPortDefinition::direction() const noexcept {
     return direction_;
 }
 
-PortDataType ToolPortDefinition::data_type() const noexcept {
+core::PortDataType ToolPortDefinition::data_type() const noexcept {
     return data_type_;
 }
 
@@ -213,7 +213,7 @@ const std::string& ToolCatalogMetadata::description() const noexcept {
     return description_;
 }
 
-ToolOrigin::ToolOrigin(const ToolOriginKind kind, std::optional<PluginId> plugin_id)
+ToolOrigin::ToolOrigin(const ToolOriginKind kind, std::optional<core::PluginId> plugin_id)
     : kind_(kind), plugin_id_(std::move(plugin_id)) {
     if (!is_valid(kind_)) {
         throw std::invalid_argument("tool origin kind is unsupported");
@@ -227,7 +227,7 @@ ToolOrigin ToolOrigin::built_in() {
     return ToolOrigin(ToolOriginKind::built_in, std::nullopt);
 }
 
-ToolOrigin ToolOrigin::plugin(PluginId plugin_id) {
+ToolOrigin ToolOrigin::plugin(core::PluginId plugin_id) {
     return ToolOrigin(ToolOriginKind::plugin, std::move(plugin_id));
 }
 
@@ -235,7 +235,7 @@ ToolOriginKind ToolOrigin::kind() const noexcept {
     return kind_;
 }
 
-const std::optional<PluginId>& ToolOrigin::plugin_id() const noexcept {
+const std::optional<core::PluginId>& ToolOrigin::plugin_id() const noexcept {
     return plugin_id_;
 }
 
@@ -297,8 +297,8 @@ bool ToolExecutionCharacteristics::supports_debug_preview() const noexcept {
 }
 
 ToolTypeDefinition::ToolTypeDefinition(
-    ToolTypeId id,
-    SemanticVersion version,
+    core::ToolTypeId id,
+    core::SemanticVersion version,
     ToolCatalogMetadata catalog,
     std::vector<ToolPortDefinition> ports,
     ToolOrigin origin,
@@ -357,7 +357,7 @@ ToolTypeDefinition::ToolTypeDefinition(
     }
 
     for (const auto& parameter : parameters_) {
-        std::vector<ParameterKey> visited;
+        std::vector<core::ParameterKey> visited;
         const ParameterDefinition* current = &parameter;
         while (current->visibility()) {
             if (std::find(visited.begin(), visited.end(), current->key()) != visited.end()) {
@@ -369,11 +369,11 @@ ToolTypeDefinition::ToolTypeDefinition(
     }
 }
 
-const ToolTypeId& ToolTypeDefinition::id() const noexcept {
+const core::ToolTypeId& ToolTypeDefinition::id() const noexcept {
     return id_;
 }
 
-const SemanticVersion& ToolTypeDefinition::version() const noexcept {
+const core::SemanticVersion& ToolTypeDefinition::version() const noexcept {
     return version_;
 }
 
@@ -398,7 +398,7 @@ const std::vector<ParameterDefinition>& ToolTypeDefinition::parameters() const n
 }
 
 const ToolPortDefinition* ToolTypeDefinition::find_port(
-    const PortKey& key,
+    const core::PortKey& key,
     const PortDirection direction) const noexcept {
     const auto match = std::find_if(
         ports_.begin(), ports_.end(), [&key, direction](const ToolPortDefinition& port) {
@@ -408,7 +408,7 @@ const ToolPortDefinition* ToolTypeDefinition::find_port(
 }
 
 const ParameterDefinition* ToolTypeDefinition::find_parameter(
-    const ParameterKey& key) const noexcept {
+    const core::ParameterKey& key) const noexcept {
     const auto match = std::find_if(
         parameters_.begin(), parameters_.end(), [&key](const ParameterDefinition& parameter) {
             return parameter.key() == key;
@@ -416,4 +416,4 @@ const ParameterDefinition* ToolTypeDefinition::find_parameter(
     return match == parameters_.end() ? nullptr : &*match;
 }
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

@@ -1,10 +1,10 @@
-#include "nvision/core/tool_registry.hpp"
+#include "nvision/workflow/tool_registry.hpp"
 
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 namespace {
 
@@ -17,8 +17,8 @@ bool is_valid(const ToolResolutionStatus status) noexcept {
 }  // namespace
 
 ToolResolution::ToolResolution(
-    ToolTypeId requested_id,
-    SemanticVersion requested_version,
+    core::ToolTypeId requested_id,
+    core::SemanticVersion requested_version,
     const ToolResolutionStatus status,
     std::shared_ptr<const ToolTypeDefinition> definition)
     : requested_id_(std::move(requested_id)),
@@ -37,11 +37,11 @@ ToolResolution::ToolResolution(
     }
 }
 
-const ToolTypeId& ToolResolution::requested_id() const noexcept {
+const core::ToolTypeId& ToolResolution::requested_id() const noexcept {
     return requested_id_;
 }
 
-const SemanticVersion& ToolResolution::requested_version() const noexcept {
+const core::SemanticVersion& ToolResolution::requested_version() const noexcept {
     return requested_version_;
 }
 
@@ -71,8 +71,8 @@ std::shared_ptr<const ToolTypeDefinition> ToolRegistry::register_definition(
 }
 
 ToolResolution ToolRegistry::resolve_exact(
-    const ToolTypeId& id,
-    const SemanticVersion& version) const {
+    const core::ToolTypeId& id,
+    const core::SemanticVersion& version) const {
     const auto match = definitions_by_key_.find(key(id, version));
     if (match != definitions_by_key_.end()) {
         return ToolResolution(id, version, ToolResolutionStatus::resolved, match->second);
@@ -94,8 +94,8 @@ const std::vector<std::shared_ptr<const ToolTypeDefinition>>& ToolRegistry::defi
     return definitions_;
 }
 
-std::vector<SemanticVersion> ToolRegistry::available_versions(const ToolTypeId& id) const {
-    std::vector<SemanticVersion> versions;
+std::vector<core::SemanticVersion> ToolRegistry::available_versions(const core::ToolTypeId& id) const {
+    std::vector<core::SemanticVersion> versions;
     for (const auto& definition : definitions_) {
         if (definition->id() == id) {
             versions.push_back(definition->version());
@@ -108,8 +108,8 @@ std::vector<SemanticVersion> ToolRegistry::available_versions(const ToolTypeId& 
     return versions;
 }
 
-std::string ToolRegistry::key(const ToolTypeId& id, const SemanticVersion& version) {
+std::string ToolRegistry::key(const core::ToolTypeId& id, const core::SemanticVersion& version) {
     return id.value() + "@" + version.to_string();
 }
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

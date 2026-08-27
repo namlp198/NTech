@@ -1,8 +1,8 @@
 #pragma once
 
-#include "nvision/core/tool_registry.hpp"
+#include "nvision/workflow/tool_registry.hpp"
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 // Registers the initial generic built-in tool tree.
 //
@@ -15,4 +15,4 @@ void register_builtin_tools(ToolRegistry& registry);
 
 [[nodiscard]] ToolRegistry create_builtin_registry();
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

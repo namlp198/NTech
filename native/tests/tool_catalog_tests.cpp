@@ -1,4 +1,4 @@
-#include "nvision/core/tool_registry.hpp"
+#include "nvision/workflow/tool_registry.hpp"
 
 #include <cstdlib>
 #include <memory>
@@ -18,20 +18,20 @@ namespace {
 
 using nvision::core::PluginId;
 using nvision::core::PortDataType;
-using nvision::core::PortDirection;
+using nvision::workflow::PortDirection;
 using nvision::core::PortKey;
 using nvision::core::SemanticVersion;
-using nvision::core::ToolCatalogMetadata;
-using nvision::core::ToolDeviceRequirement;
-using nvision::core::ToolExecutionCharacteristics;
-using nvision::core::ToolExecutionLifetime;
-using nvision::core::ToolOrigin;
-using nvision::core::ToolOriginKind;
-using nvision::core::ToolPortDefinition;
-using nvision::core::ToolRegistry;
-using nvision::core::ToolResolution;
-using nvision::core::ToolResolutionStatus;
-using nvision::core::ToolTypeDefinition;
+using nvision::workflow::ToolCatalogMetadata;
+using nvision::workflow::ToolDeviceRequirement;
+using nvision::workflow::ToolExecutionCharacteristics;
+using nvision::workflow::ToolExecutionLifetime;
+using nvision::workflow::ToolOrigin;
+using nvision::workflow::ToolOriginKind;
+using nvision::workflow::ToolPortDefinition;
+using nvision::workflow::ToolRegistry;
+using nvision::workflow::ToolResolution;
+using nvision::workflow::ToolResolutionStatus;
+using nvision::workflow::ToolTypeDefinition;
 using nvision::core::ToolTypeId;
 
 template <typename Action>

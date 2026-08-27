@@ -1,10 +1,10 @@
-#include "nvision/core/subworkflow.hpp"
+#include "nvision/workflow/subworkflow.hpp"
 
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 namespace {
 
@@ -20,10 +20,10 @@ bool same_target(const SubworkflowPortMapping& left, const SubworkflowPortMappin
 }  // namespace
 
 SubworkflowPortMapping::SubworkflowPortMapping(
-    PortKey exposed_key,
+    core::PortKey exposed_key,
     const PortDirection direction,
-    WorkflowNodeId node_id,
-    PortKey node_port_key)
+    core::WorkflowNodeId node_id,
+    core::PortKey node_port_key)
     : exposed_key_(std::move(exposed_key)),
       direction_(direction),
       node_id_(std::move(node_id)),
@@ -33,7 +33,7 @@ SubworkflowPortMapping::SubworkflowPortMapping(
     }
 }
 
-const PortKey& SubworkflowPortMapping::exposed_key() const noexcept {
+const core::PortKey& SubworkflowPortMapping::exposed_key() const noexcept {
     return exposed_key_;
 }
 
@@ -41,31 +41,31 @@ PortDirection SubworkflowPortMapping::direction() const noexcept {
     return direction_;
 }
 
-const WorkflowNodeId& SubworkflowPortMapping::node_id() const noexcept {
+const core::WorkflowNodeId& SubworkflowPortMapping::node_id() const noexcept {
     return node_id_;
 }
 
-const PortKey& SubworkflowPortMapping::node_port_key() const noexcept {
+const core::PortKey& SubworkflowPortMapping::node_port_key() const noexcept {
     return node_port_key_;
 }
 
 SubworkflowParameterPromotion::SubworkflowParameterPromotion(
-    ParameterKey exposed_key,
-    WorkflowNodeId node_id,
-    ParameterKey node_parameter_key)
+    core::ParameterKey exposed_key,
+    core::WorkflowNodeId node_id,
+    core::ParameterKey node_parameter_key)
     : exposed_key_(std::move(exposed_key)),
       node_id_(std::move(node_id)),
       node_parameter_key_(std::move(node_parameter_key)) {}
 
-const ParameterKey& SubworkflowParameterPromotion::exposed_key() const noexcept {
+const core::ParameterKey& SubworkflowParameterPromotion::exposed_key() const noexcept {
     return exposed_key_;
 }
 
-const WorkflowNodeId& SubworkflowParameterPromotion::node_id() const noexcept {
+const core::WorkflowNodeId& SubworkflowParameterPromotion::node_id() const noexcept {
     return node_id_;
 }
 
-const ParameterKey& SubworkflowParameterPromotion::node_parameter_key() const noexcept {
+const core::ParameterKey& SubworkflowParameterPromotion::node_parameter_key() const noexcept {
     return node_parameter_key_;
 }
 
@@ -176,7 +176,7 @@ WorkflowGraphBinding bind_subworkflow(
 
     const auto definition_of =
         [&graph_binding](
-            const WorkflowNodeId& id) -> std::shared_ptr<const ToolTypeDefinition> {
+            const core::WorkflowNodeId& id) -> std::shared_ptr<const ToolTypeDefinition> {
         const auto* binding = graph_binding.find_node(id);
         return binding == nullptr ? nullptr : binding->definition();
     };
@@ -193,7 +193,7 @@ WorkflowGraphBinding bind_subworkflow(
             node_definition->find_port(mapping.node_port_key(), mapping.direction());
         if (node_port == nullptr) {
             diagnostics.push_back(WorkflowDiagnostic::port(
-                ResultCode("MISSING_MAPPED_PORT"),
+                core::ResultCode("MISSING_MAPPED_PORT"),
                 DiagnosticSeverity::error,
                 "node port " + mapping.node_port_key().value() +
                     " is not declared by the bound tool version",
@@ -205,7 +205,7 @@ WorkflowGraphBinding bind_subworkflow(
             definition.interface_definition().find_port(mapping.exposed_key(), mapping.direction());
         if (exposed_port->data_type() != node_port->data_type()) {
             diagnostics.push_back(WorkflowDiagnostic::port(
-                ResultCode("PORT_TYPE_MISMATCH"),
+                core::ResultCode("PORT_TYPE_MISMATCH"),
                 DiagnosticSeverity::error,
                 "subworkflow port " + mapping.exposed_key().value() +
                     " and node port " + mapping.node_port_key().value() +
@@ -224,7 +224,7 @@ WorkflowGraphBinding bind_subworkflow(
             node_definition->find_parameter(promotion.node_parameter_key());
         if (node_parameter == nullptr) {
             diagnostics.push_back(WorkflowDiagnostic::parameter(
-                ResultCode("MISSING_PROMOTED_PARAMETER"),
+                core::ResultCode("MISSING_PROMOTED_PARAMETER"),
                 DiagnosticSeverity::error,
                 "node parameter " + promotion.node_parameter_key().value() +
                     " is not declared by the bound tool version",
@@ -241,7 +241,7 @@ WorkflowGraphBinding bind_subworkflow(
             node_parameter->type().accepts(*exposed_parameter->default_value());
         if (!kind_matches || !default_accepted) {
             diagnostics.push_back(WorkflowDiagnostic::parameter(
-                ResultCode("PROMOTED_PARAMETER_TYPE_MISMATCH"),
+                core::ResultCode("PROMOTED_PARAMETER_TYPE_MISMATCH"),
                 DiagnosticSeverity::error,
                 "subworkflow parameter " + promotion.exposed_key().value() +
                     " is not compatible with node parameter " +
@@ -262,7 +262,7 @@ WorkflowGraphBinding bind_subworkflow(
             // Legal for a parameter that only drives editor visibility, but reported
             // because an unpromoted value never reaches an internal node.
             diagnostics.push_back(WorkflowDiagnostic::interface_parameter(
-                ResultCode("UNPROMOTED_PARAMETER"),
+                core::ResultCode("UNPROMOTED_PARAMETER"),
                 DiagnosticSeverity::warning,
                 "subworkflow parameter " + parameter.key().value() +
                     " is not promoted to any node parameter",
@@ -273,4 +273,4 @@ WorkflowGraphBinding bind_subworkflow(
     return WorkflowGraphBinding(graph_binding.nodes(), std::move(diagnostics));
 }
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

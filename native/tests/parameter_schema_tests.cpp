@@ -1,5 +1,5 @@
-#include "nvision/core/parameter_schema.hpp"
-#include "nvision/core/tool_definition.hpp"
+#include "nvision/workflow/parameter_schema.hpp"
+#include "nvision/workflow/tool_definition.hpp"
 
 #include <cstdint>
 #include <cstdlib>
@@ -21,30 +21,30 @@ namespace {
 
 using nvision::core::AxisAlignedRectangle;
 using nvision::core::CoordinateSpaceId;
-using nvision::core::EnumOption;
+using nvision::workflow::EnumOption;
 using nvision::core::EnumOptionKey;
-using nvision::core::GeometryKind;
+using nvision::workflow::GeometryKind;
 using nvision::core::IntegrityDigest;
 using nvision::core::Line2D;
-using nvision::core::NumericConstraint;
-using nvision::core::ParameterDefinition;
+using nvision::workflow::NumericConstraint;
+using nvision::workflow::ParameterDefinition;
 using nvision::core::ParameterKey;
-using nvision::core::ParameterKind;
-using nvision::core::ParameterType;
-using nvision::core::ParameterValue;
+using nvision::workflow::ParameterKind;
+using nvision::workflow::ParameterType;
+using nvision::workflow::ParameterValue;
 using nvision::core::Point2D;
-using nvision::core::PropertyEditorControl;
-using nvision::core::PropertyEditorMetadata;
+using nvision::workflow::PropertyEditorControl;
+using nvision::workflow::PropertyEditorMetadata;
 using nvision::core::ResourceId;
 using nvision::core::ResourceIntegrity;
 using nvision::core::ResourceKind;
 using nvision::core::ResourceReference;
 using nvision::core::SemanticVersion;
-using nvision::core::ToolCatalogMetadata;
-using nvision::core::ToolTypeDefinition;
+using nvision::workflow::ToolCatalogMetadata;
+using nvision::workflow::ToolTypeDefinition;
 using nvision::core::ToolTypeId;
-using nvision::core::VisibilityCondition;
-using nvision::core::VisibilityOperator;
+using nvision::workflow::VisibilityCondition;
+using nvision::workflow::VisibilityOperator;
 
 template <typename Action>
 bool rejects_invalid_argument(Action action) {
@@ -101,7 +101,7 @@ ToolTypeDefinition tool_with_parameters(std::vector<ParameterDefinition> paramet
         SemanticVersion(1U, 0U, 0U),
         ToolCatalogMetadata("Schema Test", {"Image Processing"}),
         {},
-        nvision::core::ToolOrigin::built_in(),
+        nvision::workflow::ToolOrigin::built_in(),
         {},
         std::move(parameters));
 }

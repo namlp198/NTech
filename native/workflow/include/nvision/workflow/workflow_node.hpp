@@ -2,10 +2,10 @@
 
 #include "nvision/core/execution_result.hpp"
 #include "nvision/core/identifier.hpp"
-#include "nvision/core/parameter_schema.hpp"
 #include "nvision/core/semantic_version.hpp"
-#include "nvision/core/tool_definition.hpp"
-#include "nvision/core/tool_registry.hpp"
+#include "nvision/workflow/parameter_schema.hpp"
+#include "nvision/workflow/tool_definition.hpp"
+#include "nvision/workflow/tool_registry.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -13,17 +13,17 @@
 #include <string>
 #include <vector>
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 class NodeParameterAssignment final {
 public:
-    NodeParameterAssignment(ParameterKey key, ParameterValue value);
+    NodeParameterAssignment(core::ParameterKey key, ParameterValue value);
 
-    [[nodiscard]] const ParameterKey& key() const noexcept;
+    [[nodiscard]] const core::ParameterKey& key() const noexcept;
     [[nodiscard]] const ParameterValue& value() const noexcept;
 
 private:
-    ParameterKey key_;
+    core::ParameterKey key_;
     ParameterValue value_;
 };
 
@@ -36,8 +36,8 @@ public:
     explicit NodeConfiguration(std::vector<NodeParameterAssignment> assignments);
 
     [[nodiscard]] const std::vector<NodeParameterAssignment>& assignments() const noexcept;
-    [[nodiscard]] const ParameterValue* find(const ParameterKey& key) const noexcept;
-    [[nodiscard]] bool contains(const ParameterKey& key) const noexcept;
+    [[nodiscard]] const ParameterValue* find(const core::ParameterKey& key) const noexcept;
+    [[nodiscard]] bool contains(const core::ParameterKey& key) const noexcept;
     [[nodiscard]] std::size_t size() const noexcept;
 
 private:
@@ -49,22 +49,22 @@ private:
 class WorkflowNode final {
 public:
     WorkflowNode(
-        WorkflowNodeId id,
-        ToolTypeId tool_type_id,
-        SemanticVersion tool_version,
+        core::WorkflowNodeId id,
+        core::ToolTypeId tool_type_id,
+        core::SemanticVersion tool_version,
         std::string display_name,
         NodeConfiguration configuration = {});
 
-    [[nodiscard]] const WorkflowNodeId& id() const noexcept;
-    [[nodiscard]] const ToolTypeId& tool_type_id() const noexcept;
-    [[nodiscard]] const SemanticVersion& tool_version() const noexcept;
+    [[nodiscard]] const core::WorkflowNodeId& id() const noexcept;
+    [[nodiscard]] const core::ToolTypeId& tool_type_id() const noexcept;
+    [[nodiscard]] const core::SemanticVersion& tool_version() const noexcept;
     [[nodiscard]] const std::string& display_name() const noexcept;
     [[nodiscard]] const NodeConfiguration& configuration() const noexcept;
 
 private:
-    WorkflowNodeId id_;
-    ToolTypeId tool_type_id_;
-    SemanticVersion tool_version_;
+    core::WorkflowNodeId id_;
+    core::ToolTypeId tool_type_id_;
+    core::SemanticVersion tool_version_;
     std::string display_name_;
     NodeConfiguration configuration_;
 };
@@ -77,51 +77,51 @@ enum class DiagnosticSeverity : std::uint32_t {
 class WorkflowDiagnostic final {
 public:
     [[nodiscard]] static WorkflowDiagnostic node(
-        ResultCode code,
+        core::ResultCode code,
         DiagnosticSeverity severity,
         std::string detail,
-        WorkflowNodeId node_id);
+        core::WorkflowNodeId node_id);
     [[nodiscard]] static WorkflowDiagnostic parameter(
-        ResultCode code,
+        core::ResultCode code,
         DiagnosticSeverity severity,
         std::string detail,
-        WorkflowNodeId node_id,
-        ParameterKey parameter_key);
+        core::WorkflowNodeId node_id,
+        core::ParameterKey parameter_key);
     [[nodiscard]] static WorkflowDiagnostic port(
-        ResultCode code,
+        core::ResultCode code,
         DiagnosticSeverity severity,
         std::string detail,
-        WorkflowNodeId node_id,
-        PortKey port_key);
+        core::WorkflowNodeId node_id,
+        core::PortKey port_key);
     // Scoped to a composed contract rather than to one node.
     [[nodiscard]] static WorkflowDiagnostic interface_parameter(
-        ResultCode code,
+        core::ResultCode code,
         DiagnosticSeverity severity,
         std::string detail,
-        ParameterKey parameter_key);
+        core::ParameterKey parameter_key);
 
-    [[nodiscard]] const ResultCode& code() const noexcept;
+    [[nodiscard]] const core::ResultCode& code() const noexcept;
     [[nodiscard]] DiagnosticSeverity severity() const noexcept;
     [[nodiscard]] const std::string& detail() const noexcept;
-    [[nodiscard]] const std::optional<WorkflowNodeId>& node_id() const noexcept;
-    [[nodiscard]] const std::optional<ParameterKey>& parameter_key() const noexcept;
-    [[nodiscard]] const std::optional<PortKey>& port_key() const noexcept;
+    [[nodiscard]] const std::optional<core::WorkflowNodeId>& node_id() const noexcept;
+    [[nodiscard]] const std::optional<core::ParameterKey>& parameter_key() const noexcept;
+    [[nodiscard]] const std::optional<core::PortKey>& port_key() const noexcept;
 
 private:
     WorkflowDiagnostic(
-        ResultCode code,
+        core::ResultCode code,
         DiagnosticSeverity severity,
         std::string detail,
-        std::optional<WorkflowNodeId> node_id,
-        std::optional<ParameterKey> parameter_key,
-        std::optional<PortKey> port_key);
+        std::optional<core::WorkflowNodeId> node_id,
+        std::optional<core::ParameterKey> parameter_key,
+        std::optional<core::PortKey> port_key);
 
-    ResultCode code_;
+    core::ResultCode code_;
     DiagnosticSeverity severity_;
     std::string detail_;
-    std::optional<WorkflowNodeId> node_id_;
-    std::optional<ParameterKey> parameter_key_;
-    std::optional<PortKey> port_key_;
+    std::optional<core::WorkflowNodeId> node_id_;
+    std::optional<core::ParameterKey> parameter_key_;
+    std::optional<core::PortKey> port_key_;
 };
 
 // The result of binding one persisted node against a Tool Registry. An unresolved
@@ -153,4 +153,4 @@ private:
     WorkflowNode node,
     const ToolRegistry& registry);
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

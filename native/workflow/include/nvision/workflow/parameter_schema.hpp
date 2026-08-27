@@ -11,7 +11,7 @@
 #include <variant>
 #include <vector>
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 enum class ParameterKind : std::uint32_t {
     boolean = 0,
@@ -36,7 +36,7 @@ enum class GeometryKind : std::uint32_t {
 };
 
 using GeometryValue =
-    std::variant<Point2D, Line2D, Circle, AxisAlignedRectangle, Polygon>;
+    std::variant<core::Point2D, core::Line2D, core::Circle, core::AxisAlignedRectangle, core::Polygon>;
 
 class ParameterValue final {
 public:
@@ -44,24 +44,24 @@ public:
     [[nodiscard]] static ParameterValue integer(std::int64_t value);
     [[nodiscard]] static ParameterValue floating_point(double value);
     [[nodiscard]] static ParameterValue string(std::string value);
-    [[nodiscard]] static ParameterValue enumeration(EnumOptionKey value);
+    [[nodiscard]] static ParameterValue enumeration(core::EnumOptionKey value);
     [[nodiscard]] static ParameterValue array(std::vector<ParameterValue> values);
     [[nodiscard]] static ParameterValue geometry(GeometryValue value);
     [[nodiscard]] static ParameterValue region_of_interest(GeometryValue value);
-    [[nodiscard]] static ParameterValue resource_reference(ResourceReference value);
-    [[nodiscard]] static ParameterValue model_reference(ResourceReference value);
-    [[nodiscard]] static ParameterValue calibration_reference(ResourceReference value);
+    [[nodiscard]] static ParameterValue resource_reference(core::ResourceReference value);
+    [[nodiscard]] static ParameterValue model_reference(core::ResourceReference value);
+    [[nodiscard]] static ParameterValue calibration_reference(core::ResourceReference value);
 
     [[nodiscard]] ParameterKind kind() const noexcept;
     [[nodiscard]] bool boolean_value() const;
     [[nodiscard]] std::int64_t integer_value() const;
     [[nodiscard]] double floating_point_value() const;
     [[nodiscard]] const std::string& string_value() const;
-    [[nodiscard]] const EnumOptionKey& enumeration_value() const;
+    [[nodiscard]] const core::EnumOptionKey& enumeration_value() const;
     [[nodiscard]] const std::vector<ParameterValue>& array_value() const;
     [[nodiscard]] const GeometryValue& geometry_value() const;
     [[nodiscard]] GeometryKind geometry_kind() const;
-    [[nodiscard]] const ResourceReference& reference_value() const;
+    [[nodiscard]] const core::ResourceReference& reference_value() const;
 
 private:
     using ArrayStorage = std::shared_ptr<const std::vector<ParameterValue>>;
@@ -70,10 +70,10 @@ private:
         std::int64_t,
         double,
         std::string,
-        EnumOptionKey,
+        core::EnumOptionKey,
         ArrayStorage,
         GeometryValue,
-        ResourceReference>;
+        core::ResourceReference>;
 
     ParameterValue(ParameterKind kind, Payload payload);
 
@@ -101,14 +101,14 @@ private:
 
 class EnumOption final {
 public:
-    EnumOption(EnumOptionKey key, std::string display_name, std::string description = {});
+    EnumOption(core::EnumOptionKey key, std::string display_name, std::string description = {});
 
-    [[nodiscard]] const EnumOptionKey& key() const noexcept;
+    [[nodiscard]] const core::EnumOptionKey& key() const noexcept;
     [[nodiscard]] const std::string& display_name() const noexcept;
     [[nodiscard]] const std::string& description() const noexcept;
 
 private:
-    EnumOptionKey key_;
+    core::EnumOptionKey key_;
     std::string display_name_;
     std::string description_;
 };
@@ -196,16 +196,16 @@ enum class VisibilityOperator : std::uint32_t {
 class VisibilityCondition final {
 public:
     VisibilityCondition(
-        ParameterKey controller,
+        core::ParameterKey controller,
         VisibilityOperator operation,
         ParameterValue expected_value);
 
-    [[nodiscard]] const ParameterKey& controller() const noexcept;
+    [[nodiscard]] const core::ParameterKey& controller() const noexcept;
     [[nodiscard]] VisibilityOperator operation() const noexcept;
     [[nodiscard]] const ParameterValue& expected_value() const noexcept;
 
 private:
-    ParameterKey controller_;
+    core::ParameterKey controller_;
     VisibilityOperator operation_;
     ParameterValue expected_value_;
 };
@@ -213,7 +213,7 @@ private:
 class ParameterDefinition final {
 public:
     ParameterDefinition(
-        ParameterKey key,
+        core::ParameterKey key,
         std::string display_name,
         ParameterType type,
         bool required = false,
@@ -224,7 +224,7 @@ public:
         bool recipe_overridable = false,
         bool runtime_bindable = false);
 
-    [[nodiscard]] const ParameterKey& key() const noexcept;
+    [[nodiscard]] const core::ParameterKey& key() const noexcept;
     [[nodiscard]] const std::string& display_name() const noexcept;
     [[nodiscard]] const ParameterType& type() const noexcept;
     [[nodiscard]] bool required() const noexcept;
@@ -236,7 +236,7 @@ public:
     [[nodiscard]] bool runtime_bindable() const noexcept;
 
 private:
-    ParameterKey key_;
+    core::ParameterKey key_;
     std::string display_name_;
     ParameterType type_;
     bool required_;
@@ -248,4 +248,4 @@ private:
     bool runtime_bindable_;
 };
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

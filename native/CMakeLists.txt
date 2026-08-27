@@ -2,20 +2,13 @@ add_library(nvision_core STATIC
     acquisition/src/file_camera.cpp
     acquisition/src/frame.cpp
     acquisition/src/image_view.cpp
-    core/src/builtin_catalog.cpp
     core/src/engine.cpp
     core/src/execution_result.cpp
     core/src/geometry.cpp
     core/src/identifier.cpp
     core/src/inspection_outcome.cpp
-    core/src/parameter_schema.cpp
     core/src/resource_reference.cpp
-    core/src/semantic_version.cpp
-    core/src/subworkflow.cpp
-    core/src/tool_definition.cpp
-    core/src/tool_registry.cpp
-    core/src/workflow_graph.cpp
-    core/src/workflow_node.cpp)
+    core/src/semantic_version.cpp)
 
 target_include_directories(nvision_core
     PUBLIC
@@ -24,12 +17,20 @@ target_include_directories(nvision_core
 
 target_compile_features(nvision_core PUBLIC cxx_std_20)
 
-# Workflow owns execution: typed port values, the tool execution contract, and the
-# binding from catalog identity to a native implementation.
+# Workflow owns the tool catalog, the persisted graph contracts, and execution. Core
+# keeps the data vocabulary those contracts are expressed in: identifiers, versions,
+# port data kinds, geometry, resources, status, and results.
 add_library(nvision_workflow STATIC
+    workflow/src/builtin_catalog.cpp
+    workflow/src/parameter_schema.cpp
     workflow/src/port_value.cpp
+    workflow/src/subworkflow.cpp
+    workflow/src/tool_definition.cpp
     workflow/src/tool_execution.cpp
-    workflow/src/tool_implementation_registry.cpp)
+    workflow/src/tool_implementation_registry.cpp
+    workflow/src/tool_registry.cpp
+    workflow/src/workflow_graph.cpp
+    workflow/src/workflow_node.cpp)
 
 target_include_directories(nvision_workflow
     PUBLIC
@@ -177,7 +178,7 @@ if(NVISION_BUILD_TESTS)
     add_executable(nvision_tool_catalog_tests
         tests/tool_catalog_tests.cpp)
 
-    target_link_libraries(nvision_tool_catalog_tests PRIVATE nvision_core)
+    target_link_libraries(nvision_tool_catalog_tests PRIVATE nvision_workflow)
     target_compile_features(nvision_tool_catalog_tests PRIVATE cxx_std_20)
 
     if(MSVC)
@@ -194,7 +195,7 @@ if(NVISION_BUILD_TESTS)
     add_executable(nvision_parameter_schema_tests
         tests/parameter_schema_tests.cpp)
 
-    target_link_libraries(nvision_parameter_schema_tests PRIVATE nvision_core)
+    target_link_libraries(nvision_parameter_schema_tests PRIVATE nvision_workflow)
     target_compile_features(nvision_parameter_schema_tests PRIVATE cxx_std_20)
 
     if(MSVC)
@@ -212,7 +213,7 @@ if(NVISION_BUILD_TESTS)
     add_executable(nvision_workflow_contract_tests
         tests/workflow_contract_tests.cpp)
 
-    target_link_libraries(nvision_workflow_contract_tests PRIVATE nvision_core)
+    target_link_libraries(nvision_workflow_contract_tests PRIVATE nvision_workflow)
     target_compile_features(nvision_workflow_contract_tests PRIVATE cxx_std_20)
 
     if(MSVC)
@@ -230,7 +231,7 @@ if(NVISION_BUILD_TESTS)
     add_executable(nvision_builtin_catalog_tests
         tests/builtin_catalog_tests.cpp)
 
-    target_link_libraries(nvision_builtin_catalog_tests PRIVATE nvision_core)
+    target_link_libraries(nvision_builtin_catalog_tests PRIVATE nvision_workflow)
     target_compile_features(nvision_builtin_catalog_tests PRIVATE cxx_std_20)
 
     if(MSVC)
@@ -248,7 +249,7 @@ if(NVISION_BUILD_TESTS)
     add_executable(nvision_reference_graph_tests
         tests/reference_graph_tests.cpp)
 
-    target_link_libraries(nvision_reference_graph_tests PRIVATE nvision_core)
+    target_link_libraries(nvision_reference_graph_tests PRIVATE nvision_workflow)
     target_compile_features(nvision_reference_graph_tests PRIVATE cxx_std_20)
 
     if(MSVC)

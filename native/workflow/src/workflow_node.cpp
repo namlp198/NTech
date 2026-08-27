@@ -1,4 +1,4 @@
-#include "nvision/core/workflow_node.hpp"
+#include "nvision/workflow/workflow_node.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -6,7 +6,7 @@
 #include <string_view>
 #include <utility>
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 namespace {
 
@@ -49,10 +49,10 @@ void validate_text(
 
 }  // namespace
 
-NodeParameterAssignment::NodeParameterAssignment(ParameterKey key, ParameterValue value)
+NodeParameterAssignment::NodeParameterAssignment(core::ParameterKey key, ParameterValue value)
     : key_(std::move(key)), value_(std::move(value)) {}
 
-const ParameterKey& NodeParameterAssignment::key() const noexcept {
+const core::ParameterKey& NodeParameterAssignment::key() const noexcept {
     return key_;
 }
 
@@ -79,7 +79,7 @@ const std::vector<NodeParameterAssignment>& NodeConfiguration::assignments() con
     return assignments_;
 }
 
-const ParameterValue* NodeConfiguration::find(const ParameterKey& key) const noexcept {
+const ParameterValue* NodeConfiguration::find(const core::ParameterKey& key) const noexcept {
     const auto match = std::find_if(
         assignments_.begin(),
         assignments_.end(),
@@ -87,7 +87,7 @@ const ParameterValue* NodeConfiguration::find(const ParameterKey& key) const noe
     return match == assignments_.end() ? nullptr : &match->value();
 }
 
-bool NodeConfiguration::contains(const ParameterKey& key) const noexcept {
+bool NodeConfiguration::contains(const core::ParameterKey& key) const noexcept {
     return find(key) != nullptr;
 }
 
@@ -96,9 +96,9 @@ std::size_t NodeConfiguration::size() const noexcept {
 }
 
 WorkflowNode::WorkflowNode(
-    WorkflowNodeId id,
-    ToolTypeId tool_type_id,
-    SemanticVersion tool_version,
+    core::WorkflowNodeId id,
+    core::ToolTypeId tool_type_id,
+    core::SemanticVersion tool_version,
     std::string display_name,
     NodeConfiguration configuration)
     : id_(std::move(id)),
@@ -109,15 +109,15 @@ WorkflowNode::WorkflowNode(
     validate_text(display_name_, maximum_display_name_length, "workflow node display name");
 }
 
-const WorkflowNodeId& WorkflowNode::id() const noexcept {
+const core::WorkflowNodeId& WorkflowNode::id() const noexcept {
     return id_;
 }
 
-const ToolTypeId& WorkflowNode::tool_type_id() const noexcept {
+const core::ToolTypeId& WorkflowNode::tool_type_id() const noexcept {
     return tool_type_id_;
 }
 
-const SemanticVersion& WorkflowNode::tool_version() const noexcept {
+const core::SemanticVersion& WorkflowNode::tool_version() const noexcept {
     return tool_version_;
 }
 
@@ -130,12 +130,12 @@ const NodeConfiguration& WorkflowNode::configuration() const noexcept {
 }
 
 WorkflowDiagnostic::WorkflowDiagnostic(
-    ResultCode code,
+    core::ResultCode code,
     const DiagnosticSeverity severity,
     std::string detail,
-    std::optional<WorkflowNodeId> node_id,
-    std::optional<ParameterKey> parameter_key,
-    std::optional<PortKey> port_key)
+    std::optional<core::WorkflowNodeId> node_id,
+    std::optional<core::ParameterKey> parameter_key,
+    std::optional<core::PortKey> port_key)
     : code_(std::move(code)),
       severity_(severity),
       detail_(trim(std::move(detail))),
@@ -149,10 +149,10 @@ WorkflowDiagnostic::WorkflowDiagnostic(
 }
 
 WorkflowDiagnostic WorkflowDiagnostic::node(
-    ResultCode code,
+    core::ResultCode code,
     const DiagnosticSeverity severity,
     std::string detail,
-    WorkflowNodeId node_id) {
+    core::WorkflowNodeId node_id) {
     return WorkflowDiagnostic(
         std::move(code),
         severity,
@@ -163,11 +163,11 @@ WorkflowDiagnostic WorkflowDiagnostic::node(
 }
 
 WorkflowDiagnostic WorkflowDiagnostic::parameter(
-    ResultCode code,
+    core::ResultCode code,
     const DiagnosticSeverity severity,
     std::string detail,
-    WorkflowNodeId node_id,
-    ParameterKey parameter_key) {
+    core::WorkflowNodeId node_id,
+    core::ParameterKey parameter_key) {
     return WorkflowDiagnostic(
         std::move(code),
         severity,
@@ -178,11 +178,11 @@ WorkflowDiagnostic WorkflowDiagnostic::parameter(
 }
 
 WorkflowDiagnostic WorkflowDiagnostic::port(
-    ResultCode code,
+    core::ResultCode code,
     const DiagnosticSeverity severity,
     std::string detail,
-    WorkflowNodeId node_id,
-    PortKey port_key) {
+    core::WorkflowNodeId node_id,
+    core::PortKey port_key) {
     return WorkflowDiagnostic(
         std::move(code),
         severity,
@@ -193,10 +193,10 @@ WorkflowDiagnostic WorkflowDiagnostic::port(
 }
 
 WorkflowDiagnostic WorkflowDiagnostic::interface_parameter(
-    ResultCode code,
+    core::ResultCode code,
     const DiagnosticSeverity severity,
     std::string detail,
-    ParameterKey parameter_key) {
+    core::ParameterKey parameter_key) {
     return WorkflowDiagnostic(
         std::move(code),
         severity,
@@ -206,7 +206,7 @@ WorkflowDiagnostic WorkflowDiagnostic::interface_parameter(
         std::nullopt);
 }
 
-const ResultCode& WorkflowDiagnostic::code() const noexcept {
+const core::ResultCode& WorkflowDiagnostic::code() const noexcept {
     return code_;
 }
 
@@ -218,15 +218,15 @@ const std::string& WorkflowDiagnostic::detail() const noexcept {
     return detail_;
 }
 
-const std::optional<WorkflowNodeId>& WorkflowDiagnostic::node_id() const noexcept {
+const std::optional<core::WorkflowNodeId>& WorkflowDiagnostic::node_id() const noexcept {
     return node_id_;
 }
 
-const std::optional<ParameterKey>& WorkflowDiagnostic::parameter_key() const noexcept {
+const std::optional<core::ParameterKey>& WorkflowDiagnostic::parameter_key() const noexcept {
     return parameter_key_;
 }
 
-const std::optional<PortKey>& WorkflowDiagnostic::port_key() const noexcept {
+const std::optional<core::PortKey>& WorkflowDiagnostic::port_key() const noexcept {
     return port_key_;
 }
 
@@ -285,7 +285,7 @@ WorkflowNodeBinding bind_workflow_node(WorkflowNode node, const ToolRegistry& re
         // untouched so authored intent survives a missing plugin or a version gap.
         const bool unknown = resolution.status() == ToolResolutionStatus::unknown_tool;
         diagnostics.push_back(WorkflowDiagnostic::node(
-            ResultCode(unknown ? "UNKNOWN_TOOL_TYPE" : "UNSUPPORTED_TOOL_VERSION"),
+            core::ResultCode(unknown ? "UNKNOWN_TOOL_TYPE" : "UNSUPPORTED_TOOL_VERSION"),
             DiagnosticSeverity::error,
             unknown ? "tool type " + node.tool_type_id().value() + " is not registered"
                     : "tool type " + node.tool_type_id().value() + " does not provide version " +
@@ -301,7 +301,7 @@ WorkflowNodeBinding bind_workflow_node(WorkflowNode node, const ToolRegistry& re
         if (parameter == nullptr) {
             // Preserved for compatibility with a version that declared this parameter.
             diagnostics.push_back(WorkflowDiagnostic::parameter(
-                ResultCode("UNKNOWN_PARAMETER"),
+                core::ResultCode("UNKNOWN_PARAMETER"),
                 DiagnosticSeverity::warning,
                 "parameter " + assignment.key().value() +
                     " is preserved but not declared by the bound tool version",
@@ -311,7 +311,7 @@ WorkflowNodeBinding bind_workflow_node(WorkflowNode node, const ToolRegistry& re
         }
         if (!parameter->type().accepts(assignment.value())) {
             diagnostics.push_back(WorkflowDiagnostic::parameter(
-                ResultCode("PARAMETER_TYPE_MISMATCH"),
+                core::ResultCode("PARAMETER_TYPE_MISMATCH"),
                 DiagnosticSeverity::error,
                 "parameter " + assignment.key().value() + " does not satisfy its declared schema",
                 node.id(),
@@ -325,7 +325,7 @@ WorkflowNodeBinding bind_workflow_node(WorkflowNode node, const ToolRegistry& re
         }
         if (!node.configuration().contains(parameter.key())) {
             diagnostics.push_back(WorkflowDiagnostic::parameter(
-                ResultCode("MISSING_REQUIRED_PARAMETER"),
+                core::ResultCode("MISSING_REQUIRED_PARAMETER"),
                 DiagnosticSeverity::error,
                 "required parameter " + parameter.key().value() +
                     " has no assignment and no default",
@@ -338,4 +338,4 @@ WorkflowNodeBinding bind_workflow_node(WorkflowNode node, const ToolRegistry& re
         std::move(node), ToolResolutionStatus::resolved, definition, std::move(diagnostics));
 }
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

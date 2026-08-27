@@ -3,11 +3,11 @@
 #include "nvision/core/execution_result.hpp"
 #include "nvision/core/identifier.hpp"
 #include "nvision/core/inspection_outcome.hpp"
-#include "nvision/core/parameter_schema.hpp"
 #include "nvision/core/semantic_version.hpp"
-#include "nvision/core/tool_definition.hpp"
-#include "nvision/core/workflow_node.hpp"
+#include "nvision/workflow/parameter_schema.hpp"
 #include "nvision/workflow/port_value.hpp"
+#include "nvision/workflow/tool_definition.hpp"
+#include "nvision/workflow/workflow_node.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -73,14 +73,14 @@ private:
 // already reported as free of errors.
 class ParameterBinding final {
 public:
-    using Entry = std::pair<core::ParameterKey, core::ParameterValue>;
+    using Entry = std::pair<core::ParameterKey, ParameterValue>;
 
     [[nodiscard]] static ParameterBinding resolve(
-        const core::ToolTypeDefinition& definition,
-        const core::NodeConfiguration& configuration);
+        const ToolTypeDefinition& definition,
+        const NodeConfiguration& configuration);
 
-    [[nodiscard]] const core::ParameterValue& value(const core::ParameterKey& key) const;
-    [[nodiscard]] const core::ParameterValue* find(const core::ParameterKey& key) const noexcept;
+    [[nodiscard]] const ParameterValue& value(const core::ParameterKey& key) const;
+    [[nodiscard]] const ParameterValue* find(const core::ParameterKey& key) const noexcept;
     [[nodiscard]] std::size_t size() const noexcept;
     [[nodiscard]] const std::vector<Entry>& entries() const noexcept;
 
@@ -97,7 +97,7 @@ private:
 class ToolExecutionContext final {
 public:
     ToolExecutionContext(
-        std::shared_ptr<const core::ToolTypeDefinition> definition,
+        std::shared_ptr<const ToolTypeDefinition> definition,
         core::ExecutionSessionId session_id,
         core::WorkflowNodeId node_id,
         PortValueMap inputs,
@@ -105,7 +105,7 @@ public:
         CancellationToken cancellation = CancellationToken::none(),
         ExecutionBudget budget = ExecutionBudget::unbounded());
 
-    [[nodiscard]] const core::ToolTypeDefinition& definition() const noexcept;
+    [[nodiscard]] const ToolTypeDefinition& definition() const noexcept;
     [[nodiscard]] const core::ExecutionSessionId& session_id() const noexcept;
     [[nodiscard]] const core::WorkflowNodeId& node_id() const noexcept;
     [[nodiscard]] const PortValueMap& inputs() const noexcept;
@@ -114,10 +114,10 @@ public:
     [[nodiscard]] bool is_cancellation_requested() const noexcept;
 
     [[nodiscard]] const PortValue& input(const core::PortKey& key) const;
-    [[nodiscard]] const core::ParameterValue& parameter(const core::ParameterKey& key) const;
+    [[nodiscard]] const ParameterValue& parameter(const core::ParameterKey& key) const;
 
 private:
-    std::shared_ptr<const core::ToolTypeDefinition> definition_;
+    std::shared_ptr<const ToolTypeDefinition> definition_;
     core::ExecutionSessionId session_id_;
     core::WorkflowNodeId node_id_;
     PortValueMap inputs_;

@@ -2,8 +2,8 @@
 // built-in catalog. The application names appear only here, in test data. Nothing in this
 // file introduces a production type, and the graphs use no tool that carries product
 // vocabulary.
-#include "nvision/core/builtin_catalog.hpp"
-#include "nvision/core/workflow_graph.hpp"
+#include "nvision/workflow/builtin_catalog.hpp"
+#include "nvision/workflow/workflow_graph.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -24,10 +24,10 @@ using nvision::core::AxisAlignedRectangle;
 using nvision::core::CoordinateSpaceId;
 using nvision::core::IntegrityAlgorithm;
 using nvision::core::IntegrityDigest;
-using nvision::core::NodeConfiguration;
-using nvision::core::NodeParameterAssignment;
+using nvision::workflow::NodeConfiguration;
+using nvision::workflow::NodeParameterAssignment;
 using nvision::core::ParameterKey;
-using nvision::core::ParameterValue;
+using nvision::workflow::ParameterValue;
 using nvision::core::PortKey;
 using nvision::core::ResourceId;
 using nvision::core::ResourceIntegrity;
@@ -35,10 +35,10 @@ using nvision::core::ResourceKind;
 using nvision::core::ResourceReference;
 using nvision::core::SemanticVersion;
 using nvision::core::ToolTypeId;
-using nvision::core::WorkflowConnection;
-using nvision::core::WorkflowGraph;
-using nvision::core::WorkflowGraphBinding;
-using nvision::core::WorkflowNode;
+using nvision::workflow::WorkflowConnection;
+using nvision::workflow::WorkflowGraph;
+using nvision::workflow::WorkflowGraphBinding;
+using nvision::workflow::WorkflowNode;
 using nvision::core::WorkflowNodeId;
 
 ResourceReference reference(std::string id, const ResourceKind kind) {
@@ -132,7 +132,7 @@ void require_clean(const WorkflowGraphBinding& binding, const std::size_t expect
 // recognition, normalization, consensus, a Recipe-supplied lookup, print quality scoring,
 // pattern validation, and one combined decision.
 void text_inspection_reference_graph_validates() {
-    const auto registry = nvision::core::create_builtin_registry();
+    const auto registry = nvision::workflow::create_builtin_registry();
 
     const WorkflowGraph graph(
         {node("node.capture",
@@ -244,7 +244,7 @@ void text_inspection_reference_graph_validates() {
 // Execution plan Section 12.2. Golden segmentation, seed extraction, row structure, and a
 // learned point grid published as a versioned resource.
 void point_grid_training_reference_graph_validates() {
-    const auto registry = nvision::core::create_builtin_registry();
+    const auto registry = nvision::workflow::create_builtin_registry();
 
     const WorkflowGraph graph(
         {node("node.source", "nvision.tool.acquisition.image-source"),
@@ -294,7 +294,7 @@ void point_grid_training_reference_graph_validates() {
 // Execution plan Section 12.3. Feature alignment against a golden image, verification
 // scoring, the same segmentation chain, and grid inspection against a bound resource.
 void point_grid_inspection_reference_graph_validates() {
-    const auto registry = nvision::core::create_builtin_registry();
+    const auto registry = nvision::workflow::create_builtin_registry();
 
     const WorkflowGraph graph(
         {node("node.source", "nvision.tool.acquisition.image-source"),
@@ -370,7 +370,7 @@ void point_grid_inspection_reference_graph_validates() {
 
 // The catalog is shared, so a change that only one application needs would break the other.
 void both_reference_graphs_share_one_catalog() {
-    const auto registry = nvision::core::create_builtin_registry();
+    const auto registry = nvision::workflow::create_builtin_registry();
     const auto used = [&registry](const std::string& id) {
         return registry.resolve_exact(ToolTypeId(id), SemanticVersion(1U, 0U, 0U)).is_resolved();
     };

@@ -4,7 +4,7 @@
 #include "nvision/core/execution_result.hpp"
 #include "nvision/core/geometry.hpp"
 #include "nvision/core/identifier.hpp"
-#include "nvision/core/parameter_schema.hpp"
+#include "nvision/workflow/parameter_schema.hpp"
 #include "nvision/workflow/port_value.hpp"
 
 #include <cmath>
@@ -22,7 +22,7 @@ using acquisition::ImageView;
 using core::AxisAlignedRectangle;
 using core::ErrorCategory;
 using core::ExecutionError;
-using core::GeometryKind;
+using workflow::GeometryKind;
 using core::ParameterKey;
 using core::PortKey;
 using core::ResultCode;

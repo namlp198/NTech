@@ -1,48 +1,48 @@
 #pragma once
 
 #include "nvision/core/identifier.hpp"
-#include "nvision/core/tool_registry.hpp"
-#include "nvision/core/workflow_node.hpp"
+#include "nvision/workflow/tool_registry.hpp"
+#include "nvision/workflow/workflow_node.hpp"
 
 #include <vector>
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 // One typed edge from an output port of a node to an input port of another node.
 class WorkflowConnection final {
 public:
     WorkflowConnection(
-        WorkflowNodeId source_node_id,
-        PortKey source_port_key,
-        WorkflowNodeId target_node_id,
-        PortKey target_port_key);
+        core::WorkflowNodeId source_node_id,
+        core::PortKey source_port_key,
+        core::WorkflowNodeId target_node_id,
+        core::PortKey target_port_key);
 
-    [[nodiscard]] const WorkflowNodeId& source_node_id() const noexcept;
-    [[nodiscard]] const PortKey& source_port_key() const noexcept;
-    [[nodiscard]] const WorkflowNodeId& target_node_id() const noexcept;
-    [[nodiscard]] const PortKey& target_port_key() const noexcept;
+    [[nodiscard]] const core::WorkflowNodeId& source_node_id() const noexcept;
+    [[nodiscard]] const core::PortKey& source_port_key() const noexcept;
+    [[nodiscard]] const core::WorkflowNodeId& target_node_id() const noexcept;
+    [[nodiscard]] const core::PortKey& target_port_key() const noexcept;
     [[nodiscard]] bool operator==(const WorkflowConnection& other) const noexcept = default;
 
 private:
-    WorkflowNodeId source_node_id_;
-    PortKey source_port_key_;
-    WorkflowNodeId target_node_id_;
-    PortKey target_port_key_;
+    core::WorkflowNodeId source_node_id_;
+    core::PortKey source_port_key_;
+    core::WorkflowNodeId target_node_id_;
+    core::PortKey target_port_key_;
 };
 
 // Addresses one port of one node. Used to declare inputs that are fed from outside the
 // graph, for example by a subworkflow interface mapping or by a Job binding.
 class NodePortAddress final {
 public:
-    NodePortAddress(WorkflowNodeId node_id, PortKey port_key);
+    NodePortAddress(core::WorkflowNodeId node_id, core::PortKey port_key);
 
-    [[nodiscard]] const WorkflowNodeId& node_id() const noexcept;
-    [[nodiscard]] const PortKey& port_key() const noexcept;
+    [[nodiscard]] const core::WorkflowNodeId& node_id() const noexcept;
+    [[nodiscard]] const core::PortKey& port_key() const noexcept;
     [[nodiscard]] bool operator==(const NodePortAddress& other) const noexcept = default;
 
 private:
-    WorkflowNodeId node_id_;
-    PortKey port_key_;
+    core::WorkflowNodeId node_id_;
+    core::PortKey port_key_;
 };
 
 // A directed acyclic graph of configured tool instances. Topology is validated without a
@@ -53,7 +53,7 @@ public:
 
     [[nodiscard]] const std::vector<WorkflowNode>& nodes() const noexcept;
     [[nodiscard]] const std::vector<WorkflowConnection>& connections() const noexcept;
-    [[nodiscard]] const WorkflowNode* find_node(const WorkflowNodeId& id) const noexcept;
+    [[nodiscard]] const WorkflowNode* find_node(const core::WorkflowNodeId& id) const noexcept;
 
 private:
     std::vector<WorkflowNode> nodes_;
@@ -69,7 +69,7 @@ public:
 
     [[nodiscard]] const std::vector<WorkflowNodeBinding>& nodes() const noexcept;
     [[nodiscard]] const std::vector<WorkflowDiagnostic>& diagnostics() const noexcept;
-    [[nodiscard]] const WorkflowNodeBinding* find_node(const WorkflowNodeId& id) const noexcept;
+    [[nodiscard]] const WorkflowNodeBinding* find_node(const core::WorkflowNodeId& id) const noexcept;
     [[nodiscard]] bool is_fully_resolved() const noexcept;
     [[nodiscard]] bool has_errors() const noexcept;
 
@@ -85,4 +85,4 @@ private:
     const ToolRegistry& registry,
     const std::vector<NodePortAddress>& externally_fed_inputs = {});
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

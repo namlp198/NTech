@@ -2,15 +2,15 @@
 
 #include "nvision/core/data_type.hpp"
 #include "nvision/core/identifier.hpp"
-#include "nvision/core/parameter_schema.hpp"
 #include "nvision/core/semantic_version.hpp"
+#include "nvision/workflow/parameter_schema.hpp"
 
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
-namespace nvision::core {
+namespace nvision::workflow {
 
 enum class PortDirection : std::uint32_t {
     input = 0,
@@ -20,25 +20,25 @@ enum class PortDirection : std::uint32_t {
 class ToolPortDefinition final {
 public:
     ToolPortDefinition(
-        PortKey key,
+        core::PortKey key,
         std::string display_name,
         PortDirection direction,
-        PortDataType data_type,
+        core::PortDataType data_type,
         bool required = false,
         bool allows_multiple = false);
 
-    [[nodiscard]] const PortKey& key() const noexcept;
+    [[nodiscard]] const core::PortKey& key() const noexcept;
     [[nodiscard]] const std::string& display_name() const noexcept;
     [[nodiscard]] PortDirection direction() const noexcept;
-    [[nodiscard]] PortDataType data_type() const noexcept;
+    [[nodiscard]] core::PortDataType data_type() const noexcept;
     [[nodiscard]] bool required() const noexcept;
     [[nodiscard]] bool allows_multiple() const noexcept;
 
 private:
-    PortKey key_;
+    core::PortKey key_;
     std::string display_name_;
     PortDirection direction_;
-    PortDataType data_type_;
+    core::PortDataType data_type_;
     bool required_;
     bool allows_multiple_;
 };
@@ -71,16 +71,16 @@ enum class ToolOriginKind : std::uint32_t {
 class ToolOrigin final {
 public:
     [[nodiscard]] static ToolOrigin built_in();
-    [[nodiscard]] static ToolOrigin plugin(PluginId plugin_id);
+    [[nodiscard]] static ToolOrigin plugin(core::PluginId plugin_id);
 
     [[nodiscard]] ToolOriginKind kind() const noexcept;
-    [[nodiscard]] const std::optional<PluginId>& plugin_id() const noexcept;
+    [[nodiscard]] const std::optional<core::PluginId>& plugin_id() const noexcept;
 
 private:
-    ToolOrigin(ToolOriginKind kind, std::optional<PluginId> plugin_id);
+    ToolOrigin(ToolOriginKind kind, std::optional<core::PluginId> plugin_id);
 
     ToolOriginKind kind_;
-    std::optional<PluginId> plugin_id_;
+    std::optional<core::PluginId> plugin_id_;
 };
 
 enum class ToolExecutionLifetime : std::uint32_t {
@@ -132,29 +132,29 @@ private:
 class ToolTypeDefinition final {
 public:
     ToolTypeDefinition(
-        ToolTypeId id,
-        SemanticVersion version,
+        core::ToolTypeId id,
+        core::SemanticVersion version,
         ToolCatalogMetadata catalog,
         std::vector<ToolPortDefinition> ports,
         ToolOrigin origin = ToolOrigin::built_in(),
         ToolExecutionCharacteristics execution = {},
         std::vector<ParameterDefinition> parameters = {});
 
-    [[nodiscard]] const ToolTypeId& id() const noexcept;
-    [[nodiscard]] const SemanticVersion& version() const noexcept;
+    [[nodiscard]] const core::ToolTypeId& id() const noexcept;
+    [[nodiscard]] const core::SemanticVersion& version() const noexcept;
     [[nodiscard]] const ToolCatalogMetadata& catalog() const noexcept;
     [[nodiscard]] const std::vector<ToolPortDefinition>& ports() const noexcept;
     [[nodiscard]] const ToolOrigin& origin() const noexcept;
     [[nodiscard]] const ToolExecutionCharacteristics& execution() const noexcept;
     [[nodiscard]] const std::vector<ParameterDefinition>& parameters() const noexcept;
     [[nodiscard]] const ToolPortDefinition* find_port(
-        const PortKey& key,
+        const core::PortKey& key,
         PortDirection direction) const noexcept;
-    [[nodiscard]] const ParameterDefinition* find_parameter(const ParameterKey& key) const noexcept;
+    [[nodiscard]] const ParameterDefinition* find_parameter(const core::ParameterKey& key) const noexcept;
 
 private:
-    ToolTypeId id_;
-    SemanticVersion version_;
+    core::ToolTypeId id_;
+    core::SemanticVersion version_;
     ToolCatalogMetadata catalog_;
     std::vector<ToolPortDefinition> ports_;
     ToolOrigin origin_;
@@ -162,4 +162,4 @@ private:
     std::vector<ParameterDefinition> parameters_;
 };
 
-}  // namespace nvision::core
+}  // namespace nvision::workflow

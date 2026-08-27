@@ -12,7 +12,6 @@ namespace {
 using core::ErrorCategory;
 using core::ExecutionError;
 using core::ExecutionStatus;
-using core::PortDirection;
 using core::ResultCode;
 
 bool is_terminal_failure(const ExecutionStatus status) noexcept {
@@ -81,12 +80,12 @@ bool ExecutionBudget::is_exceeded_by(const std::chrono::nanoseconds elapsed) con
 ParameterBinding::ParameterBinding(std::vector<Entry> values) noexcept : values_(std::move(values)) {}
 
 ParameterBinding ParameterBinding::resolve(
-    const core::ToolTypeDefinition& definition,
-    const core::NodeConfiguration& configuration) {
+    const ToolTypeDefinition& definition,
+    const NodeConfiguration& configuration) {
     std::vector<Entry> values;
     values.reserve(definition.parameters().size());
     for (const auto& parameter : definition.parameters()) {
-        const core::ParameterValue* assigned = configuration.find(parameter.key());
+        const ParameterValue* assigned = configuration.find(parameter.key());
         if (assigned != nullptr) {
             if (!parameter.type().accepts(*assigned)) {
                 throw std::invalid_argument(
@@ -109,15 +108,15 @@ ParameterBinding ParameterBinding::resolve(
     return ParameterBinding(std::move(values));
 }
 
-const core::ParameterValue& ParameterBinding::value(const core::ParameterKey& key) const {
-    const core::ParameterValue* found = find(key);
+const ParameterValue& ParameterBinding::value(const core::ParameterKey& key) const {
+    const ParameterValue* found = find(key);
     if (found == nullptr) {
         throw std::invalid_argument("parameter " + key.value() + " is not bound");
     }
     return *found;
 }
 
-const core::ParameterValue* ParameterBinding::find(const core::ParameterKey& key) const noexcept {
+const ParameterValue* ParameterBinding::find(const core::ParameterKey& key) const noexcept {
     const auto match =
         std::find_if(values_.begin(), values_.end(), [&key](const Entry& candidate) {
             return candidate.first == key;
@@ -134,7 +133,7 @@ const std::vector<ParameterBinding::Entry>& ParameterBinding::entries() const no
 }
 
 ToolExecutionContext::ToolExecutionContext(
-    std::shared_ptr<const core::ToolTypeDefinition> definition,
+    std::shared_ptr<const ToolTypeDefinition> definition,
     core::ExecutionSessionId session_id,
     core::WorkflowNodeId node_id,
     PortValueMap inputs,
@@ -176,7 +175,7 @@ ToolExecutionContext::ToolExecutionContext(
     }
 }
 
-const core::ToolTypeDefinition& ToolExecutionContext::definition() const noexcept {
+const ToolTypeDefinition& ToolExecutionContext::definition() const noexcept {
     return *definition_;
 }
 
@@ -212,7 +211,7 @@ const PortValue& ToolExecutionContext::input(const core::PortKey& key) const {
     return *value;
 }
 
-const core::ParameterValue& ToolExecutionContext::parameter(const core::ParameterKey& key) const {
+const ParameterValue& ToolExecutionContext::parameter(const core::ParameterKey& key) const {
     return parameters_.value(key);
 }
 
@@ -281,7 +280,7 @@ namespace {
 // Returns the first reason the produced outputs do not satisfy the declared output
 // ports, or an empty string when they do.
 std::string describe_output_violation(
-    const core::ToolTypeDefinition& definition,
+    const ToolTypeDefinition& definition,
     const PortValueMap& outputs) {
     for (const auto& entry : outputs.entries()) {
         const auto* port = definition.find_port(entry.first, PortDirection::output);
@@ -311,7 +310,7 @@ std::string describe_output_violation(
 ToolExecutionOutcome execute_tool(
     const ToolImplementation& implementation,
     const ToolExecutionContext& context) {
-    const core::ToolTypeDefinition& definition = context.definition();
+    const ToolTypeDefinition& definition = context.definition();
     if (implementation.tool_type_id() != definition.id() ||
         implementation.tool_version() != definition.version()) {
         throw std::invalid_argument(
