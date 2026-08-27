@@ -49,6 +49,8 @@ using nvision::acquisition::FrameBuffer;
 using nvision::acquisition::FrameLease;
 using nvision::acquisition::FrameMetadata;
 using nvision::acquisition::FrameStatus;
+using nvision::acquisition::Image;
+using nvision::acquisition::ImageLease;
 using nvision::acquisition::ImageView;
 using nvision::acquisition::PixelFormat;
 using nvision::acquisition::TimestampQuality;
@@ -389,6 +391,64 @@ void image_views_define_frame_specific_coordinate_transforms_and_bounds() {
     }));
 }
 
+void computed_images_own_their_pixels_without_claiming_a_capture() {
+    // Three 2x2 mono8 rows with padding, so stride handling is exercised rather than
+    // assumed to equal the packed row width.
+    std::vector<std::uint8_t> pixels{1U, 2U, 9U, 3U, 4U, 9U};
+    ImageLease image = std::make_shared<const Image>(
+        nvision::core::ImageId("node.blur.image"), 2U, 2U, 3U, PixelFormat::mono8, pixels);
+    std::weak_ptr<const Image> observed = image;
+
+    {
+        const ImageView view(image);
+        image.reset();
+
+        // The view keeps the computed raster alive exactly as it keeps a frame alive.
+        NVISION_REQUIRE(!observed.expired());
+        NVISION_REQUIRE(view.width() == 2U);
+        NVISION_REQUIRE(view.height() == 2U);
+        NVISION_REQUIRE(view.row(0U)[0] == 1U);
+        NVISION_REQUIRE(view.row(1U)[1] == 4U);
+
+        // A computed raster is never presented as something a camera delivered.
+        NVISION_REQUIRE(!view.source().is_captured());
+        NVISION_REQUIRE(view.frame() == nullptr);
+        NVISION_REQUIRE(view.source().image() != nullptr);
+        NVISION_REQUIRE(view.coordinate_space().value() == "nvision.image.node.blur.image.image-pixel");
+
+        const ImageView cropped = view.subview(1U, 0U, 1U, 2U);
+        NVISION_REQUIRE(cropped.row(0U)[0] == 2U);
+        NVISION_REQUIRE(cropped.row(1U)[0] == 4U);
+        NVISION_REQUIRE(cropped.coordinate_space() != view.coordinate_space());
+        NVISION_REQUIRE(
+            cropped.view_to_source().target_space() == view.source_coordinate_space());
+    }
+
+    NVISION_REQUIRE(observed.expired());
+
+    NVISION_REQUIRE(rejects<std::invalid_argument>([] {
+        static_cast<void>(Image(
+            nvision::core::ImageId("node.blur.image"),
+            2U,
+            2U,
+            1U,
+            PixelFormat::mono8,
+            std::vector<std::uint8_t>(4U)));
+    }));
+    NVISION_REQUIRE(rejects<std::invalid_argument>([] {
+        static_cast<void>(Image(
+            nvision::core::ImageId("node.blur.image"),
+            2U,
+            2U,
+            2U,
+            PixelFormat::mono8,
+            std::vector<std::uint8_t>(3U)));
+    }));
+    NVISION_REQUIRE(rejects<std::invalid_argument>([] {
+        static_cast<void>(ImageView(ImageLease{}));
+    }));
+}
+
 void resource_references_are_versioned_and_content_addressed() {
     constexpr std::string_view checksum =
         "3bec1d7190001d1dc1f4ef009013b1abafb1d6a7d725840f15c54920e639e313";
@@ -472,6 +532,7 @@ int main() {
     both_reference_workflows_are_expressible_with_generic_port_types();
     image_views_retain_frame_ownership_without_copying_pixels();
     image_views_define_frame_specific_coordinate_transforms_and_bounds();
+    computed_images_own_their_pixels_without_claiming_a_capture();
     resource_references_are_versioned_and_content_addressed();
     resource_integrity_rejects_noncanonical_or_incomplete_metadata();
     return 0;

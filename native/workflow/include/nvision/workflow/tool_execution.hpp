@@ -116,6 +116,11 @@ public:
     [[nodiscard]] const PortValue& input(const core::PortKey& key) const;
     [[nodiscard]] const ParameterValue& parameter(const core::ParameterKey& key) const;
 
+    // The identity a tool must give an image it produces on one of its output ports.
+    // Deriving it from the node and the port rather than from a counter keeps a repeated
+    // run reproducing the same coordinate space for the same output.
+    [[nodiscard]] core::ImageId output_image_id(const core::PortKey& output_port) const;
+
 private:
     std::shared_ptr<const ToolTypeDefinition> definition_;
     core::ExecutionSessionId session_id_;

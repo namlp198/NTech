@@ -215,6 +215,16 @@ const ParameterValue& ToolExecutionContext::parameter(const core::ParameterKey& 
     return parameters_.value(key);
 }
 
+core::ImageId ToolExecutionContext::output_image_id(const core::PortKey& output_port) const {
+    std::string identity = node_id_.value() + "." + output_port.value();
+    if (identity.size() > acquisition::maximum_image_identity_length) {
+        throw std::invalid_argument(
+            "node " + node_id_.value() +
+            " has a name too long to derive an output image identity");
+    }
+    return core::ImageId(std::move(identity));
+}
+
 ToolExecutionOutcome::ToolExecutionOutcome(
     const ExecutionStatus status,
     PortValueMap outputs,

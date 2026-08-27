@@ -1,6 +1,7 @@
 add_library(nvision_core STATIC
     acquisition/src/file_camera.cpp
     acquisition/src/frame.cpp
+    acquisition/src/image.cpp
     acquisition/src/image_view.cpp
     core/src/engine.cpp
     core/src/execution_result.cpp
