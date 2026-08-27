@@ -105,9 +105,13 @@ boundary now matches the plan. The branch has not been pushed and has not been m
 
 ## Verification
 
-- Full `scripts/check.ps1 -Configuration Release`: passed. Native Release build with
-  `/W4 /WX` reported 0 warnings, CTest reported 10 passed and 0 failed, the .NET suites
-  reported 119 passed and 0 failed, and `dotnet format --verify-no-changes` was clean.
+- Full `scripts/check.ps1 -Configuration Release`: passed, both before and after the
+  ADR-0006 relocation. Native Release build with `/W4 /WX` reported 0 warnings, CTest
+  reported 10 passed and 0 failed, the .NET suites reported 119 passed and 0 failed, and
+  `dotnet format --verify-no-changes` was clean.
 - This is the first session in which the managed half of the gate actually ran.
 - Negative check: removing the crop transform output made `nvision_tool_execution_tests`
   fail with `OUTPUT_CONTRACT_VIOLATION`, and restoring it returned the suite to green.
+- Boundary check after the relocation: no header under `native/core`, `native/acquisition`,
+  or `native/abi` includes anything from `nvision/workflow`, and no include of the old
+  `nvision/core/` paths for the relocated files remains anywhere in `native/`.

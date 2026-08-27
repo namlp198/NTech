@@ -1229,7 +1229,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
 | M1 — Native data contracts | Complete and merged | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results; merge `d01e54c` |
 | M2 — Tool definition/catalog | Complete and merged | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` nodes/subworkflows; `bc58e5a` typed graphs; `a777314` catalog and reference graphs; merge `f1c0abd` |
-| M3 — Generic OpenCV foundation | In progress | `861ba0f` tool execution foundation and the first catalog implementation; 1 of 66 definitions implemented |
+| M3 — Generic OpenCV foundation | In progress | `861ba0f` tool execution foundation and the first catalog implementation; `d73f4d8` core/workflow ownership boundary per ADR-0006; 1 of 66 definitions implemented |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
 | M6 — Wire Marker headless parity | Not started | |
@@ -1248,12 +1248,21 @@ unresolved-node preservation and subworkflows (`00f86c6`), typed connections and
 (`bc58e5a`), and the initial 66-tool generic catalog with both validated reference graphs
 (`a777314`). Every Section 15 exit gate for M2 is met.
 
-M3, the generic OpenCV vision foundation, is the current milestone. Its first slice is the
-tool execution foundation: the native contract that turns a resolved `ToolTypeDefinition`
-into an invocable implementation, the registry that binds definition identity to that
-implementation, the typed port value carrier used at execution time, and the OpenCV
-dependency wiring in CMake. Concrete image-processing, geometry, measurement, and
-clustering tools are implemented on top of that foundation in later slices.
+M3, the generic OpenCV vision foundation, is the current milestone. Its first slice is
+complete: `nvision_workflow` turns a resolved `ToolTypeDefinition` into an invocable
+implementation through typed port values, a validated execution context, cancellation and
+budget, and an implementation registry keyed by definition identity, while `nvision_vision`
+carries the first real implementation. The Section 13 area ownership above is now the
+actual native layout; ADR-0006 records the move of the tool platform contracts out of
+`core`. Concrete image-processing, geometry, measurement, and clustering tools follow in
+later slices.
+
+Those slices are blocked on one external decision. No usable OpenCV exists on the current
+machine: the CUDA build requires a CUDA toolkit version that is not installed and depends
+on the removed `FindCUDA` module, and the stock build is missing the binary directory its
+own imported targets reference. `NVISION_ENABLE_OPENCV` therefore defaults to OFF. A
+complete OpenCV 4.x package with documented provenance and license must be sourced before
+the OpenCV-backed tools can be written.
 
 Continue while keeping the M0 provenance gap explicit, and keep every slice generic so both
 reference workflows are proven without application vocabulary in production Core types.
