@@ -1229,7 +1229,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
 | M1 — Native data contracts | Complete and merged | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results; merge `d01e54c` |
 | M2 — Tool definition/catalog | Complete and merged | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` nodes/subworkflows; `bc58e5a` typed graphs; `a777314` catalog and reference graphs; merge `f1c0abd` |
-| M3 — Generic OpenCV foundation | In progress | Tool execution foundation slice on `codex/m3-tool-execution-foundation` |
+| M3 — Generic OpenCV foundation | In progress | `861ba0f` tool execution foundation and the first catalog implementation; 1 of 66 definitions implemented |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
 | M6 — Wire Marker headless parity | Not started | |

@@ -10,19 +10,30 @@ Give the M2 tool contracts an execution plane. A resolved `ToolTypeDefinition` m
 bindable to a native implementation, invocable with typed port values, and testable in
 isolation, without any public contract exposing an OpenCV type.
 
-## Current Slice Scope
+## Completed in Current Slice
 
-- A native tool execution contract that receives typed inputs, bound parameters, and a
-  cancellation/timeout context, and returns typed outputs plus technical execution status.
-- A tool implementation registry that binds a definition's stable ID and exact semantic
-  version to an implementation, and reports an unimplemented definition explicitly.
-- A typed port value carrier that matches the M1 port data kinds and enforces kind
-  agreement at execution time.
-- OpenCV dependency wiring in CMake for the native vision target, kept behind the
-  implementation boundary so no public header includes OpenCV.
-
-Concrete image-processing, geometry, measurement, recognition, and clustering tools are
-implemented on top of this foundation in later M3 slices.
+- Added `nvision_workflow`: `PortValue`/`PortValueMap` typed carriers, `CancellationToken`
+  and `CancellationSource`, `ExecutionBudget`, `ParameterBinding`, `ToolExecutionContext`,
+  `ToolExecutionOutcome`, the `ToolImplementation` interface, and `execute_tool`.
+- A context validates its inputs against the bound definition once. An undeclared key, a
+  data-kind mismatch, an output key used as an input, and a missing required input are all
+  rejected at construction.
+- `ParameterBinding::resolve` fills declared parameters from the configuration or their
+  defaults and drops keys the bound version does not declare, so a tool cannot read a value
+  it never declared while the node keeps that value persisted.
+- `execute_tool` honours cancellation before the call, converts a thrown exception into a
+  technical error, converts an exceeded budget into a timeout, and validates successful
+  outputs against the declared output ports. A non-success outcome carries no outputs.
+- Added `nvision_vision` with the first real tool. Crop resolves a rectangular ROI against
+  the input view, refuses a region authored in another coordinate space, and produces a
+  subview plus the explicit view-to-source transform without copying pixels.
+- `ToolImplementationRegistry` binds catalog identity to an implementation and reports a
+  catalogued tool with no implementation as `not_implemented`, so M3 coverage stays
+  measurable. 1 of 66 definitions is implemented.
+- OpenCV is opt-in through `NVISION_ENABLE_OPENCV` and found by the standard CMake search.
+  No build file holds a machine-specific path, and the dependency is PRIVATE to
+  `nvision_vision` so no public header can expose an OpenCV type.
+- Added the `nvision_tool_execution_tests` target. The native gate passes with 10 CTests.
 
 ## Completed Earlier
 
@@ -37,29 +48,35 @@ implemented on top of this foundation in later M3 slices.
 
 ## Next Steps
 
-1. Land the tool execution foundation with its own native tests.
-2. Implement the image-processing tool group against that foundation, golden-tested.
-3. Continue through location/geometry, measurement, and clustering/point-grid groups.
-4. Complete the external model/dependency license provenance audit before importing or
+1. Implement the image-processing tool group against this foundation, golden-tested. The
+   first OpenCV-backed slice decides how an operation that materializes a new image owns
+   its buffer, which crop deliberately did not have to answer.
+2. Continue through location/geometry, measurement, and clustering/point-grid groups.
+3. Complete the external model/dependency license provenance audit before importing or
    redistributing reference assets; keep C ABI/gRPC exposure deferred until M8.
 
 ## Acceptance Criteria
 
-- [ ] A resolved tool definition can be bound to an implementation and executed.
-- [ ] An unimplemented definition is reported explicitly, never silently skipped.
-- [ ] Typed port values enforce the declared data kind at execution time.
-- [ ] A technical failure yields an execution error and never an OK/NG quality decision.
-- [ ] Cancellation and timeout are observable through the execution contract.
-- [ ] No public header or public contract exposes an OpenCV type.
-- [ ] The native and managed halves of `scripts/check.ps1` are both green.
+- [x] A resolved tool definition can be bound to an implementation and executed.
+- [x] An unimplemented definition is reported explicitly, never silently skipped.
+- [x] Typed port values enforce the declared data kind at execution time.
+- [x] A technical failure yields an execution error and never an OK/NG quality decision.
+- [x] Cancellation and timeout are observable through the execution contract.
+- [x] No public header or public contract exposes an OpenCV type.
+- [x] The native and managed halves of `scripts/check.ps1` are both green.
 
 ## Verification Baseline
 
-`scripts/check.ps1 -Configuration Release` is green on this machine: 9 native CTests,
+`scripts/check.ps1 -Configuration Release` is green on this machine: 10 native CTests,
 119 .NET tests, and a clean `dotnet format --verify-no-changes`. The managed half resolves
 .NET SDK 10.0.200 from the repository-local `artifacts/dotnet/` installation.
 
 ## Open Items
+
+- OpenCV has not been proven to build here. The only distribution found on this machine is
+  an external checkout with unresolved provenance, so `NVISION_ENABLE_OPENCV` defaults to
+  OFF and no OpenCV-backed tool exists yet. Sourcing a redistributable OpenCV is a
+  prerequisite for the next slice.
 
 - External Wire Marker model and Pin Insert asset provenance/license evidence is still
   unresolved. Do not import or redistribute those assets until it is.

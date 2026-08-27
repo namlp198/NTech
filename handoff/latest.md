@@ -2,93 +2,107 @@
 
 ## Date
 
-2026-08-26
+2026-08-27
 
 ## Branch
 
-`codex/generic-vision-m2-subworkflow`, created from `develop` at `007cf92`
+`codex/m3-tool-execution-foundation`, created from `develop` at `f1c0abd`
 
 ## Completed
 
-- Added the remaining M2 contract slice in `00f86c6`: `WorkflowNodeId`, immutable
-  `WorkflowNode`, `NodeConfiguration`, `WorkflowDiagnostic`, `bind_workflow_node`, and
-  `SubworkflowDefinition`. An unresolved tool never causes stored configuration to be
-  removed or rewritten, and an undeclared parameter key is preserved as a warning.
-- Added typed connections and graphs in `bc58e5a`. `WorkflowGraph` validates topology
-  without a registry: unique node IDs, known endpoints, unique connections, no self edge,
-  and no cycle. `bind_workflow_graph` adds the contract-dependent checks and reports
-  `MISSING_CONNECTED_PORT`, `CONNECTION_TYPE_MISMATCH`, `PORT_ALREADY_CONNECTED`, and
-  `MISSING_REQUIRED_INPUT`.
-- A caller may declare inputs fed from outside the graph. A subworkflow uses that for its
-  interface mappings, so an internal required input is not falsely reported.
-- `SubworkflowDefinition` now owns a `WorkflowGraph` rather than a node list. The previous
-  shape had no edges, so a reference graph could not be expressed. `SubworkflowBinding`
-  collapsed into `WorkflowGraphBinding` because both carried the same data.
-- Added the initial generic Tool Catalog in `a777314`: 66 built-in versioned definitions
-  across the seven categories of plan Section 8.
-- Validated all three reference graphs of plan Section 12 against that one catalog. Each
-  binds fully resolved with zero diagnostics. Verified the check is not vacuous by
-  mutating one edge to an incompatible type and confirming the test fails.
-- Added a test that no catalog definition carries reference application vocabulary, and
-  tests that orientation search, matcher backend, capture role, and the learned grid
-  resource are parameters rather than separate tools.
-- Added `contour_list` and `text_result_list` port kinds. The singular forms already
-  existed while the other collection kinds did not, so contour extraction and text split
-  had no typed output.
+- Synced the context documents to reality in `1b8e992`. M2 was already merged into
+  `develop` by `f1c0abd`, but `tasks/active.md`, `docs/00_CONTEXT.md`, and both the
+  progress record and immediate-next-action sections of the execution plan still described
+  it as complete on a feature branch awaiting merge.
+- Corrected the recorded .NET SDK blocker in the same commit. The previous handoff reported
+  that only SDK 9.0.312 was installed and that the managed half of the gate could not run.
+  The repository already carries a local SDK 10.0.200 under `artifacts/dotnet/`, and every
+  script prefers it over the machine-wide `dotnet`, so the full gate runs here.
+- Added the M3 tool execution foundation in `861ba0f`.
+- `nvision_workflow` is a new native library owning execution: `PortValue`/`PortValueMap`,
+  `CancellationToken`/`CancellationSource`, `ExecutionBudget`, `ParameterBinding`,
+  `ToolExecutionContext`, `ToolExecutionOutcome`, `ToolImplementation`, `execute_tool`, and
+  `ToolImplementationRegistry`.
+- `ToolExecutionContext` validates its inputs against the bound definition once, so an
+  implementation never rechecks that a port is declared, is an input rather than an output,
+  carries the declared data kind, or is present when the contract marks it required.
+- `ParameterBinding::resolve` fills declared parameters from the node configuration or the
+  declared default and drops keys the bound version does not declare. The node still
+  persists those keys; the tool simply never receives a value it did not declare.
+- `execute_tool` honours cancellation before invoking, turns a thrown exception into a
+  technical error instead of letting it unwind into the engine, turns an exceeded budget
+  into a timeout, and validates successful outputs against the declared output ports. A
+  non-success outcome cannot carry outputs at all, so a failed tool can never hand a
+  downstream node a value that looks valid.
+- `nvision_vision` is a new native library for the generic image tools and carries the
+  first real one. Crop resolves a rectangular ROI against the input view, refuses a region
+  authored in another coordinate space, rejects a sub-pixel or out-of-bounds region, and
+  produces a subview plus the explicit view-to-source transform without copying pixels.
+- A catalogued definition with no implementation binds as `not_implemented` rather than as
+  a missing tool, so remaining M3 coverage is measurable. 1 of the 66 definitions is
+  implemented.
+- OpenCV is opt-in through `NVISION_ENABLE_OPENCV` and located by the standard CMake
+  search. No build file holds a machine-specific path, and the dependency is PRIVATE to
+  `nvision_vision` so no public header can expose an OpenCV type.
 
 ## Current Status
 
-M2 is complete on the feature branch and every Section 15 exit gate for the milestone is
-met. All eight acceptance criteria in `tasks/active.md` are checked. The branch has not
+M2 is complete and merged. M3 has started: the tool execution foundation is landed and
+green, and the first catalog definition executes through it end to end. The branch has not
 been pushed and has not been merged into `develop`.
 
 ## Next Actions
 
-1. Review and merge `codex/generic-vision-m2-subworkflow` into `develop`.
-2. Start M3, the generic OpenCV vision foundation, implementing the catalog definitions
-   behind their contracts and refining parameter sets against real behavior.
-3. Install .NET SDK 10.0.200 or newer, planned through Visual Studio 2026, then run the
-   full `scripts/check.ps1` to confirm the managed half on this machine.
-4. Keep the M0 asset provenance gap explicit and run the full repository check after each
+1. Review and merge `codex/m3-tool-execution-foundation` into `develop`.
+2. Source a redistributable OpenCV before the next slice. The only distribution found on
+   this machine is an external checkout with unresolved provenance, so
+   `NVISION_ENABLE_OPENCV` currently defaults to OFF and no OpenCV-backed tool exists.
+3. Implement the image-processing tool group against the foundation, golden-tested. That
+   slice must decide how an operation which materializes a new image owns its buffer;
+   crop deliberately did not have to answer that because it only produces another view.
+4. Continue through location/geometry, measurement, and clustering/point-grid groups.
+5. Keep the M0 asset provenance gap explicit and run the full repository check after each
    coherent behavior slice.
-5. Decide whether to renormalize repository line endings as a separate commit.
+6. Decide whether to renormalize repository line endings as a separate commit.
 
 ## Warnings
 
-- The full `scripts/check.ps1` gate could not run. `global.json` pins .NET SDK 10.0.200
-  and only 9.0.312 is installed, so the managed build, the .NET tests, and
-  `dotnet format --verify-no-changes` did not execute. This work touches only native C++
-  and CMake files, so the managed plane is unaffected by the change itself, but the
-  managed half of the gate is unverified in this session. Visual Studio 2026 with the
-  .NET 10 SDK is the agreed resolution; .NET 10 remains the managed target per ADR-0005.
-- Repository line endings are inconsistent. `.gitattributes` declares `* text=auto eol=lf`
-  and `.editorconfig` declares `end_of_line = lf`, but the committed blobs still contain
-  CRLF from before those files were added. A checkout writes LF, so `dotnet format` is
-  satisfied, yet any operation that rewrites the working tree makes about 170 C# files
-  appear modified. The clean fix is `git add --renormalize .` as its own commit. It was
-  left undone because it is unrelated to this branch and needs an explicit decision.
-- Two managed spots depend on a runtime newer than .NET 8, confirmed by building the
-  solution on `net8.0` during an evaluation that was then reverted:
-  `PortValueStore` uses `System.Threading.Lock`, which needs .NET 9, and the CLI allocates
-  a `JsonSerializerOptions` per call, which the .NET 9 analyzer set rejects as CA1869.
-  Both are fine on .NET 10 and are recorded only so the constraint is not rediscovered.
-- The catalog parameter sets are contract-level minimums chosen to cover the reference
-  graphs. M3 and M4 will refine them alongside the implementations, which may require
-  version bumps on individual tool definitions.
+- M2 contracts live in `nvision::core` while the new execution types live in
+  `nvision::workflow`. The plan's Section 13 ownership map puts workflow validation,
+  compilation, scheduling, and execution in `workflow/`, but `WorkflowNode`,
+  `WorkflowGraph`, and `SubworkflowDefinition` shipped in `core/` during M2. Moving them is
+  a refactor that needs approval, so new execution behavior was added alongside rather than
+  relocating existing contracts. Resolve the split deliberately before M5 rather than
+  letting it grow.
+- Crop is the only implemented tool and it produces a view, never a new buffer. The first
+  tool that materializes an image will expose an ownership question the current
+  `PortValue` image payload has not had to answer, because it can only hold an `ImageView`
+  that retains an existing frame lease.
+- `PortValue` covers the port data kinds that have a native representation today. Kinds
+  such as `feature_set`, `match_set`, `detection_list`, and `point_grid_model` have no
+  factory yet and gain one with the milestone that introduces their native type.
+- The execution budget is enforced after the fact by `execute_tool`, which measures elapsed
+  time and reports a timeout. It does not interrupt a running tool. A tool that must stop
+  early has to observe the cancellation token itself.
+- The catalog parameter sets remain contract-level minimums. Implementing a tool may
+  require a version bump on its definition; crop needed none.
 - Pin Insert golden/regression images remain unavailable, so it is currently an
   architectural contract oracle rather than a parity suite.
 - ONNX Runtime and OpenCV distributions contain license files, but no license/provenance
   evidence was found beside the external Wire Marker project/models or the provided Pin
   Insert project. Do not import or redistribute those assets until provenance is resolved.
+- Repository line endings are still inconsistent in the committed blobs while
+  `.gitattributes` declares `* text=auto eol=lf`. A full Release build left the working
+  tree clean this session, so the problem is currently latent. `git add --renormalize .` as
+  its own commit remains the clean fix and still needs an explicit decision.
 - The new contracts are internal C++ APIs. Do not expose them through C ABI/gRPC until the
   boundary work reaches M8.
 
 ## Verification
 
-- Native Release build with `/W4 /WX`: passed with 0 warnings.
-- CTest: 9 passed, 0 failed, including `nvision_workflow_contract_tests`,
-  `nvision_builtin_catalog_tests`, and `nvision_reference_graph_tests`.
-- Negative check: mutating one reference graph edge to an incompatible data type failed
-  the suite with `CONNECTION_TYPE_MISMATCH`, then the revert returned it to green.
-- Full `scripts/check.ps1 -NoRestore`: not completed; it failed at the managed build step
-  because the pinned .NET SDK 10.0.200 is missing from this machine.
+- Full `scripts/check.ps1 -Configuration Release`: passed. Native Release build with
+  `/W4 /WX` reported 0 warnings, CTest reported 10 passed and 0 failed, the .NET suites
+  reported 119 passed and 0 failed, and `dotnet format --verify-no-changes` was clean.
+- This is the first session in which the managed half of the gate actually ran.
+- Negative check: removing the crop transform output made `nvision_tool_execution_tests`
+  fail with `OUTPUT_CONTRACT_VIOLATION`, and restoring it returned the suite to green.
