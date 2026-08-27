@@ -2,7 +2,7 @@
 
 ## Current Task
 
-M3 — Generic OpenCV Vision Foundation — Slices S0 through S4 complete
+M3 — Generic OpenCV Vision Foundation — Slices S0 through S5 complete
 
 ## Goal
 
@@ -20,13 +20,13 @@ parameter sets against real behaviour, with no public contract exposing an OpenC
 | S2b | Location and Geometry, 11 tools | Complete, `ab9b17c` |
 | S3 | Measurement, 10 tools | Complete, `a4c2108` |
 | S4 | Clustering and point grid, 6 tools | Complete, `4b72161` |
-| S5 | Overlay and evidence primitives, 1 tool | Not started |
+| S5 | Overlay and evidence primitives, 1 tool | Complete, `462b558` |
 | S6 | Exit gate: parameter refinement, Pin Insert representation, Linux build | Not started |
 
-Catalog coverage is 42 of 66 definitions. The remaining 22 outside M3 belong to M4
-(Recognition and Text, 9) and M5 (Acquisition 5, Logic and Results 8).
+Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to M4
+(Recognition and Text, 9) and M5 (Acquisition 5, Logic and Results 8, point grid inspect 1).
 
-## Completed in S0 through S4
+## Completed in S0 through S5
 
 - `Image` is a computed raster that owns its pixels and carries no acquisition metadata,
   so a derived image can never be mistaken for a capture. `ImageSource` names which raster
@@ -59,11 +59,17 @@ Catalog coverage is 42 of 66 definitions. The remaining 22 outside M3 belong to 
   K-Means fixes OpenCV's thread-local generator, DBSCAN is implemented directly and
   expands in input order, and both sorting paths are stable, so a repeated run produces
   identical results.
+- `Overlay` is data rather than something already drawn, so no result depends on a drawing
+  having happened. `EvidenceSink` lets a tool hand over bytes and receive the integrity
+  that identifies them without learning where they are kept or computing the digest.
+- Evidence Output executes. The artifact reports whether the raster was captured, computed
+  or annotated, using the provenance ADR-0007 introduced.
 
 ## Next Steps
 
-1. S5, overlay and evidence primitives.
-2. S6, close the M3 exit gate.
+1. S6, close the M3 exit gate: refine the parameter sets implementation showed to be
+   wrong, prove the Pin Insert algorithms are representable without a Pin Insert engine
+   class, and run the Linux native headless build.
 
 ## Acceptance Criteria
 
@@ -78,7 +84,7 @@ Catalog coverage is 42 of 66 definitions. The remaining 22 outside M3 belong to 
 - [x] Location and Geometry tools are implemented and tested.
 - [x] Measurement tools are implemented and tested, except grid deviation.
 - [x] Clustering and point-grid tools are implemented and tested, except point grid inspect.
-- [ ] Overlay and evidence tools are implemented and tested.
+- [x] Overlay and evidence tools are implemented and tested.
 - [ ] Pin Insert source algorithms are representable without a Pin Insert engine class.
 - [ ] The Linux native headless build compiles the vision library.
 

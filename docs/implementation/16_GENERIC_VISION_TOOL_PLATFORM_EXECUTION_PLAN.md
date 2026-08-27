@@ -1229,7 +1229,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
 | M1 — Native data contracts | Complete and merged | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results; merge `d01e54c` |
 | M2 — Tool definition/catalog | Complete and merged | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` nodes/subworkflows; `bc58e5a` typed graphs; `a777314` catalog and reference graphs; merge `f1c0abd` |
-| M3 — Generic OpenCV foundation | In progress | `861ba0f` execution foundation; `d73f4d8` core/workflow boundary per ADR-0006; `5475413` computed image ownership per ADR-0007; `fe432d4` OpenCV substrate; `43edcd8` image processing; `9f2c0d3` geometry contracts; `ab9b17c` location and geometry; `a4c2108` measurement; `4b72161` clustering and point grid; 42 of 66 definitions implemented |
+| M3 — Generic OpenCV foundation | In progress | `861ba0f` execution foundation; `d73f4d8` core/workflow boundary per ADR-0006; `5475413` computed image ownership per ADR-0007; `fe432d4` OpenCV substrate; `43edcd8` image processing; `9f2c0d3` geometry contracts; `ab9b17c` location and geometry; `a4c2108` measurement; `4b72161` clustering and point grid; `462b558` overlay and evidence; 43 of 66 definitions implemented |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
 | M6 — Wire Marker headless parity | Not started | |

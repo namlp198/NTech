@@ -102,7 +102,17 @@
 - The tool execution suite no longer names a specific unimplemented tool. It asks the
   registry which definitions are still pending, so filling in the catalog no longer breaks
   a test that is not about the tool being added.
-- Catalog coverage is 42 of 66 definitions. Image Processing, Location and Geometry, and
+- Added the overlay and evidence primitives in `462b558`. `Overlay` carries shapes, styles
+  and labels as data, so the same overlay renders into evidence, a Studio canvas or a
+  Runtime preview and no result depends on a drawing having happened. `EvidenceSink` is the
+  seam evidence output needed: a tool hands over bytes and receives the integrity that
+  identifies them, never learning where they are kept and never computing the digest,
+  because the store is the only thing that knows what it actually wrote.
+- Evidence Output reports what the raster really is, using the ADR-0007 provenance: a view
+  over a captured frame becomes source evidence, a computed raster derived evidence, and an
+  annotated one an overlay. With no sink attached it reports the fact rather than
+  discarding what it made.
+- Catalog coverage is 43 of 66 definitions. Image Processing, Location and Geometry, and
   Measurement are complete; Clustering and Structure is complete apart from point grid
   inspect.
 
@@ -110,15 +120,15 @@
 
 M2 is complete and merged. M3 is in progress and green: the tool execution foundation, the
 computed-image ownership contract, the OpenCV interop substrate, and the complete Image
-Processing, Location and Geometry, Measurement, and clustering groups are landed, and the native area boundary now
-matches the plan. Slices S5 and S6 remain. The branch has not been pushed and has not been merged into `develop`.
+Processing, Location and Geometry, Measurement, clustering, and evidence groups are landed, and the native area boundary now
+matches the plan. Slice S6 remains. The branch has not been pushed and has not been merged into `develop`.
 
 ## Next Actions
 
-1. Continue with slice S5, overlay and evidence primitives.
-2. Then S6 to close the M3 exit gate: refine the parameter sets that implementation
-   showed to be wrong, prove the Pin Insert algorithms are representable without a Pin
-   Insert engine class, and run the Linux native headless build.
+1. Continue with slice S6, the M3 exit gate.
+   It refines the parameter sets implementation showed to be wrong, proves the Pin Insert
+   algorithms are representable without a Pin Insert engine class, and runs the Linux
+   native headless build.
 3. Review and merge `codex/m3-tool-execution-foundation` into `develop`.
 4. Keep the M0 asset provenance gap explicit and run the full repository check after each
    coherent behavior slice.
