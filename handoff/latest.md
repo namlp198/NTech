@@ -87,35 +87,42 @@
 - Implemented 10 of the 11 Measurement tools in `a4c2108`. Lengths carry the coordinate
   space they were measured in, counts and quality figures name none, and comparing two
   rasters requires a shared pixel format and extent.
-- Grid deviation is deliberately not implemented yet. It measures against a point-grid
-  model, and designing that contract with no producer to check it against would be
-  guessing, so it lands with the point-grid tools in S4. The coverage test asserts the gap
-  explicitly rather than leaving it silent.
+- Implemented the clustering and point-grid group in `4b72161`, together with the grid
+  deviation tool held back from the measurement slice. `PointGridModel` records where
+  features are expected and nothing about what they mean; tolerances belong to the recipe
+  that inspects against it. K-Means fixes OpenCV's thread-local generator, DBSCAN is
+  implemented directly and expands in input order, and both sorting paths are stable, so a
+  repeated run produces identical results.
+- Point grid inspect is deliberately not implemented. It receives its model as a versioned
+  resource rather than through a port, a considered catalog decision that keeps training
+  and inspection as separate runs joined by a recipe binding. That binding arrives with M5,
+  and a tool that could only ever report an unbound resource would be worse than none. Its
+  `point_grid_result` contract is unwritten for the same reason. The coverage test asserts
+  the gap.
 - The tool execution suite no longer names a specific unimplemented tool. It asks the
   registry which definitions are still pending, so filling in the catalog no longer breaks
   a test that is not about the tool being added.
-- Catalog coverage is 36 of 66 definitions. Image Processing and Location and Geometry are
-  complete, and Measurement is complete apart from grid deviation.
+- Catalog coverage is 42 of 66 definitions. Image Processing, Location and Geometry, and
+  Measurement are complete; Clustering and Structure is complete apart from point grid
+  inspect.
 
 ## Current Status
 
 M2 is complete and merged. M3 is in progress and green: the tool execution foundation, the
 computed-image ownership contract, the OpenCV interop substrate, and the complete Image
-Processing, Location and Geometry, and Measurement groups are landed, and the native area boundary now
-matches the plan. Slices S4 through S6 remain. The branch has not been pushed and has not been merged into `develop`.
+Processing, Location and Geometry, Measurement, and clustering groups are landed, and the native area boundary now
+matches the plan. Slices S5 and S6 remain. The branch has not been pushed and has not been merged into `develop`.
 
 ## Next Actions
 
-1. Continue with slice S4, Clustering and Structure: 6 tools plus grid deviation. It needs
-   a point-grid model and a point-grid result contract.
-2. Then S5, overlay and evidence primitives.
-3. Then S6 to close the M3 exit gate: refine the parameter sets that implementation
+1. Continue with slice S5, overlay and evidence primitives.
+2. Then S6 to close the M3 exit gate: refine the parameter sets that implementation
    showed to be wrong, prove the Pin Insert algorithms are representable without a Pin
    Insert engine class, and run the Linux native headless build.
-4. Review and merge `codex/m3-tool-execution-foundation` into `develop`.
-5. Keep the M0 asset provenance gap explicit and run the full repository check after each
+3. Review and merge `codex/m3-tool-execution-foundation` into `develop`.
+4. Keep the M0 asset provenance gap explicit and run the full repository check after each
    coherent behavior slice.
-6. Decide whether to renormalize repository line endings as a separate commit.
+5. Decide whether to renormalize repository line endings as a separate commit.
 
 ## Warnings
 

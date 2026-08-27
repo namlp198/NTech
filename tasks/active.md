@@ -2,7 +2,7 @@
 
 ## Current Task
 
-M3 — Generic OpenCV Vision Foundation — Slices S0 through S3 complete
+M3 — Generic OpenCV Vision Foundation — Slices S0 through S4 complete
 
 ## Goal
 
@@ -19,14 +19,14 @@ parameter sets against real behaviour, with no public contract exposing an OpenC
 | S2a | Location and geometry data contracts | Complete, `9f2c0d3` |
 | S2b | Location and Geometry, 11 tools | Complete, `ab9b17c` |
 | S3 | Measurement, 10 tools | Complete, `a4c2108` |
-| S4 | Clustering and Structure, 6 tools plus grid deviation | Not started |
+| S4 | Clustering and point grid, 6 tools | Complete, `4b72161` |
 | S5 | Overlay and evidence primitives, 1 tool | Not started |
 | S6 | Exit gate: parameter refinement, Pin Insert representation, Linux build | Not started |
 
-Catalog coverage is 36 of 66 definitions. The remaining 22 outside M3 belong to M4
+Catalog coverage is 42 of 66 definitions. The remaining 22 outside M3 belong to M4
 (Recognition and Text, 9) and M5 (Acquisition 5, Logic and Results 8).
 
-## Completed in S0 through S3
+## Completed in S0 through S4
 
 - `Image` is a computed raster that owns its pixels and carries no acquisition metadata,
   so a derived image can never be mistaken for a capture. `ImageSource` names which raster
@@ -53,15 +53,17 @@ Catalog coverage is 36 of 66 definitions. The remaining 22 outside M3 belong to 
 - 10 of the 11 Measurement tools execute. Lengths carry the coordinate space they were
   measured in; counts and quality figures name none. Comparing two rasters requires a
   shared format and extent.
-- Grid deviation moved to S4 because it measures against a point-grid model, and that
-  contract is designed alongside the tools that produce it.
+- `PointGridModel` records where features are expected and nothing about what they mean.
+  Tolerances belong to the recipe that inspects against it, not to the model.
+- 5 of the 6 Clustering and Structure tools execute, together with grid deviation.
+  K-Means fixes OpenCV's thread-local generator, DBSCAN is implemented directly and
+  expands in input order, and both sorting paths are stable, so a repeated run produces
+  identical results.
 
 ## Next Steps
 
-1. S4, Clustering and Structure, 6 tools plus grid deviation. It needs a point-grid model
-   and a point-grid result contract, which grid deviation then measures against.
-2. S5, overlay and evidence primitives.
-3. S6, close the M3 exit gate.
+1. S5, overlay and evidence primitives.
+2. S6, close the M3 exit gate.
 
 ## Acceptance Criteria
 
@@ -75,7 +77,8 @@ Catalog coverage is 36 of 66 definitions. The remaining 22 outside M3 belong to 
 - [x] Image Processing tools are independently tested against exact properties.
 - [x] Location and Geometry tools are implemented and tested.
 - [x] Measurement tools are implemented and tested, except grid deviation.
-- [ ] Clustering, point-grid, and evidence tools are implemented and tested.
+- [x] Clustering and point-grid tools are implemented and tested, except point grid inspect.
+- [ ] Overlay and evidence tools are implemented and tested.
 - [ ] Pin Insert source algorithms are representable without a Pin Insert engine class.
 - [ ] The Linux native headless build compiles the vision library.
 
@@ -85,6 +88,12 @@ Catalog coverage is 36 of 66 definitions. The remaining 22 outside M3 belong to 
 CTests, 119 .NET tests, and a clean `dotnet format --verify-no-changes`.
 
 ## Open Items
+
+- Point grid inspect is not implemented. It receives its model as a versioned resource
+  rather than through a port, so it needs the resource binding that arrives with M5
+  workflow execution. Its `point_grid_result` contract is unwritten for the same reason:
+  it would have no producer to check against. Both are M5 items, and the coverage test
+  asserts the gap rather than leaving it silent.
 
 - The catalog declares threshold modes `truncate` and `to-zero` on a tool whose output
   port is a mask. Both keep source intensity, so they produce an image rather than a mask.
