@@ -2,10 +2,12 @@
 
 #include "alignment_tools.hpp"
 #include "binarize_tools.hpp"
+#include "cluster_tools.hpp"
 #include "color_tools.hpp"
 #include "count_tools.hpp"
 #include "crop_tool.hpp"
 #include "filter_tools.hpp"
+#include "grid_tools.hpp"
 #include "morphology_tools.hpp"
 #include "quality_tools.hpp"
 #include "region_tools.hpp"
@@ -45,8 +47,8 @@ void register_vision_tool_implementations(workflow::ToolImplementationRegistry& 
     registry.register_implementation(create_point_transform_tool());
     registry.register_implementation(create_point_assignment_tool());
 
-    // Measurement. Grid deviation is registered with the point-grid tools, because the
-    // model it measures against is defined there.
+    // Measurement. Grid deviation is registered with the point-grid tools below, because
+    // the model it measures against is defined there.
     registry.register_implementation(create_pixel_count_tool());
     registry.register_implementation(create_object_count_tool());
     registry.register_implementation(create_distance_tool());
@@ -57,6 +59,16 @@ void register_vision_tool_implementations(workflow::ToolImplementationRegistry& 
     registry.register_implementation(create_edge_density_tool());
     registry.register_implementation(create_ncc_tool());
     registry.register_implementation(create_ssim_tool());
+
+    // Clustering and Structure. Point grid inspect is absent on purpose: it receives its
+    // model as a versioned resource rather than through a port, so it needs the resource
+    // binding that arrives with the workflow execution milestone.
+    registry.register_implementation(create_k_means_tool());
+    registry.register_implementation(create_dbscan_tool());
+    registry.register_implementation(create_mean_shift_tool());
+    registry.register_implementation(create_sort_points_along_line_tool());
+    registry.register_implementation(create_point_grid_learn_tool());
+    registry.register_implementation(create_grid_deviation_tool());
 }
 
 workflow::ToolImplementationRegistry create_vision_implementation_registry() {

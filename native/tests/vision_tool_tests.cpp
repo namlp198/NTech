@@ -11,6 +11,7 @@
 #include "nvision/core/feature.hpp"
 #include "nvision/core/geometry.hpp"
 #include "nvision/core/measurement.hpp"
+#include "nvision/core/point_grid.hpp"
 #include "nvision/vision/builtin_tool_implementations.hpp"
 #include "nvision/workflow/builtin_catalog.hpp"
 #include "nvision/workflow/parameter_schema.hpp"
@@ -1183,6 +1184,212 @@ void comparing_a_raster_with_itself_scores_perfectly() {
         ResultCode("SIZE_MISMATCH"));
 }
 
+// Two tight clusters of three points, far enough apart that every clustering method must
+// agree on how many there are and which points belong together.
+std::vector<Point2D> two_clusters(const CoordinateSpaceId& space) {
+    return {
+        Point2D(space, 0.0, 0.0),
+        Point2D(space, 1.0, 1.0),
+        Point2D(space, 0.0, 2.0),
+        Point2D(space, 100.0, 100.0),
+        Point2D(space, 101.0, 101.0),
+        Point2D(space, 100.0, 102.0),
+    };
+}
+
+void every_clustering_method_finds_the_same_two_groups() {
+    const Harness harness;
+    const CoordinateSpaceId space("nvision.image.node.clusters.image-pixel");
+    const std::vector<Point2D> points = two_clusters(space);
+
+    PortValueMap k_means_inputs;
+    k_means_inputs.set(PortKey("points"), PortValue::point_list(points));
+    const ToolExecutionOutcome k_means = harness.run(
+        "nvision.tool.structure.k-means",
+        "node.kmeans",
+        std::move(k_means_inputs),
+        configure({integer("cluster-count", 2)}));
+    NVISION_REQUIRE(k_means.is_success());
+    const auto& k_means_labels = measurements(k_means, "labels");
+    NVISION_REQUIRE(k_means_labels.size() == points.size());
+    // The first three points share a label and the last three share the other one.
+    NVISION_REQUIRE(k_means_labels[0].value() == k_means_labels[2].value());
+    NVISION_REQUIRE(k_means_labels[3].value() == k_means_labels[5].value());
+    NVISION_REQUIRE(k_means_labels[0].value() != k_means_labels[3].value());
+    NVISION_REQUIRE(
+        k_means.outputs().find(PortKey("centers"))->point_list_value().size() == 2U);
+
+    PortValueMap dbscan_inputs;
+    dbscan_inputs.set(PortKey("points"), PortValue::point_list(points));
+    const ToolExecutionOutcome dbscan = harness.run(
+        "nvision.tool.structure.dbscan",
+        "node.dbscan",
+        std::move(dbscan_inputs),
+        configure({number("epsilon", 5.0), integer("minimum-samples", 2)}));
+    const auto& dbscan_labels = measurements(dbscan, "labels");
+    NVISION_REQUIRE(dbscan_labels[0].value() == 0.0);
+    NVISION_REQUIRE(dbscan_labels[2].value() == 0.0);
+    NVISION_REQUIRE(dbscan_labels[3].value() == 1.0);
+    NVISION_REQUIRE(dbscan.outputs().find(PortKey("centers"))->point_list_value().size() == 2U);
+
+    // A point too far from everything is noise, and density clustering says so rather than
+    // forcing it into the nearest group.
+    std::vector<Point2D> with_outlier = points;
+    with_outlier.emplace_back(space, 5000.0, 5000.0);
+    PortValueMap noisy;
+    noisy.set(PortKey("points"), PortValue::point_list(with_outlier));
+    const ToolExecutionOutcome outlying = harness.run(
+        "nvision.tool.structure.dbscan",
+        "node.dbscan-noise",
+        std::move(noisy),
+        configure({number("epsilon", 5.0), integer("minimum-samples", 2)}));
+    NVISION_REQUIRE(measurements(outlying, "labels")[6].value() == -1.0);
+
+    PortValueMap mean_shift_inputs;
+    mean_shift_inputs.set(PortKey("points"), PortValue::point_list(points));
+    const ToolExecutionOutcome mean_shift = harness.run(
+        "nvision.tool.structure.mean-shift",
+        "node.meanshift",
+        std::move(mean_shift_inputs),
+        configure({number("bandwidth", 10.0)}));
+    // Mean shift discovers how many modes there are instead of being told.
+    NVISION_REQUIRE(
+        mean_shift.outputs().find(PortKey("centers"))->point_list_value().size() == 2U);
+
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.structure.k-means",
+            "node.kmeans-too-many",
+            [&points] {
+                PortValueMap inputs;
+                inputs.set(PortKey("points"), PortValue::point_list(points));
+                return inputs;
+            }(),
+            configure({integer("cluster-count", 99)}))) == ResultCode("NOT_ENOUGH_POINTS"));
+}
+
+void sorting_orders_points_by_how_far_along_a_line_they_lie() {
+    const Harness harness;
+    const CoordinateSpaceId space("nvision.image.node.row.image-pixel");
+
+    PortValueMap inputs;
+    inputs.set(
+        PortKey("points"),
+        PortValue::point_list({
+            Point2D(space, 30.0, 1.0),
+            Point2D(space, 10.0, 0.0),
+            Point2D(space, 20.0, 2.0),
+        }));
+    inputs.set(
+        PortKey("line"),
+        PortValue::line(nvision::core::Line2D(
+            Point2D(space, 0.0, 0.0), Point2D(space, 100.0, 0.0))));
+    const ToolExecutionOutcome outcome = harness.run(
+        "nvision.tool.structure.sort-points-along-line", "node.sort", std::move(inputs));
+    const auto& ordered = outcome.outputs().find(PortKey("points"))->point_list_value();
+    NVISION_REQUIRE(ordered.size() == 3U);
+    NVISION_REQUIRE(ordered[0].x() == 10.0);
+    NVISION_REQUIRE(ordered[1].x() == 20.0);
+    NVISION_REQUIRE(ordered[2].x() == 30.0);
+
+    PortValueMap reversed;
+    reversed.set(
+        PortKey("points"),
+        PortValue::point_list({Point2D(space, 30.0, 1.0), Point2D(space, 10.0, 0.0)}));
+    reversed.set(
+        PortKey("line"),
+        PortValue::line(nvision::core::Line2D(
+            Point2D(space, 0.0, 0.0), Point2D(space, 100.0, 0.0))));
+    const ToolExecutionOutcome descending_order = harness.run(
+        "nvision.tool.structure.sort-points-along-line",
+        "node.sort-descending",
+        std::move(reversed),
+        configure({NodeParameterAssignment(
+            ParameterKey("descending"), ParameterValue::boolean(true))}));
+    NVISION_REQUIRE(
+        descending_order.outputs().find(PortKey("points"))->point_list_value()[0].x() == 30.0);
+
+    PortValueMap crossed;
+    crossed.set(PortKey("points"), PortValue::point_list({Point2D(space, 1.0, 1.0)}));
+    const CoordinateSpaceId elsewhere("nvision.image.node.other.image-pixel");
+    crossed.set(
+        PortKey("line"),
+        PortValue::line(nvision::core::Line2D(
+            Point2D(elsewhere, 0.0, 0.0), Point2D(elsewhere, 10.0, 0.0))));
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.structure.sort-points-along-line",
+            "node.sort-crossed",
+            std::move(crossed))) == ResultCode("COORDINATE_SPACE_MISMATCH"));
+}
+
+void a_learned_grid_becomes_the_reference_a_later_run_deviates_from() {
+    const Harness harness;
+    const CoordinateSpaceId space("nvision.image.node.golden.image-pixel");
+
+    // Six positions in two rows of three, given out of order and with a duplicate, which
+    // is what a detector on a real golden image produces.
+    PortValueMap learn_inputs;
+    learn_inputs.set(
+        PortKey("points"),
+        PortValue::point_list({
+            Point2D(space, 20.0, 1.0),
+            Point2D(space, 0.0, 0.0),
+            Point2D(space, 10.0, 31.0),
+            Point2D(space, 10.0, 0.5),
+            Point2D(space, 0.0, 30.0),
+            Point2D(space, 20.0, 30.0),
+            Point2D(space, 20.5, 30.2),
+        }));
+    const ToolExecutionOutcome learned = harness.run(
+        "nvision.tool.structure.point-grid-learn",
+        "node.learn",
+        std::move(learn_inputs),
+        configure({number("row-tolerance", 5.0), number("column-tolerance", 2.0)}));
+    NVISION_REQUIRE(learned.is_success());
+
+    const auto& model = learned.outputs().find(PortKey("model"))->point_grid_model_value();
+    NVISION_REQUIRE(model.coordinate_space() == space);
+    // Two rows, and the duplicate at 20.5 collapses into the position at 20.0.
+    NVISION_REQUIRE(model.row_count() == 2U);
+    NVISION_REQUIRE(model.point_count() == 6U);
+    // Rows run top to bottom and each row runs left to right.
+    NVISION_REQUIRE(model.rows()[0][0].x() == 0.0);
+    NVISION_REQUIRE(model.rows()[0][2].x() == 20.0);
+    NVISION_REQUIRE(model.rows()[1][0].y() == 30.0);
+
+    // Detections offset by three from every learned position deviate by exactly three.
+    std::vector<Point2D> detected;
+    for (const Point2D& expected : model.points()) {
+        detected.emplace_back(space, expected.x() + 3.0, expected.y());
+    }
+    PortValueMap deviation_inputs;
+    deviation_inputs.set(PortKey("points"), PortValue::point_list(detected));
+    deviation_inputs.set(PortKey("reference"), PortValue::point_grid_model(model));
+    const ToolExecutionOutcome deviated = harness.run(
+        "nvision.tool.measurement.grid-deviation", "node.deviation", std::move(deviation_inputs));
+    NVISION_REQUIRE(deviated.is_success());
+    NVISION_REQUIRE(
+        std::abs(deviated.outputs().find(PortKey("maximum"))->floating_point_value() - 3.0) < 1e-9);
+    const auto& deviations = measurements(deviated, "measurements");
+    // Every expected position is reported, not only the ones that matched well.
+    NVISION_REQUIRE(deviations.size() == model.point_count());
+    NVISION_REQUIRE(deviations[0].unit() == MeasurementUnit::pixel);
+    NVISION_REQUIRE(deviations[0].coordinate_space() == space);
+
+    PortValueMap crossed;
+    crossed.set(
+        PortKey("points"),
+        PortValue::point_list(
+            {Point2D(CoordinateSpaceId("nvision.image.node.live.image-pixel"), 0.0, 0.0)}));
+    crossed.set(PortKey("reference"), PortValue::point_grid_model(model));
+    NVISION_REQUIRE(
+        refusal(harness.run(
+            "nvision.tool.measurement.grid-deviation",
+            "node.deviation-crossed",
+            std::move(crossed))) == ResultCode("COORDINATE_SPACE_MISMATCH"));
+}
+
 void the_image_processing_group_is_fully_implemented() {
     const ToolRegistry definitions = create_builtin_registry();
     const ToolImplementationRegistry implementations = create_vision_implementation_registry();
@@ -1223,7 +1430,7 @@ void the_location_and_geometry_group_is_fully_implemented() {
     NVISION_REQUIRE(geometry_implemented == geometry_definitions);
 }
 
-void every_measurement_tool_except_grid_deviation_is_implemented() {
+void the_measurement_group_is_fully_implemented() {
     const ToolRegistry definitions = create_builtin_registry();
     const ToolImplementationRegistry implementations = create_vision_implementation_registry();
 
@@ -1240,11 +1447,32 @@ void every_measurement_tool_except_grid_deviation_is_implemented() {
     }
 
     NVISION_REQUIRE(measurement_definitions == 11U);
-    // Grid deviation measures against a point-grid model, a contract that belongs with the
-    // point-grid tools, so it is implemented alongside them rather than guessed at here.
-    NVISION_REQUIRE(measurement_implemented == 10U);
+    NVISION_REQUIRE(measurement_implemented == measurement_definitions);
+}
+
+void every_structure_tool_except_point_grid_inspect_is_implemented() {
+    const ToolRegistry definitions = create_builtin_registry();
+    const ToolImplementationRegistry implementations = create_vision_implementation_registry();
+
+    std::size_t structure_definitions = 0U;
+    std::size_t structure_implemented = 0U;
+    for (const auto& definition : definitions.definitions()) {
+        if (definition->id().value().rfind("nvision.tool.structure.", 0U) != 0U) {
+            continue;
+        }
+        ++structure_definitions;
+        if (implementations.contains(definition->id(), definition->version())) {
+            ++structure_implemented;
+        }
+    }
+
+    NVISION_REQUIRE(structure_definitions == 6U);
+    // Point grid inspect receives its model as a versioned resource rather than through a
+    // port, so it needs the resource binding that arrives with workflow execution. The gap
+    // is asserted rather than left silent.
+    NVISION_REQUIRE(structure_implemented == 5U);
     NVISION_REQUIRE(!implementations.contains(
-        ToolTypeId("nvision.tool.measurement.grid-deviation"), initial_version()));
+        ToolTypeId("nvision.tool.structure.point-grid-inspect"), initial_version()));
 }
 
 }  // namespace
@@ -1296,6 +1524,10 @@ int main() {
     NVISION_RUN(comparing_a_raster_with_itself_scores_perfectly);
     NVISION_RUN(the_image_processing_group_is_fully_implemented);
     NVISION_RUN(the_location_and_geometry_group_is_fully_implemented);
-    NVISION_RUN(every_measurement_tool_except_grid_deviation_is_implemented);
+    NVISION_RUN(every_clustering_method_finds_the_same_two_groups);
+    NVISION_RUN(sorting_orders_points_by_how_far_along_a_line_they_lie);
+    NVISION_RUN(a_learned_grid_becomes_the_reference_a_later_run_deviates_from);
+    NVISION_RUN(the_measurement_group_is_fully_implemented);
+    NVISION_RUN(every_structure_tool_except_point_grid_inspect_is_implemented);
     return 0;
 }

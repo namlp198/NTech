@@ -8,6 +8,7 @@
 #include "nvision/core/geometry.hpp"
 #include "nvision/core/identifier.hpp"
 #include "nvision/core/measurement.hpp"
+#include "nvision/core/point_grid.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -46,6 +47,7 @@ public:
     [[nodiscard]] static PortValue measurement_list(core::MeasurementList values);
     [[nodiscard]] static PortValue feature_set(core::FeatureSet value);
     [[nodiscard]] static PortValue match_set(core::MatchSet value);
+    [[nodiscard]] static PortValue point_grid_model(core::PointGridModel value);
     [[nodiscard]] static PortValue boolean(bool value);
     [[nodiscard]] static PortValue integer(std::int64_t value);
     [[nodiscard]] static PortValue floating_point(double value);
@@ -69,6 +71,7 @@ public:
     [[nodiscard]] const core::MeasurementList& measurement_list_value() const;
     [[nodiscard]] const core::FeatureSet& feature_set_value() const;
     [[nodiscard]] const core::MatchSet& match_set_value() const;
+    [[nodiscard]] const core::PointGridModel& point_grid_model_value() const;
     [[nodiscard]] bool boolean_value() const;
     [[nodiscard]] std::int64_t integer_value() const;
     [[nodiscard]] double floating_point_value() const;
@@ -96,6 +99,7 @@ private:
         core::MeasurementList,
         core::FeatureSet,
         core::MatchSet,
+        core::PointGridModel,
         core::InspectionDecision>;
 
     PortValue(core::PortDataType type, Payload payload);

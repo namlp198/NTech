@@ -5,6 +5,7 @@
 #include "nvision/core/geometry.hpp"
 #include "nvision/core/inspection_outcome.hpp"
 #include "nvision/core/measurement.hpp"
+#include "nvision/core/point_grid.hpp"
 #include "nvision/core/resource_reference.hpp"
 #include "nvision/core/semantic_version.hpp"
 
@@ -576,6 +577,33 @@ void match_sets_relate_two_spaces_and_resolve_their_own_point_pairs() {
     }));
 }
 
+void a_point_grid_model_records_a_layout_and_nothing_about_its_meaning() {
+    using nvision::core::PointGridModel;
+    const CoordinateSpaceId space("nvision.image.node.golden.image-pixel");
+
+    const PointGridModel model(
+        space,
+        {{Point2D(space, 0.0, 0.0), Point2D(space, 10.0, 0.0)},
+         {Point2D(space, 0.0, 10.0), Point2D(space, 10.0, 10.0), Point2D(space, 20.0, 10.0)}});
+    NVISION_REQUIRE(model.row_count() == 2U);
+    NVISION_REQUIRE(model.point_count() == 5U);
+    // Flattening walks rows in order, then columns within each row.
+    NVISION_REQUIRE(model.points().size() == 5U);
+    NVISION_REQUIRE(model.points()[2].y() == 10.0);
+
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(PointGridModel(space, {}));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(PointGridModel(space, {{}}));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(PointGridModel(
+            space,
+            {{Point2D(CoordinateSpaceId("nvision.image.other.image-pixel"), 0.0, 0.0)}}));
+    }));
+}
+
 void resource_references_are_versioned_and_content_addressed() {
     constexpr std::string_view checksum =
         "3bec1d7190001d1dc1f4ef009013b1abafb1d6a7d725840f15c54920e639e313";
@@ -664,6 +692,7 @@ int main() {
     measurements_name_their_unit_and_the_space_they_were_taken_in();
     detections_stay_consistent_with_the_region_they_describe();
     match_sets_relate_two_spaces_and_resolve_their_own_point_pairs();
+    a_point_grid_model_records_a_layout_and_nothing_about_its_meaning();
     resource_references_are_versioned_and_content_addressed();
     resource_integrity_rejects_noncanonical_or_incomplete_metadata();
     return 0;

@@ -106,6 +106,10 @@ PortValue PortValue::match_set(core::MatchSet value) {
     return PortValue(PortDataType::match_set, std::move(value));
 }
 
+PortValue PortValue::point_grid_model(core::PointGridModel value) {
+    return PortValue(PortDataType::point_grid_model, std::move(value));
+}
+
 PortValue PortValue::boolean(const bool value) {
     return PortValue(PortDataType::boolean, value);
 }
@@ -204,6 +208,10 @@ const core::FeatureSet& PortValue::feature_set_value() const {
 
 const core::MatchSet& PortValue::match_set_value() const {
     return payload_of<core::MatchSet>(payload_, "match set");
+}
+
+const core::PointGridModel& PortValue::point_grid_model_value() const {
+    return payload_of<core::PointGridModel>(payload_, "point grid model");
 }
 
 const core::InspectionDecision& PortValue::decision_value() const {
