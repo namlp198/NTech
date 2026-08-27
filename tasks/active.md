@@ -34,6 +34,11 @@ isolation, without any public contract exposing an OpenCV type.
   No build file holds a machine-specific path, and the dependency is PRIVATE to
   `nvision_vision` so no public header can expose an OpenCV type.
 - Added the `nvision_tool_execution_tests` target. The native gate passes with 10 CTests.
+- Relocated the M2 tool platform contracts from `nvision::core` to `nvision::workflow`:
+  `parameter_schema`, `tool_definition`, `tool_registry`, `builtin_catalog`,
+  `workflow_node`, `workflow_graph`, and `subworkflow`. Execution and the contracts it
+  executes now live in one area, and the dependency is strictly one way. No behavior,
+  contract, or test expectation changed, and the C ABI is untouched. Recorded as ADR-0006.
 
 ## Completed Earlier
 
@@ -73,9 +78,19 @@ isolation, without any public contract exposing an OpenCV type.
 
 ## Open Items
 
-- OpenCV has not been proven to build here. The only distribution found on this machine is
-  an external checkout with unresolved provenance, so `NVISION_ENABLE_OPENCV` defaults to
-  OFF and no OpenCV-backed tool exists yet. Sourcing a redistributable OpenCV is a
+- No usable OpenCV is available on this machine, so `NVISION_ENABLE_OPENCV` defaults to
+  OFF and no OpenCV-backed tool exists yet. Both distributions under
+  `D:\src\learn_opencv_all\Libraries` were probed with a real CMake configure and both
+  fail:
+  - `opencv480_CUDA` requires CUDA toolkit exactly 11.8 and the machine has 11.2. Its
+    config also uses the removed `FindCUDA` module, which CMake policy CMP0146 warns about
+    and CMake 4 drops. A mandatory CUDA dependency is also wrong for a CPU-first portable
+    Core.
+  - `opencv/build` (4.8.0, vc16) is incomplete. Its `x64/vc16/bin` directory is gone
+    because the DLLs were moved to `D:\src\learn_opencv_all\output\Release`, so the
+    imported `opencv_world` target references files that do not exist.
+
+  Sourcing a complete OpenCV 4.x package with documented provenance and license is a
   prerequisite for the next slice.
 
 - External Wire Marker model and Pin Insert asset provenance/license evidence is still

@@ -44,19 +44,31 @@
 - OpenCV is opt-in through `NVISION_ENABLE_OPENCV` and located by the standard CMake
   search. No build file holds a machine-specific path, and the dependency is PRIVATE to
   `nvision_vision` so no public header can expose an OpenCV type.
+- Relocated the M2 tool platform contracts from `nvision::core` to `nvision::workflow` in
+  `d73f4d8`, recorded as ADR-0006. `parameter_schema`, `tool_definition`, `tool_registry`,
+  `builtin_catalog`, `workflow_node`, `workflow_graph`, and `subworkflow` moved so that
+  execution and the contracts it executes share one area, as Section 13 of the plan
+  requires. The change is mechanical, the resulting dependency is strictly one way, and no
+  core, acquisition, or ABI header includes a workflow header.
+- Probed both OpenCV distributions on this machine with a real CMake configure. Both fail,
+  so no OpenCV-backed tool can be written yet. Details are in `tasks/active.md`.
 
 ## Current Status
 
 M2 is complete and merged. M3 has started: the tool execution foundation is landed and
-green, and the first catalog definition executes through it end to end. The branch has not
-been pushed and has not been merged into `develop`.
+green, the first catalog definition executes through it end to end, and the native area
+boundary now matches the plan. The branch has not been pushed and has not been merged into
+`develop`.
 
 ## Next Actions
 
 1. Review and merge `codex/m3-tool-execution-foundation` into `develop`.
-2. Source a redistributable OpenCV before the next slice. The only distribution found on
-   this machine is an external checkout with unresolved provenance, so
-   `NVISION_ENABLE_OPENCV` currently defaults to OFF and no OpenCV-backed tool exists.
+2. Source a complete OpenCV 4.x package with documented provenance and license before the
+   next slice. Neither distribution on this machine configures: `opencv480_CUDA` demands
+   CUDA exactly 11.8 against an installed 11.2 and relies on the removed `FindCUDA`
+   module, and the stock `opencv/build` is missing the `x64/vc16/bin` directory its own
+   imported targets reference. A mandatory CUDA dependency is also wrong for a CPU-first
+   portable Core. This is the one decision blocking the next slice.
 3. Implement the image-processing tool group against the foundation, golden-tested. That
    slice must decide how an operation which materializes a new image owns its buffer;
    crop deliberately did not have to answer that because it only produces another view.
@@ -67,13 +79,6 @@ been pushed and has not been merged into `develop`.
 
 ## Warnings
 
-- M2 contracts live in `nvision::core` while the new execution types live in
-  `nvision::workflow`. The plan's Section 13 ownership map puts workflow validation,
-  compilation, scheduling, and execution in `workflow/`, but `WorkflowNode`,
-  `WorkflowGraph`, and `SubworkflowDefinition` shipped in `core/` during M2. Moving them is
-  a refactor that needs approval, so new execution behavior was added alongside rather than
-  relocating existing contracts. Resolve the split deliberately before M5 rather than
-  letting it grow.
 - Crop is the only implemented tool and it produces a view, never a new buffer. The first
   tool that materializes an image will expose an ownership question the current
   `PortValue` image payload has not had to answer, because it can only hold an `ImageView`
