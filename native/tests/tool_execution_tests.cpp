@@ -421,7 +421,7 @@ void the_implementation_registry_reports_unimplemented_definitions_explicitly() 
 
     // A catalogued tool without an implementation is not a missing tool.
     const auto pending = implementations.bind(
-        ToolTypeId("nvision.tool.processing.resize"), initial_version(), definitions);
+        ToolTypeId("nvision.tool.measurement.histogram"), initial_version(), definitions);
     NVISION_REQUIRE(pending.status() == ToolImplementationStatus::not_implemented);
     NVISION_REQUIRE(pending.definition() != nullptr);
     NVISION_REQUIRE(pending.implementation() == nullptr);

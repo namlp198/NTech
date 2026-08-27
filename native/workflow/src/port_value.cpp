@@ -40,6 +40,10 @@ PortValue PortValue::transform(core::Transform2D value) {
     return PortValue(PortDataType::transform, std::move(value));
 }
 
+PortValue PortValue::homography(core::Transform2D value) {
+    return PortValue(PortDataType::homography, std::move(value));
+}
+
 PortValue PortValue::region(core::AxisAlignedRectangle value) {
     return PortValue(PortDataType::region, std::move(value));
 }

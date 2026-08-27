@@ -26,6 +26,10 @@ public:
     [[nodiscard]] static PortValue image(acquisition::ImageView value);
     [[nodiscard]] static PortValue mask(acquisition::ImageView value);
     [[nodiscard]] static PortValue transform(core::Transform2D value);
+    // A homography is carried as a transform because it is one: a 3x3 mapping with an
+    // explicit source and target coordinate space. The port kind records that the mapping
+    // is projective rather than affine.
+    [[nodiscard]] static PortValue homography(core::Transform2D value);
     [[nodiscard]] static PortValue region(core::AxisAlignedRectangle value);
     [[nodiscard]] static PortValue point(core::Point2D value);
     [[nodiscard]] static PortValue point_list(std::vector<core::Point2D> values);

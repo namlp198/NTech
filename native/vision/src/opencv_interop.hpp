@@ -22,6 +22,13 @@ namespace nvision::vision::interop {
 
 // Copies an OpenCV result into an NVision-owned computed image. The copy is deliberate:
 // an owned raster must not depend on memory OpenCV may release or reallocate.
-[[nodiscard]] acquisition::ImageLease materialize(core::ImageId id, const cv::Mat& produced);
+//
+// The pixel format is declared rather than inferred. OpenCV records channel count and
+// depth but not what the channels mean, so BGR and HSV are the same matrix type and only
+// the producing tool knows which one it made.
+[[nodiscard]] acquisition::ImageLease materialize(
+    core::ImageId id,
+    const cv::Mat& produced,
+    acquisition::PixelFormat format);
 
 }  // namespace nvision::vision::interop

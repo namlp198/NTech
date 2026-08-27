@@ -48,10 +48,16 @@ find_package(OpenCV REQUIRED CONFIG)
 message(STATUS "NVision vision tools build against OpenCV ${OpenCV_VERSION}")
 
 add_library(nvision_vision STATIC
+    vision/src/binarize_tools.cpp
     vision/src/builtin_tool_implementations.cpp
+    vision/src/color_tools.cpp
     vision/src/crop_tool.cpp
+    vision/src/filter_tools.cpp
+    vision/src/morphology_tools.cpp
     vision/src/opencv_interop.cpp
-    vision/src/threshold_tool.cpp)
+    vision/src/threshold_tool.cpp
+    vision/src/tool_support.cpp
+    vision/src/warp_tools.cpp)
 
 target_include_directories(nvision_vision
     PUBLIC
@@ -288,6 +294,32 @@ if(NVISION_BUILD_TESTS)
     endif()
 
     add_test(NAME nvision_tool_execution_tests COMMAND nvision_tool_execution_tests)
+
+    add_executable(nvision_vision_tool_tests
+        tests/vision_tool_tests.cpp)
+
+    target_link_libraries(nvision_vision_tool_tests PRIVATE nvision_vision)
+    target_compile_features(nvision_vision_tool_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_vision_tool_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_vision_tool_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_vision_tool_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    if(WIN32)
+        add_custom_command(TARGET nvision_vision_tool_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_RUNTIME_DLLS:nvision_vision_tool_tests>
+                $<TARGET_FILE_DIR:nvision_vision_tool_tests>
+            COMMAND_EXPAND_LISTS)
+    endif()
+
+    add_test(NAME nvision_vision_tool_tests COMMAND nvision_vision_tool_tests)
 
     add_executable(nvision_public_contract_tests
         tests/public_contract_tests.cpp)

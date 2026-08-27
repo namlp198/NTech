@@ -9,36 +9,19 @@
 
 namespace nvision::vision::interop {
 
-namespace {
-
-using acquisition::PixelFormat;
-
-PixelFormat pixel_format_of(const cv::Mat& produced) {
-    if (produced.type() == CV_8UC1) {
-        return PixelFormat::mono8;
-    }
-    if (produced.type() == CV_16UC1) {
-        return PixelFormat::mono16;
-    }
-    // OpenCV works in BGR channel order, so a three-channel 8-bit result is BGR unless a
-    // tool has converted it, in which case that tool owns the reinterpretation.
-    if (produced.type() == CV_8UC3) {
-        return PixelFormat::bgr8;
-    }
-    throw std::invalid_argument("the produced OpenCV matrix has no NVision pixel format");
-}
-
-}  // namespace
-
-int opencv_type_of(const PixelFormat format) {
+int opencv_type_of(const acquisition::PixelFormat format) {
     switch (format) {
-    case PixelFormat::mono8:
+    case acquisition::PixelFormat::mono8:
+    case acquisition::PixelFormat::bayer_gr8:
         return CV_8UC1;
-    case PixelFormat::mono16:
+    case acquisition::PixelFormat::mono16:
         return CV_16UC1;
-    case PixelFormat::rgb8:
-    case PixelFormat::bgr8:
+    case acquisition::PixelFormat::rgb8:
+    case acquisition::PixelFormat::bgr8:
+    case acquisition::PixelFormat::hsv8:
         return CV_8UC3;
+    case acquisition::PixelFormat::mono_float32:
+        return CV_32FC1;
     }
 
     throw std::invalid_argument("pixel format has no OpenCV equivalent");
@@ -60,15 +43,20 @@ cv::Mat borrow(const acquisition::ImageView& view) {
         static_cast<std::size_t>(source.stride_bytes()));
 }
 
-acquisition::ImageLease materialize(core::ImageId id, const cv::Mat& produced) {
+acquisition::ImageLease materialize(
+    core::ImageId id,
+    const cv::Mat& produced,
+    const acquisition::PixelFormat format) {
     if (produced.empty()) {
         throw std::invalid_argument("an empty OpenCV matrix cannot become an image");
     }
     if (produced.dims != 2) {
         throw std::invalid_argument("only a two-dimensional OpenCV matrix can become an image");
     }
+    if (produced.type() != opencv_type_of(format)) {
+        throw std::invalid_argument("the produced matrix does not match its declared pixel format");
+    }
 
-    const PixelFormat format = pixel_format_of(produced);
     const auto width = static_cast<std::uint32_t>(produced.cols);
     const auto height = static_cast<std::uint32_t>(produced.rows);
     const std::size_t row_bytes = static_cast<std::size_t>(produced.cols) * produced.elemSize();

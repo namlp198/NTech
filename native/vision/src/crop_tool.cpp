@@ -1,11 +1,8 @@
 #include "crop_tool.hpp"
 
-#include "nvision/acquisition/image_view.hpp"
-#include "nvision/core/execution_result.hpp"
+#include "tool_support.hpp"
+
 #include "nvision/core/geometry.hpp"
-#include "nvision/core/identifier.hpp"
-#include "nvision/workflow/parameter_schema.hpp"
-#include "nvision/workflow/port_value.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -20,24 +17,13 @@ namespace {
 
 using acquisition::ImageView;
 using core::AxisAlignedRectangle;
-using core::ErrorCategory;
-using core::ExecutionError;
-using workflow::GeometryKind;
 using core::ParameterKey;
 using core::PortKey;
-using core::ResultCode;
-using core::SemanticVersion;
-using core::ToolTypeId;
+using workflow::GeometryKind;
 using workflow::PortValue;
 using workflow::PortValueMap;
 using workflow::ToolExecutionContext;
 using workflow::ToolExecutionOutcome;
-using workflow::ToolImplementation;
-
-ExecutionError configuration_error(std::string code, std::string detail) {
-    return ExecutionError(
-        ResultCode(std::move(code)), ErrorCategory::configuration, std::move(detail), false);
-}
 
 // A region of interest is only meaningful together with the space it was authored in.
 // Silently reinterpreting it against a differently cropped view would shift the result.
@@ -51,17 +37,9 @@ bool is_whole_pixel(const double value) noexcept {
            std::floor(value) == value;
 }
 
-class CropTool final : public ToolImplementation {
+class CropTool final : public VisionTool {
 public:
-    CropTool() : id_("nvision.tool.processing.crop"), version_(1U, 0U, 0U) {}
-
-    [[nodiscard]] const ToolTypeId& tool_type_id() const noexcept override {
-        return id_;
-    }
-
-    [[nodiscard]] const SemanticVersion& tool_version() const noexcept override {
-        return version_;
-    }
+    CropTool() : VisionTool("nvision.tool.processing.crop", initial_tool_version()) {}
 
     [[nodiscard]] ToolExecutionOutcome execute(const ToolExecutionContext& context) const override {
         const ImageView& image = context.input(PortKey("image")).image_value();
@@ -103,6 +81,8 @@ public:
                 "the region of interest lies outside the input image view"));
         }
 
+        // Crop narrows an existing raster, so it produces another view rather than new
+        // pixels. No image is materialised and no buffer is copied.
         ImageView cropped = image.subview(origin_x, origin_y, width, height);
         core::Transform2D view_to_source = cropped.view_to_source();
 
@@ -111,15 +91,11 @@ public:
         outputs.set(PortKey("transform"), PortValue::transform(std::move(view_to_source)));
         return ToolExecutionOutcome::succeeded(std::move(outputs));
     }
-
-private:
-    ToolTypeId id_;
-    SemanticVersion version_;
 };
 
 }  // namespace
 
-std::shared_ptr<const ToolImplementation> create_crop_tool() {
+std::shared_ptr<const workflow::ToolImplementation> create_crop_tool() {
     return std::make_shared<const CropTool>();
 }
 
