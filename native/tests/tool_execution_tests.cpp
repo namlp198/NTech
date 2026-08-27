@@ -541,6 +541,71 @@ void crop_rejects_a_region_it_cannot_honour() {
         ResultCode("UNSUPPORTED_ROI_SHAPE"));
 }
 
+void threshold_produces_a_computed_mask_that_owns_its_pixels() {
+    const ToolRegistry definitions = create_builtin_registry();
+    const ToolImplementationRegistry implementations = create_vision_implementation_registry();
+    const auto binding = implementations.bind(
+        ToolTypeId("nvision.tool.processing.threshold"), initial_version(), definitions);
+    NVISION_REQUIRE(binding.is_bound());
+
+    const ImageView image = sample_image();
+    PortValueMap inputs;
+    inputs.set(PortKey("image"), PortValue::image(image));
+    const ToolExecutionContext context(
+        binding.definition(),
+        ExecutionSessionId("session.01"),
+        WorkflowNodeId("node.threshold"),
+        std::move(inputs),
+        ParameterBinding::resolve(
+            *binding.definition(),
+            NodeConfiguration({NodeParameterAssignment(
+                ParameterKey("value"), ParameterValue::floating_point(12.0))})));
+
+    const ToolExecutionOutcome outcome = execute_tool(*binding.implementation(), context);
+    NVISION_REQUIRE(outcome.is_success());
+
+    const PortValue& produced = *outcome.outputs().find(PortKey("mask"));
+    NVISION_REQUIRE(produced.type() == PortDataType::mask);
+    const ImageView& mask = produced.image_value();
+
+    // Source pixels are y * 10 + x, so only 13, 20, 21, 22 and 23 exceed the threshold.
+    NVISION_REQUIRE(mask.width() == 4U);
+    NVISION_REQUIRE(mask.height() == 3U);
+    NVISION_REQUIRE(mask.row(0U)[0] == 0U);
+    NVISION_REQUIRE(mask.row(1U)[2] == 0U);
+    NVISION_REQUIRE(mask.row(1U)[3] == 255U);
+    NVISION_REQUIRE(mask.row(2U)[0] == 255U);
+
+    // The mask is new pixels, so it must not claim to be the capture it came from, and it
+    // must stay alive on its own once every other reference is gone.
+    NVISION_REQUIRE(!mask.source().is_captured());
+    NVISION_REQUIRE(mask.frame() == nullptr);
+    NVISION_REQUIRE(
+        mask.coordinate_space().value() == "nvision.image.node.threshold.mask.image-pixel");
+
+    const ImageView retained = mask;
+    NVISION_REQUIRE(retained.row(2U)[0] == 255U);
+
+    // A mode the catalog declares but that cannot produce a mask is refused, not guessed.
+    PortValueMap truncate_inputs;
+    truncate_inputs.set(PortKey("image"), PortValue::image(image));
+    const ToolExecutionContext truncate_context(
+        binding.definition(),
+        ExecutionSessionId("session.01"),
+        WorkflowNodeId("node.threshold"),
+        std::move(truncate_inputs),
+        ParameterBinding::resolve(
+            *binding.definition(),
+            NodeConfiguration({NodeParameterAssignment(
+                ParameterKey("mode"),
+                ParameterValue::enumeration(nvision::core::EnumOptionKey("truncate")))})));
+    const ToolExecutionOutcome refused =
+        execute_tool(*binding.implementation(), truncate_context);
+    NVISION_REQUIRE(!refused.is_success());
+    NVISION_REQUIRE(
+        refused.errors().front().code() == ResultCode("UNSUPPORTED_THRESHOLD_MODE"));
+}
+
 }  // namespace
 
 int main() {
@@ -551,5 +616,6 @@ int main() {
     the_implementation_registry_reports_unimplemented_definitions_explicitly();
     crop_executes_through_the_catalog_contract_without_copying_pixels();
     crop_rejects_a_region_it_cannot_honour();
+    threshold_produces_a_computed_mask_that_owns_its_pixels();
     return 0;
 }

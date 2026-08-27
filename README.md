@@ -100,8 +100,9 @@ Windows is the initial development and deployment platform.
 
 `build.ps1` and `test.ps1` include the native CMake/CTest pipeline.
 
-Set the `OpenCV_DIR` environment variable to an OpenCV 4.x CMake config directory to build
-the OpenCV-backed generic vision tools. No OpenCV path is stored in the repository.
+OpenCV 4.x is a required dependency of the native vision library. Set the `OpenCV_DIR`
+environment variable to its CMake config directory before building. No OpenCV path is
+stored in the repository.
 
 ```powershell
 $env:OpenCV_DIR = "<path>\opencv\build"

@@ -40,34 +40,29 @@ target_include_directories(nvision_workflow
 target_compile_features(nvision_workflow PUBLIC cxx_std_20)
 target_link_libraries(nvision_workflow PUBLIC nvision_core)
 
-# Vision owns the generic image tool implementations. Third-party vision dependencies
-# stay PRIVATE here so no public NVision header can expose an OpenCV type.
+# Vision owns the generic image tool implementations. OpenCV is a required dependency of
+# this library and stays PRIVATE, so it can never reach a public NVision header. It is
+# located through the standard CMake search, which honours the OpenCV_DIR environment
+# variable, so no build file in this repository contains a machine-specific path.
+find_package(OpenCV REQUIRED CONFIG)
+message(STATUS "NVision vision tools build against OpenCV ${OpenCV_VERSION}")
+
 add_library(nvision_vision STATIC
     vision/src/builtin_tool_implementations.cpp
-    vision/src/crop_tool.cpp)
+    vision/src/crop_tool.cpp
+    vision/src/opencv_interop.cpp
+    vision/src/threshold_tool.cpp)
 
 target_include_directories(nvision_vision
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vision/include>
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/vision/src)
+        ${CMAKE_CURRENT_SOURCE_DIR}/vision/src
+        ${OpenCV_INCLUDE_DIRS})
 
 target_compile_features(nvision_vision PUBLIC cxx_std_20)
 target_link_libraries(nvision_vision PUBLIC nvision_workflow)
-
-# OpenCV is opt-in and located through the standard CMake search, so no build file in
-# this repository contains a machine-specific path. Either set the OpenCV_DIR environment
-# variable to the OpenCV CMake config directory, or pass -DOpenCV_DIR=<path>, together
-# with -DNVISION_ENABLE_OPENCV=ON.
-if(NVISION_ENABLE_OPENCV)
-    find_package(OpenCV REQUIRED CONFIG)
-    target_link_libraries(nvision_vision PRIVATE ${OpenCV_LIBS})
-    target_include_directories(nvision_vision PRIVATE ${OpenCV_INCLUDE_DIRS})
-    target_compile_definitions(nvision_vision PRIVATE NVISION_WITH_OPENCV=1)
-    message(STATUS "NVision vision tools build against OpenCV ${OpenCV_VERSION}")
-else()
-    message(STATUS "NVision vision tools build without OpenCV; OpenCV-backed tools are skipped")
-endif()
+target_link_libraries(nvision_vision PRIVATE ${OpenCV_LIBS})
 
 add_library(nvision_engine SHARED
     abi/src/nvision_c_api.cpp)
@@ -284,7 +279,7 @@ if(NVISION_BUILD_TESTS)
 
     # A test executable that links the vision library needs the OpenCV runtime beside it,
     # otherwise the suite fails to start rather than reporting a real assertion.
-    if(NVISION_ENABLE_OPENCV AND WIN32)
+    if(WIN32)
         add_custom_command(TARGET nvision_tool_execution_tests POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 $<TARGET_RUNTIME_DLLS:nvision_tool_execution_tests>
@@ -293,4 +288,24 @@ if(NVISION_BUILD_TESTS)
     endif()
 
     add_test(NAME nvision_tool_execution_tests COMMAND nvision_tool_execution_tests)
+
+    add_executable(nvision_public_contract_tests
+        tests/public_contract_tests.cpp)
+
+    target_link_libraries(nvision_public_contract_tests PRIVATE nvision_vision)
+    target_compile_features(nvision_public_contract_tests PRIVATE cxx_std_20)
+    target_compile_definitions(nvision_public_contract_tests PRIVATE
+        NVISION_NATIVE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
+    if(MSVC)
+        target_compile_options(nvision_public_contract_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_public_contract_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_public_contract_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_public_contract_tests COMMAND nvision_public_contract_tests)
 endif()
