@@ -55,10 +55,26 @@
   installed 11.2 and uses the removed `FindCUDA` module; the stock `opencv/build` is
   missing the `x64/vc16/bin` directory its own imported targets reference.
 - OpenCV 4.14.0 was then installed at `D:\setups\opencv` and verified against the real
-  build, which clears that blocker. Setting the `OpenCV_DIR` environment variable is how a
-  machine opts in: `scripts/native-build.ps1` turns on `NVISION_ENABLE_OPENCV` when it is
-  set, `find_package` resolves the installation from the same standard variable, and the
-  OpenCV runtime DLL is copied beside the native test executables.
+  build, which clears that blocker. `find_package` resolves it from the standard
+  `OpenCV_DIR` environment variable and the runtime DLL is copied beside the native test
+  executables.
+- Added the M3 computed-image ownership contract in `5475413`, recorded as ADR-0007.
+  `Image` owns its pixels and carries no acquisition metadata, `ImageSource` names which
+  raster kind a view exposes, and `ToolExecutionContext::output_image_id` derives a stable
+  identity for a produced image from the node and the output port.
+- Made OpenCV a required dependency and added the interop substrate in `fe432d4`.
+  `opencv_interop` borrows a view as a `cv::Mat` without copying and copies results back
+  into an owned `Image`, with the pixel format declared by the producing tool because
+  OpenCV records depth and channel count but not meaning.
+  `nvision_public_contract_tests` scans every public include root for OpenCV and ONNX
+  Runtime spellings, so the no-third-party-type rule is enforced rather than trusted.
+- Implemented the whole Image Processing group in `43edcd8`: colour conversion, channel
+  extraction, resize, normalise, CLAHE, blur, sharpen, adaptive threshold, colour range,
+  morphology, distance transform, perspective warp, and affine transform, alongside the
+  crop and threshold tools that landed with the substrate. `PixelFormat` gained
+  `bayer_gr8`, `hsv8`, and `mono_float32`.
+- Catalog coverage is 15 of 66 definitions, and every Image Processing definition is
+  implemented.
 
 ## Current Status
 
@@ -69,24 +85,29 @@ boundary now matches the plan. The branch has not been pushed and has not been m
 
 ## Next Actions
 
-1. Review and merge `codex/m3-tool-execution-foundation` into `develop`.
-2. Implement the image-processing tool group against the foundation, golden-tested. That
-   slice must decide how an operation which materializes a new image owns its buffer;
-   crop deliberately did not have to answer that because it only produces another view.
-3. Decide when OpenCV stops being opt-in and becomes a required dependency of
-   `nvision_vision`. While discovery is environment-driven, a machine without `OpenCV_DIR`
-   passes the gate without ever compiling the OpenCV-backed tools.
-4. Continue through location/geometry, measurement, and clustering/point-grid groups.
+1. Continue with slice S2, Location and Geometry, 11 tools. It needs native types the
+   platform does not have yet: contour, detection list, feature set, and match set.
+   Homography reuses `Transform2D`, which already guarantees an inverse exists.
+2. Then S3 Measurement (11 tools, needs a measurement contract), S4 Clustering and
+   Structure (6 tools, needs a point-grid model and result), and S5 overlay and evidence
+   primitives.
+3. Then S6 to close the M3 exit gate: refine the parameter sets that implementation
+   showed to be wrong, prove the Pin Insert algorithms are representable without a Pin
+   Insert engine class, and run the Linux native headless build.
+4. Review and merge `codex/m3-tool-execution-foundation` into `develop`.
 5. Keep the M0 asset provenance gap explicit and run the full repository check after each
    coherent behavior slice.
 6. Decide whether to renormalize repository line endings as a separate commit.
 
 ## Warnings
 
-- Crop is the only implemented tool and it produces a view, never a new buffer. The first
-  tool that materializes an image will expose an ownership question the current
-  `PortValue` image payload has not had to answer, because it can only hold an `ImageView`
-  that retains an existing frame lease.
+- The catalog declares threshold modes `truncate` and `to-zero` on a tool whose output
+  port is a mask. Both keep source intensity, so their result is an image rather than a
+  mask, and the tool refuses them. The definition needs splitting or a version bump; it is
+  recorded as an S6 item rather than silently widening what a mask means.
+- `PixelFormat` gained one Bayer pattern, `bayer_gr8`, because that is the only one the
+  catalog and the reference application need. The other three 8-bit patterns are absent on
+  purpose and should be added with the tool or parameter that requires them.
 - `PortValue` covers the port data kinds that have a native representation today. Kinds
   such as `feature_set`, `match_set`, `detection_list`, and `point_grid_model` have no
   factory yet and gain one with the milestone that introduces their native type.
@@ -109,10 +130,9 @@ boundary now matches the plan. The branch has not been pushed and has not been m
 
 ## Verification
 
-- Full `scripts/check.ps1 -Configuration Release`: passed, before and after the ADR-0006
-  relocation and again with OpenCV enabled. Native Release build with `/W4 /WX` reported
-  0 warnings, CTest reported 10 passed and 0 failed, the .NET suites reported 119 passed
-  and 0 failed, and `dotnet format --verify-no-changes` was clean.
+- Full `scripts/check.ps1 -Configuration Release`: passed after every slice. The final
+  run reported 0 native warnings under `/W4 /WX`, 12 CTests passed and 0 failed, 119 .NET
+  tests passed and 0 failed, and a clean `dotnet format --verify-no-changes`.
 - OpenCV check: with `OpenCV_DIR=D:\setups\opencv\build`, configure reported
   `Found OpenCV 4.14.0`, `nvision_vision` linked it, `opencv_world4140.dll` was copied
   into the native test output directory, and the gate stayed green.

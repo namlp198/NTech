@@ -2,68 +2,54 @@
 
 ## Current Task
 
-M3 — Generic OpenCV Vision Foundation — Tool Execution Foundation Slice
+M3 — Generic OpenCV Vision Foundation — Slices S0 and S1 complete
 
 ## Goal
 
-Give the M2 tool contracts an execution plane. A resolved `ToolTypeDefinition` must be
-bindable to a native implementation, invocable with typed port values, and testable in
-isolation, without any public contract exposing an OpenCV type.
+Implement the 44 catalog definitions M3 owns behind their existing contracts, refining
+parameter sets against real behaviour, with no public contract exposing an OpenCV type.
 
-## Completed in Current Slice
+## Slice Plan
 
-- Added `nvision_workflow`: `PortValue`/`PortValueMap` typed carriers, `CancellationToken`
-  and `CancellationSource`, `ExecutionBudget`, `ParameterBinding`, `ToolExecutionContext`,
-  `ToolExecutionOutcome`, the `ToolImplementation` interface, and `execute_tool`.
-- A context validates its inputs against the bound definition once. An undeclared key, a
-  data-kind mismatch, an output key used as an input, and a missing required input are all
-  rejected at construction.
-- `ParameterBinding::resolve` fills declared parameters from the configuration or their
-  defaults and drops keys the bound version does not declare, so a tool cannot read a value
-  it never declared while the node keeps that value persisted.
-- `execute_tool` honours cancellation before the call, converts a thrown exception into a
-  technical error, converts an exceeded budget into a timeout, and validates successful
-  outputs against the declared output ports. A non-success outcome carries no outputs.
-- Added `nvision_vision` with the first real tool. Crop resolves a rectangular ROI against
-  the input view, refuses a region authored in another coordinate space, and produces a
-  subview plus the explicit view-to-source transform without copying pixels.
-- `ToolImplementationRegistry` binds catalog identity to an implementation and reports a
-  catalogued tool with no implementation as `not_implemented`, so M3 coverage stays
-  measurable. 1 of 66 definitions is implemented.
-- OpenCV is opt-in through `NVISION_ENABLE_OPENCV` and found by the standard CMake search.
-  No build file holds a machine-specific path, and the dependency is PRIVATE to
-  `nvision_vision` so no public header can expose an OpenCV type.
-- Verified OpenCV 4.14.0 at `D:\setups\opencv\build` against the real build. Setting the
-  `OpenCV_DIR` environment variable is now how a machine opts into the OpenCV-backed
-  tools: `scripts/native-build.ps1` turns on `NVISION_ENABLE_OPENCV` when it is set, and
-  the OpenCV runtime DLL is copied beside the native test executables so a suite that
-  links the vision library starts.
-- Added the `nvision_tool_execution_tests` target. The native gate passes with 10 CTests.
-- Relocated the M2 tool platform contracts from `nvision::core` to `nvision::workflow`:
-  `parameter_schema`, `tool_definition`, `tool_registry`, `builtin_catalog`,
-  `workflow_node`, `workflow_graph`, and `subworkflow`. Execution and the contracts it
-  executes now live in one area, and the dependency is strictly one way. No behavior,
-  contract, or test expectation changed, and the C ABI is untouched. Recorded as ADR-0006.
+| Slice | Scope | Status |
+|---|---|---|
+| S0a | Computed image ownership, ADR-0007 | Complete, `5475413` |
+| S0b | OpenCV required, interop substrate, public-contract guard | Complete, `fe432d4` |
+| S1 | Image Processing, 15 tools | Complete, `43edcd8` |
+| S2 | Location and Geometry, 11 tools | Not started |
+| S3 | Measurement, 11 tools | Not started |
+| S4 | Clustering and Structure, 6 tools | Not started |
+| S5 | Overlay and evidence primitives, 1 tool | Not started |
+| S6 | Exit gate: parameter refinement, Pin Insert representation, Linux build | Not started |
 
-## Completed Earlier
+Catalog coverage is 15 of 66 definitions. The remaining 22 outside M3 belong to M4
+(Recognition and Text, 9) and M5 (Acquisition 5, Logic and Results 8).
 
-- M1: generic IDs, semantic versions, port data kinds, coordinate-space-aware geometry and
-  transforms, image views, resource references, immutable execution/inspection results,
-  and separated technical status versus verdict. Merged by `d01e54c`.
-- M2: versioned immutable `ToolTypeDefinition`, exact-resolution `ToolRegistry`,
-  declarative parameter/property-editor schemas with acyclic conditional fields, persisted
-  `WorkflowNode`/`NodeConfiguration` that survive an unresolved tool, typed acyclic
-  `WorkflowGraph` with contract-checked binding, reusable subworkflows, and the initial
-  66-tool generic catalog validating both reference graphs. Merged by `f1c0abd`.
+## Completed in S0 and S1
+
+- `Image` is a computed raster that owns its pixels and carries no acquisition metadata,
+  so a derived image can never be mistaken for a capture. `ImageSource` names which raster
+  kind a view exposes. Recorded as ADR-0007.
+- `ToolExecutionContext::output_image_id` derives an output image identity from the node
+  and the port, so a repeated run reproduces the same coordinate space.
+- OpenCV is a required dependency of `nvision_vision`, found through the standard CMake
+  search honouring `OpenCV_DIR`. Verified against OpenCV 4.14.0.
+- `opencv_interop` is the only place NVision image contracts meet OpenCV. It borrows a
+  view as a `cv::Mat` without copying and copies results back into an owned `Image`. The
+  pixel format is declared by the producing tool because OpenCV does not record meaning.
+- `nvision_public_contract_tests` scans every public include root for OpenCV and ONNX
+  Runtime spellings, so the no-third-party-type rule is enforced rather than trusted.
+- All 15 Image Processing tools execute, each refusing what it cannot do correctly.
+- `PixelFormat` gained `bayer_gr8`, `hsv8`, and `mono_float32`.
 
 ## Next Steps
 
-1. Implement the image-processing tool group against this foundation, golden-tested. The
-   first OpenCV-backed slice decides how an operation that materializes a new image owns
-   its buffer, which crop deliberately did not have to answer.
-2. Continue through location/geometry, measurement, and clustering/point-grid groups.
-3. Complete the external model/dependency license provenance audit before importing or
-   redistributing reference assets; keep C ABI/gRPC exposure deferred until M8.
+1. S2, Location and Geometry. It needs native types the platform does not have yet:
+   contour, detection list, feature set, match set. Homography reuses `Transform2D`.
+2. S3, Measurement. It needs a measurement and measurement-list contract.
+3. S4, Clustering and Structure. It needs a point-grid model and result contract.
+4. S5, overlay and evidence primitives.
+5. S6, close the M3 exit gate.
 
 ## Acceptance Criteria
 
@@ -72,27 +58,28 @@ isolation, without any public contract exposing an OpenCV type.
 - [x] Typed port values enforce the declared data kind at execution time.
 - [x] A technical failure yields an execution error and never an OK/NG quality decision.
 - [x] Cancellation and timeout are observable through the execution contract.
-- [x] No public header or public contract exposes an OpenCV type.
+- [x] No public header or public contract exposes an OpenCV type, enforced by a test.
 - [x] The native and managed halves of `scripts/check.ps1` are both green.
+- [x] Image Processing tools are independently tested against exact properties.
+- [ ] Location, Measurement, Clustering, and evidence tools are implemented and tested.
+- [ ] Pin Insert source algorithms are representable without a Pin Insert engine class.
+- [ ] The Linux native headless build compiles the vision library.
 
 ## Verification Baseline
 
-`scripts/check.ps1 -Configuration Release` is green on this machine: 10 native CTests,
-119 .NET tests, and a clean `dotnet format --verify-no-changes`. The managed half resolves
-.NET SDK 10.0.200 from the repository-local `artifacts/dotnet/` installation.
+`scripts/check.ps1 -Configuration Release` with `OpenCV_DIR` set is green: 12 native
+CTests, 119 .NET tests, and a clean `dotnet format --verify-no-changes`.
 
 ## Open Items
 
-- OpenCV discovery is environment-driven, so a machine without `OpenCV_DIR` set builds and
-  passes the gate without the OpenCV-backed tools. That is correct while the tools are
-  being added, but it means the gate cannot yet prove they compile everywhere. Decide when
-  OpenCV becomes a required dependency of `nvision_vision` rather than an opt-in one.
-
+- The catalog declares threshold modes `truncate` and `to-zero` on a tool whose output
+  port is a mask. Both keep source intensity, so they produce an image rather than a mask.
+  The tool refuses them today. Resolve in S6 by splitting the definition or bumping its
+  version.
 - External Wire Marker model and Pin Insert asset provenance/license evidence is still
   unresolved. Do not import or redistribute those assets until it is.
 - Pin Insert golden/regression images are still unavailable, so it remains an
   architectural contract oracle rather than a parity suite.
 - Repository line endings: committed blobs still contain CRLF while `.gitattributes`
-  declares `* text=auto eol=lf`. A full Release build left the working tree clean, so this
-  is currently latent rather than active. `git add --renormalize .` as its own commit
-  remains the clean fix and still needs an explicit decision.
+  declares `* text=auto eol=lf`. A full Release build leaves the working tree clean, so
+  this is latent. `git add --renormalize .` as its own commit remains the clean fix.
