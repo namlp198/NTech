@@ -190,16 +190,38 @@ EvidenceArtifact::EvidenceArtifact(
     EvidenceId id,
     const EvidenceKind kind,
     ResourceIntegrity integrity,
+    std::string storage_reference,
+    std::optional<EvidenceMedia> media,
     std::optional<CoordinateSpaceId> coordinate_space)
     : id_(std::move(id)),
       kind_(kind),
       integrity_(std::move(integrity)),
+      storage_reference_(std::move(storage_reference)),
+      media_(std::move(media)),
       coordinate_space_(std::move(coordinate_space)) {
     if (!is_valid(kind_)) {
         throw std::invalid_argument("evidence kind is unsupported");
     }
+    if (is_blank(storage_reference_)) {
+        throw std::invalid_argument("evidence must record where it was stored");
+    }
     if (requires_coordinate_space(kind_) && !coordinate_space_.has_value()) {
         throw std::invalid_argument("spatial evidence requires a coordinate space");
+    }
+    // The kinds that need a coordinate space are exactly the raster kinds, so they are
+    // also exactly the kinds a consumer has to be able to decode.
+    if (requires_coordinate_space(kind_) != media_.has_value()) {
+        throw std::invalid_argument(
+            requires_coordinate_space(kind_)
+                ? "image evidence requires a media descriptor"
+                : "non-image evidence cannot carry a media descriptor");
+    }
+    if (media_.has_value() && media_->encoding() == EvidenceEncoding::raw_packed &&
+        media_->packed_length_bytes() != integrity_.content_length_bytes()) {
+        // Packed pixels have exactly one possible length. A mismatch means the descriptor
+        // and the bytes disagree, and a reader trusting either one would be misled.
+        throw std::invalid_argument(
+            "packed evidence length does not match the media descriptor");
     }
 }
 
@@ -209,6 +231,14 @@ const EvidenceId& EvidenceArtifact::id() const noexcept {
 
 EvidenceKind EvidenceArtifact::kind() const noexcept {
     return kind_;
+}
+
+const std::string& EvidenceArtifact::storage_reference() const noexcept {
+    return storage_reference_;
+}
+
+const std::optional<EvidenceMedia>& EvidenceArtifact::media() const noexcept {
+    return media_;
 }
 
 const ResourceIntegrity& EvidenceArtifact::integrity() const noexcept {
