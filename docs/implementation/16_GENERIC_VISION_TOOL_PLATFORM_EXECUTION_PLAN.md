@@ -2,8 +2,8 @@
 
 **Product:** NTech NVision
 **Document type:** Long-running implementation plan and cross-session context
-**Status:** Approved direction; implementation not started
-**Date:** 2026-08-25
+**Status:** Approved direction; M3 complete, M4 next
+**Date:** 2026-08-28
 **Primary deliverable:** A real NVision Studio/Runtime application that executes Wire Marker Inspection end to end through the generic native tool platform
 **Second reference application:** Pin Insert Machine, used to prevent Wire Marker-specific abstractions from entering Core
 
@@ -486,6 +486,33 @@ Result Builder
 Evidence Output
 ```
 
+### 8.8 Catalog evolution guardrails
+
+The initial catalog is the first executable set derived from the two reference
+applications; it is not a claim that those applications define every future Machine
+Vision need. All new and revised definitions must follow
+[`17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md`](17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md).
+
+In particular, later milestones must not treat these contract gaps as implementation
+details:
+
+- graph-level `allows_multiple` requires an executable collection/fan-in representation;
+- capture sequences, recognition crops, barcode results, and other plural outputs require
+  typed collections;
+- crop, resize, affine, perspective, ECC, and calibration paths require an exact,
+  tested coordinate-transform chain;
+- structured results such as histograms, clusters, assignments, grids, and inspection
+  aggregates should not be reduced to string-keyed measurements or `any_metadata`;
+- evidence must be encoded or self-describing enough for Studio, Runtime, SDK, and storage
+  consumers to read without out-of-band image metadata;
+- execution metadata for cancellation, timeout, thread safety, and reentrancy must describe
+  real implementation behavior.
+
+Wire Marker and Pin Insert remain independent design oracles. Broader platform claims
+require additional contract exercises such as segmentation/surface inspection, calibrated
+metrology, multi-camera traceability, or generic AI detection when real requirements and
+verification assets become available.
+
 ---
 
 ## 9. Tool contract requirements
@@ -949,7 +976,12 @@ Exit gate:
 
 - invalid package/checksum/tensor contracts fail clearly;
 - sessions are instance-owned and concurrency-safe;
-- Wire Marker OCR primitives reproduce accepted baseline behavior.
+- Wire Marker OCR primitives reproduce accepted baseline behavior;
+- text candidates, recognition crops, barcode results, and consensus inputs use an
+  executable typed collection/multi-value contract rather than plural naming over a
+  single runtime value;
+- preprocessing, decoding, orientation, and post-processing are golden-tested with
+  non-identity cases.
 
 ### M5 — Generic native Workflow, Job, and Recipe execution
 
@@ -966,7 +998,9 @@ Exit gate:
 
 - both reference graphs compile through the same engine;
 - the engine contains no Wire Marker or Pin Insert dispatch branch;
-- deterministic headless test workflows run successfully.
+- deterministic headless test workflows run successfully;
+- fan-in/fan-out, branch behavior, promoted-parameter assignability, typed result
+  aggregation, cancellation, and timeout semantics satisfy the evolution guide.
 
 ### M6 — Wire Marker reference project, headless parity
 
@@ -1015,7 +1049,9 @@ Exit gate:
 
 - a generic .NET console client can run either project by IDs/configuration only;
 - no application-specific P/Invoke or gRPC method exists;
-- native ownership and cancellation tests pass.
+- native ownership and cancellation tests pass;
+- collections, typed aggregates, transforms, and self-describing evidence round-trip
+  through C ABI/PInvoke and gRPC without third-party ABI leakage.
 
 ### M9 — NVision Studio executable vertical slice
 
@@ -1266,6 +1302,12 @@ M4, the generic model and recognition foundation, is next: `.nvmodel` integrity 
 validation in C++, a model registry with instance-owned sessions, the native ONNX Runtime
 CPU backend, detector and recognizer pre- and post-processing, CTC decoding, configurable
 orientation search, and the nine Recognition and Text tools.
+
+Before M4 closes, apply the entry gates in
+`17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md`: select an executable collection/multi-value
+model for text candidates, recognition crops, and barcode lists; verify ECC and other
+coordinate-sensitive paths with non-identity fixtures; and keep structured outputs and
+evidence self-describing across later ABI and UI boundaries.
 
 Keep the M0 provenance gap explicit. The external Wire Marker models and the Pin Insert
 assets still have no license or provenance evidence, and M4 is the milestone that would

@@ -10,10 +10,11 @@ Build a reusable industrial Machine Vision platform for authoring, publishing, e
 
 ## Current State
 
-- Working: P0 repository foundation, the complete managed P1 Workflow engine, the managed P2 Wire Marker headless inspection slice, N0 native foundation, N1 native Frame/File Camera/acquisition, the complete M1 generic native contract layer, and the complete M2 tool platform contract layer merged into `develop` by `f1c0abd`: versioned tool definitions, exact-resolution registry, declarative parameter schemas, persisted workflow nodes, typed acyclic graphs, reusable subworkflows, and the initial 66-tool generic catalog validated by both reference graphs, plus the M3 native tool execution foundation and its first catalog implementation.
+- Working: P0 repository foundation, the complete managed P1 Workflow engine, the managed P2 Wire Marker headless inspection slice, N0 native foundation, N1 native Frame/File Camera/acquisition, the complete M1 generic native contract layer, the complete M2 tool platform contract layer merged into `develop` by `f1c0abd`, and the complete M3 generic OpenCV foundation merged by `d1faa1d`. The native catalog contains 66 product-neutral definitions, 43 of which execute through the M3 OpenCV implementation registry.
 - Working P2 path: FrameLease ownership → File Camera → AcquisitionService → compiled Crop/Classify/Compare/Decision Workflow → ONNX Runtime CPU → immutable InspectionResult → file image evidence + SQLite.
 - Blocked: Pin Insert parity still lacks golden/regression images, and external Wire Marker model provenance/license evidence remains open before those assets can be redistributed. Two previously recorded blockers are resolved: `scripts/check.ps1` resolves the pinned .NET SDK 10.0.200 from the repository-local `artifacts/dotnet/` installation, and OpenCV 4.14.0 is installed and verified, discovered through the standard `OpenCV_DIR` environment variable.
 - Not started: native model/ONNX and Workflow/inspection migration, the Engine Host implementation, ProjectFormat/Studio authoring, Runtime Service, PLC integration, real camera plugins, and production-trained inspection models.
+- Known contract hardening before later milestones depend on the current catalog: an executable collection/multi-value model, typed plural outputs, exact non-identity transform tests, self-describing evidence, richer structured results, full subworkflow parameter assignability, and truthful cancellation/timeout characteristics. The durable guidance is `docs/implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md`.
 
 ## Architecture Summary
 
@@ -57,11 +58,21 @@ alone, with no application-specific tool in the catalog. A definition without an
 implementation binds as not_implemented, so coverage stays measurable, and the two
 deliberate gaps are asserted rather than left silent.
 
+An independent M2/M3 generalization review confirmed that the architecture is
+platform-first but that current validation is still driven by the two reference
+applications. The review does not replace or invalidate the M3 implementation baseline;
+it adds mandatory cross-milestone gates before M4/M5/M8 build on contracts that are not
+yet executable or portable enough. These gates are recorded in
+`docs/implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md` and linked from the
+authoritative execution plan.
+
 The next focus is M4, the generic model and recognition foundation: `.nvmodel` integrity,
 a model registry with instance-owned sessions, the native ONNX Runtime CPU backend, text
 detection and recognition pre- and post-processing, CTC decoding, and the Recognition and
 Text tools. Keep the M0 provenance gap explicit, use the managed P2 path as a behavior
-oracle, and do not expand managed hot-path behavior.
+oracle, and do not expand managed hot-path behavior. M4 must first select the typed
+collection/multi-value representation used by text candidates, recognition crops,
+barcode lists, and consensus inputs.
 
 ## Verification Baseline
 

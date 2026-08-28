@@ -6,11 +6,25 @@
 
 ## Branch
 
-`develop`. The M3 work was done on `codex/m3-tool-execution-foundation`, created from
-`develop` at `f1c0abd`, and merged back by `d1faa1d`.
+`codex/tool-catalog-evolution-guide`, created from clean `develop` at `7d8ec88`.
+`develop` remains ahead of `origin/develop` by 26 commits and has not been pushed.
 
 ## Completed
 
+- Performed an independent, read-only review of the M2/M3 tool contracts and M3 OpenCV
+  implementations. The overall architecture remains product-neutral and platform-first,
+  but the review identified cross-milestone gaps that existing green tests do not cover:
+  executable multi-value ports and typed collections, non-identity transform correctness,
+  self-describing evidence, typed aggregate results, full subworkflow assignability, and
+  truthful cancellation/timeout behavior.
+- Added `docs/implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md` as the durable
+  framework for tool admission, reuse assessment, catalog expansion, milestone gates, and
+  verification beyond the two reference applications.
+- Linked the new guide from `docs/README.md` and Section 8.8 of the authoritative execution
+  plan. Strengthened the M4, M5, and M8 exit gates and corrected the plan header that still
+  said implementation had not started.
+- Updated `docs/00_CONTEXT.md`, `tasks/active.md`, and this handoff to record the review and
+  the pre-M4 contract decisions. No production source or test code changed.
 - Synced the context documents to reality in `1b8e992`. M2 was already merged into
   `develop` by `f1c0abd`, but `tasks/active.md`, `docs/00_CONTEXT.md`, and both the
   progress record and immediate-next-action sections of the execution plan still described
@@ -132,43 +146,52 @@
 
 ## Current Status
 
-M3 is complete and merged into `develop` by `d1faa1d`. The generic OpenCV vision foundation
-implements 43 of the 66 catalog definitions, both reference grid flows run end to end on
-those tools alone, and the full gate is green on `develop` after a clean rebuild.
-
-`develop` is ahead of `origin/develop` by the whole milestone and has not been pushed.
+M3 remains complete and merged into `develop` by `d1faa1d`: 43 of 66 definitions execute,
+and both reference grid flows run end to end. The current branch contains documentation
+only. It makes the distinction between product-neutral architectural direction and
+sample-driven validation explicit, and turns the review findings into gates before M4,
+M5, M8, and the UI milestones depend on the affected contracts.
 
 ## Next Actions
 
-1. Start M4, the generic model and recognition foundation: `.nvmodel` integrity and
+1. Review and commit the documentation-only branch when approved.
+2. Choose the typed collection/multi-value execution model before starting Text Consensus,
+   recognition crop collections, barcode lists, or M5 fan-in tools.
+3. Resolve the transform-chain findings with non-identity tests before alignment results
+   become a production dependency.
+4. Start M4, the generic model and recognition foundation: `.nvmodel` integrity and
    manifest validation in C++, a model registry with instance-owned sessions, the native
    ONNX Runtime CPU backend, detector and recognizer pre- and post-processing, CTC
    decoding, configurable orientation search, and the nine Recognition and Text tools.
-2. Resolve the external model provenance and license question first. M4 is the milestone
+5. Resolve the external model provenance and license question first. M4 is the milestone
    that would otherwise want to import the Wire Marker models, and no license evidence has
    been found beside them.
-3. Push `develop` when you are ready; this session did not push.
-4. Run the Linux native headless build, now carried as an M11 release gate. WSL Ubuntu here
+6. Push `develop` when you are ready; this session did not push.
+7. Run the Linux native headless build, now carried as an M11 release gate. WSL Ubuntu here
    has g++ 13.3 but neither `cmake` nor OpenCV, and `sudo` needs a password, so the
    packages could not be installed non-interactively:
    `wsl -d Ubuntu -- sudo apt-get install -y cmake libopencv-dev`, then
    `wsl -d Ubuntu -- bash -lc "cd /mnt/d/src/ai-workspace/06_Repositories/NTech && cmake -S . -B artifacts/native/linux-host -DCMAKE_BUILD_TYPE=Release -DNVISION_BUILD_TESTS=ON && cmake --build artifacts/native/linux-host && ctest --test-dir artifacts/native/linux-host"`.
-5. Keep the M0 asset provenance gap explicit and run the full repository check after each
+8. Keep the M0 asset provenance gap explicit and run the full repository check after each
    coherent behavior slice.
-6. Decide whether to renormalize repository line endings as a separate commit.
+9. Decide whether to renormalize repository line endings as a separate commit.
 
 ## Warnings
 
-- The catalog declares threshold modes `truncate` and `to-zero` on a tool whose output
-  port is a mask. Both keep source intensity, so their result is an image rather than a
-  mask, and the tool refuses them. The definition needs splitting or a version bump; it is
-  recorded as an S6 item rather than silently widening what a mask means.
+- The current catalog accepts multiple graph connections for selected ports, but runtime
+  `PortValueMap` still represents one value per port. Do not implement M4 consensus or M5
+  fan-in by overwriting values; select the collection model first.
+- ECC, resize, affine, and homography validation need non-identity coordinate tests before
+  their transform semantics are treated as production-proven.
+- Evidence currently records packed pixels without enough media metadata for an independent
+  consumer to reconstruct the image. Follow the evolution guide before exposing evidence
+  through M8 boundaries.
 - `PixelFormat` gained one Bayer pattern, `bayer_gr8`, because that is the only one the
   catalog and the reference application need. The other three 8-bit patterns are absent on
   purpose and should be added with the tool or parameter that requires them.
 - `PortValue` covers the port data kinds that have a native representation today.
-  `point_grid_model`, `point_grid_result`, `overlay`, `evidence`, and `any_metadata` have
-  no factory yet and gain one with the slice that needs them.
+  `point_grid_result`, text/barcode types, controlled metadata, and collection transport
+  still need representations in the milestones that first execute them.
 - Feature matching is tested for the contracts it must keep rather than for a number of
   matches, because how many correspondences a detector finds on a synthetic fixture is not
   a property worth pinning. The homography test builds its correspondences by hand so its

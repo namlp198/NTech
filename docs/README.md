@@ -29,6 +29,11 @@ This index is the source of truth for the NVision documentation set.
 - [AI-assisted workflow](README_AI_WORKFLOW.md)
 - [Architecture decisions](decisions/)
 
+## Active Execution Guidance
+
+- [Generic Vision Tool Platform execution plan](implementation/16_GENERIC_VISION_TOOL_PLATFORM_EXECUTION_PLAN.md)
+- [Generic Tool Catalog evolution guide](implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md)
+
 Future device, protocol, testing, deployment, and SDK documents are added only when their implementation phase begins.
 
 ## Documentation Rules
