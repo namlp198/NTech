@@ -2,8 +2,8 @@
 
 ## Current Task
 
-Generic Tool Catalog generalization audit — documented on
-`codex/tool-catalog-evolution-guide`
+Generic Tool Catalog generalization audit — complete and merged into `develop` by
+`22398b6`
 
 ## Goal
 

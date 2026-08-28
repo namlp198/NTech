@@ -6,8 +6,9 @@
 
 ## Branch
 
-`codex/tool-catalog-evolution-guide`, created from clean `develop` at `7d8ec88`.
-`develop` remains ahead of `origin/develop` by 26 commits and has not been pushed.
+`develop`. The documentation work was committed as `45af6e2` on
+`codex/tool-catalog-evolution-guide` and merged by `22398b6`.
+`develop` remains ahead of `origin/develop` by 28 commits and has not been pushed.
 
 ## Completed
 
@@ -147,34 +148,34 @@
 ## Current Status
 
 M3 remains complete and merged into `develop` by `d1faa1d`: 43 of 66 definitions execute,
-and both reference grid flows run end to end. The current branch contains documentation
-only. It makes the distinction between product-neutral architectural direction and
-sample-driven validation explicit, and turns the review findings into gates before M4,
-M5, M8, and the UI milestones depend on the affected contracts.
+and both reference grid flows run end to end. The Tool Catalog evolution guidance is now
+merged into `develop` by `22398b6`. It makes the distinction between product-neutral
+architectural direction and sample-driven validation explicit, and turns the review
+findings into gates before M4, M5, M8, and the UI milestones depend on the affected
+contracts.
 
 ## Next Actions
 
-1. Review and commit the documentation-only branch when approved.
-2. Choose the typed collection/multi-value execution model before starting Text Consensus,
+1. Choose the typed collection/multi-value execution model before starting Text Consensus,
    recognition crop collections, barcode lists, or M5 fan-in tools.
-3. Resolve the transform-chain findings with non-identity tests before alignment results
+2. Resolve the transform-chain findings with non-identity tests before alignment results
    become a production dependency.
-4. Start M4, the generic model and recognition foundation: `.nvmodel` integrity and
+3. Start M4, the generic model and recognition foundation: `.nvmodel` integrity and
    manifest validation in C++, a model registry with instance-owned sessions, the native
    ONNX Runtime CPU backend, detector and recognizer pre- and post-processing, CTC
    decoding, configurable orientation search, and the nine Recognition and Text tools.
-5. Resolve the external model provenance and license question first. M4 is the milestone
+4. Resolve the external model provenance and license question first. M4 is the milestone
    that would otherwise want to import the Wire Marker models, and no license evidence has
    been found beside them.
-6. Push `develop` when you are ready; this session did not push.
-7. Run the Linux native headless build, now carried as an M11 release gate. WSL Ubuntu here
+5. Push `develop` when you are ready; this session did not push.
+6. Run the Linux native headless build, now carried as an M11 release gate. WSL Ubuntu here
    has g++ 13.3 but neither `cmake` nor OpenCV, and `sudo` needs a password, so the
    packages could not be installed non-interactively:
    `wsl -d Ubuntu -- sudo apt-get install -y cmake libopencv-dev`, then
    `wsl -d Ubuntu -- bash -lc "cd /mnt/d/src/ai-workspace/06_Repositories/NTech && cmake -S . -B artifacts/native/linux-host -DCMAKE_BUILD_TYPE=Release -DNVISION_BUILD_TESTS=ON && cmake --build artifacts/native/linux-host && ctest --test-dir artifacts/native/linux-host"`.
-8. Keep the M0 asset provenance gap explicit and run the full repository check after each
+7. Keep the M0 asset provenance gap explicit and run the full repository check after each
    coherent behavior slice.
-9. Decide whether to renormalize repository line endings as a separate commit.
+8. Decide whether to renormalize repository line endings as a separate commit.
 
 ## Warnings
 
