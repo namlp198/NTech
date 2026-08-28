@@ -285,7 +285,9 @@ void register_processing_tools(ToolRegistry& registry) {
         category,
         {input_port("image", core::PortDataType::image_view),
          output_port("image", core::PortDataType::image_view)},
-        {integer_parameter("channel", 0, 0.0, 3.0)});
+        // A three-channel image has channels 0 through 2, so the schema bounds the index
+        // rather than leaving the tool to refuse a value the catalog said was allowed.
+        {integer_parameter("channel", 0, 0.0, 2.0)});
 
     // Cropping produces an explicit view-to-source transform, never an implicit one.
     add(registry,
@@ -342,13 +344,16 @@ void register_processing_tools(ToolRegistry& registry) {
          output_port("image", core::PortDataType::image_view)},
         {float_parameter("strength", 1.0, 0.0, 1e3)});
 
+    // Only the modes that actually produce a mask are offered. Truncating or zeroing keeps
+    // source intensity, which is an image rather than the mask this tool declares, so
+    // those belong to a tool with an image output rather than to this enumeration.
     add(registry,
         "nvision.tool.processing.threshold",
         "Threshold",
         category,
         {input_port("image", core::PortDataType::image_view), output_port("mask", core::PortDataType::mask)},
         {float_parameter("value", 128.0, 0.0, 65535.0),
-         enum_parameter("mode", {"binary", "binary-inverted", "truncate", "to-zero"}, 0U)});
+         enum_parameter("mode", {"binary", "binary-inverted"}, 0U)});
 
     add(registry,
         "nvision.tool.processing.adaptive-threshold",

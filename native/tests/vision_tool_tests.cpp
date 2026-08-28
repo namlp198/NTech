@@ -266,12 +266,19 @@ void channel_extract_selects_one_plane_and_bounds_its_index() {
     NVISION_REQUIRE(plane.row(0U)[0] == 2U);
     NVISION_REQUIRE(plane.row(0U)[1] == 5U);
 
-    NVISION_REQUIRE(
-        refusal(harness.run(
+    // A three-channel image has channels 0 through 2, and the schema says so, so an index
+    // the image cannot supply is refused when the node is bound rather than when it runs.
+    bool rejected_by_schema = false;
+    try {
+        static_cast<void>(harness.run(
             "nvision.tool.processing.channel-extract",
             "node.out-of-range",
             image_input(color),
-            configure({integer("channel", 3)}))) == ResultCode("CHANNEL_OUT_OF_RANGE"));
+            configure({integer("channel", 3)})));
+    } catch (const std::invalid_argument&) {
+        rejected_by_schema = true;
+    }
+    NVISION_REQUIRE(rejected_by_schema);
     NVISION_REQUIRE(
         refusal(harness.run(
             "nvision.tool.processing.channel-extract",

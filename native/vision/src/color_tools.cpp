@@ -81,14 +81,10 @@ public:
                 "channel extract requires a three-channel image"));
         }
 
+        // The schema bounds the index to the three channels that exist, so a value the
+        // image cannot supply never reaches here.
         const auto channel = static_cast<int>(
             context.parameter(ParameterKey("channel")).integer_value());
-        if (channel > 2) {
-            return ToolExecutionOutcome::failed(configuration_error(
-                "CHANNEL_OUT_OF_RANGE",
-                "the input image has three channels, so channel " + std::to_string(channel) +
-                    " does not exist"));
-        }
 
         cv::Mat extracted;
         cv::extractChannel(interop::borrow(image), extracted, channel);

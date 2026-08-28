@@ -333,6 +333,32 @@ if(NVISION_BUILD_TESTS)
 
     add_test(NAME nvision_vision_tool_tests COMMAND nvision_vision_tool_tests)
 
+    add_executable(nvision_reference_pipeline_tests
+        tests/reference_pipeline_tests.cpp)
+
+    target_link_libraries(nvision_reference_pipeline_tests PRIVATE nvision_vision)
+    target_compile_features(nvision_reference_pipeline_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_reference_pipeline_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_reference_pipeline_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_reference_pipeline_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    if(WIN32)
+        add_custom_command(TARGET nvision_reference_pipeline_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_RUNTIME_DLLS:nvision_reference_pipeline_tests>
+                $<TARGET_FILE_DIR:nvision_reference_pipeline_tests>
+            COMMAND_EXPAND_LISTS)
+    endif()
+
+    add_test(NAME nvision_reference_pipeline_tests COMMAND nvision_reference_pipeline_tests)
+
     add_executable(nvision_public_contract_tests
         tests/public_contract_tests.cpp)
 

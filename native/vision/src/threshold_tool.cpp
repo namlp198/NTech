@@ -31,22 +31,11 @@ public:
                 "threshold requires a single-channel image; convert colour first"));
         }
 
+        // The definition offers only the two modes that produce a mask, so the schema has
+        // already rejected anything else before the tool runs.
         const std::string mode =
             context.parameter(ParameterKey("mode")).enumeration_value().value();
-        int operation = 0;
-        if (mode == "binary") {
-            operation = cv::THRESH_BINARY;
-        } else if (mode == "binary-inverted") {
-            operation = cv::THRESH_BINARY_INV;
-        } else {
-            // The catalog also declares truncate and to-zero. Both keep source intensity,
-            // so their result is an image rather than a mask, and this tool declares a
-            // mask output. Refusing is honest; the definition needs splitting or a
-            // version bump before those modes can be offered.
-            return ToolExecutionOutcome::failed(configuration_error(
-                "UNSUPPORTED_THRESHOLD_MODE",
-                "threshold mode " + mode + " produces intensity rather than a mask"));
-        }
+        const int operation = mode == "binary-inverted" ? cv::THRESH_BINARY_INV : cv::THRESH_BINARY;
 
         const double value = context.parameter(ParameterKey("value")).floating_point_value();
 

@@ -590,24 +590,16 @@ void threshold_produces_a_computed_mask_that_owns_its_pixels() {
     const ImageView retained = mask;
     NVISION_REQUIRE(retained.row(2U)[0] == 255U);
 
-    // A mode the catalog declares but that cannot produce a mask is refused, not guessed.
-    PortValueMap truncate_inputs;
-    truncate_inputs.set(PortKey("image"), PortValue::image(image));
-    const ToolExecutionContext truncate_context(
-        binding.definition(),
-        ExecutionSessionId("session.01"),
-        WorkflowNodeId("node.threshold"),
-        std::move(truncate_inputs),
-        ParameterBinding::resolve(
+    // Threshold declares only the modes that produce a mask. Truncating or zeroing keeps
+    // source intensity, which is an image, so those are not on the enumeration at all and
+    // a node asking for one is refused when it binds rather than when it runs.
+    NVISION_REQUIRE(rejects_invalid_argument([&binding] {
+        static_cast<void>(ParameterBinding::resolve(
             *binding.definition(),
             NodeConfiguration({NodeParameterAssignment(
                 ParameterKey("mode"),
                 ParameterValue::enumeration(nvision::core::EnumOptionKey("truncate")))})));
-    const ToolExecutionOutcome refused =
-        execute_tool(*binding.implementation(), truncate_context);
-    NVISION_REQUIRE(!refused.is_success());
-    NVISION_REQUIRE(
-        refused.errors().front().code() == ResultCode("UNSUPPORTED_THRESHOLD_MODE"));
+    }));
 }
 
 }  // namespace
