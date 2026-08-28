@@ -60,6 +60,19 @@ text, clustering and structure, and logic and results. Both reference inspection
 validate against that single catalog at contract level, with application variation
 expressed as parameters rather than as application-specific tools.
 
+M3 is complete: the generic OpenCV vision foundation. Native workflow execution turns a
+resolved tool definition into an invocable implementation through typed port values, a
+validated execution context, cancellation and budget, and an implementation registry keyed
+by definition identity. A computed raster is now its own contract, distinct from a captured
+Frame, so a derived image can never be mistaken for a capture.
+
+43 of the 66 catalog definitions execute against real OpenCV: the whole Image Processing,
+Location and Geometry, and Measurement groups, the clustering and point-grid group, and the
+overlay and evidence primitives. Both reference grid flows run end to end as a chain of
+ordinary catalog tools, with no application-specific tool in the catalog and no reference
+application engine class. OpenCV stays a private dependency of the vision library, enforced
+by a test that scans every public include root.
+
 The first executable inspection path now runs deterministic File Camera frames through a compiled typed Workflow, real ONNX Runtime CPU inference, immutable result finalization, image evidence storage, and SQLite history. It proves the reference platform path and error semantics; the included synthetic model and PGM fixtures are engineering regression assets, not production inspection content.
 
 ## Read First

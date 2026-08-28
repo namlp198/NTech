@@ -2,7 +2,7 @@
 
 ## Current Task
 
-M3 — Generic OpenCV Vision Foundation — Complete except the Linux build check
+M3 — Generic OpenCV Vision Foundation — Complete and merged into `develop`
 
 ## Goal
 
@@ -74,11 +74,14 @@ Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to 
 
 ## Next Steps
 
-1. Run the Linux native headless build once WSL has `cmake` and `libopencv-dev`. It is the
-   last unchecked M3 exit-gate item and needs a package install this session could not
-   perform.
-2. Review and merge the branch, then start M4, the generic model and recognition
-   foundation.
+1. Start M4, the generic model and recognition foundation: `.nvmodel` integrity and
+   manifest validation in C++, a model registry with instance-owned sessions, the native
+   ONNX Runtime CPU backend, detector and recognizer pre- and post-processing, CTC
+   decoding, configurable orientation search, and the nine Recognition and Text tools.
+2. Resolve the external model provenance and license question before M4 imports anything.
+   It is the milestone that would otherwise want those assets.
+3. Run the Linux native headless build once WSL has `cmake` and `libopencv-dev`. It is
+   carried as an M11 release gate rather than an open M3 item.
 
 ## Acceptance Criteria
 
@@ -95,7 +98,7 @@ Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to 
 - [x] Clustering and point-grid tools are implemented and tested, except point grid inspect.
 - [x] Overlay and evidence tools are implemented and tested.
 - [x] Pin Insert source algorithms are representable without a Pin Insert engine class.
-- [ ] The Linux native headless build compiles the vision library.
+- [ ] The Linux native headless build compiles the vision library. Carried to M11.
 
 ## Verification Baseline
 
@@ -110,7 +113,8 @@ CTests, 119 .NET tests, and a clean `dotnet format --verify-no-changes`.
   it would have no producer to check against. Both are M5 items, and the coverage test
   asserts the gap rather than leaving it silent.
 
-- The Linux native headless build has not been run. WSL Ubuntu on this machine has g++ 13.3
+- The Linux native headless build has not been run, and is carried to M11 as a release
+  gate rather than kept as an open M3 item. WSL Ubuntu on this machine has g++ 13.3
   but neither `cmake` nor OpenCV, and `sudo` requires a password, so the packages could not
   be installed non-interactively. What was checked instead: no native source outside the C
   ABI export macro uses a Windows-only header or construct, that macro already has a GCC

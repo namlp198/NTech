@@ -47,27 +47,30 @@ survives an unresolved tool, typed acyclic graphs, reusable subworkflows, and th
 66-tool generic catalog. Both reference graphs bind against that catalog with no
 application-specific tool.
 
-The current focus is M3, the generic OpenCV vision foundation. Its first slice is complete:
-`nvision_workflow` makes a resolved tool definition invocable through typed port values, a
-validated execution context, cancellation and budget, and an implementation registry keyed
-by the same stable ID and exact version, while `nvision_vision` carries the first real
-implementation. A catalogued definition without an implementation binds as not_implemented,
-so coverage stays measurable, and it currently stands at 43 of 66 with Image Processing,
-Location and Geometry, Measurement, clustering, and evidence complete. The Pin Insert
-training and inspection flows run end to end on those tools alone, with no application
-tool in the catalog. The one exit-gate item still open is the Linux headless build. The native area boundary was also brought in line
-with the plan: the tool platform contracts moved from `nvision::core` to
-`nvision::workflow` under ADR-0006, leaving core as the data vocabulary and workflow as the
-tool platform plus execution. The remaining tool groups follow on top of that foundation. Keep the M0 provenance gap explicit, use the managed P2 path as a behavior
+M3, the generic OpenCV vision foundation, is complete. `nvision_workflow` makes a resolved
+tool definition invocable through typed port values, a validated execution context,
+cancellation and budget, and an implementation registry keyed by definition identity.
+`nvision_vision` implements 43 of the 66 catalog definitions: the whole Image Processing,
+Location and Geometry, and Measurement groups, the clustering and point-grid group, and the
+overlay and evidence primitives. Both reference grid flows run end to end on those tools
+alone, with no application-specific tool in the catalog. A definition without an
+implementation binds as not_implemented, so coverage stays measurable, and the two
+deliberate gaps are asserted rather than left silent.
+
+The next focus is M4, the generic model and recognition foundation: `.nvmodel` integrity,
+a model registry with instance-owned sessions, the native ONNX Runtime CPU backend, text
+detection and recognition pre- and post-processing, CTC decoding, and the Recognition and
+Text tools. Keep the M0 provenance gap explicit, use the managed P2 path as a behavior
 oracle, and do not expand managed hot-path behavior.
 
 ## Verification Baseline
 
 `scripts/check.ps1` builds and tests the native and managed planes, then verifies
-formatting. The current baseline is 10 native CTests plus 119 .NET tests with a clean
+formatting. The current baseline is 13 native CTests plus 119 .NET tests with a clean
 `dotnet format --verify-no-changes`. The managed half requires .NET SDK 10.0.200 as pinned
 by `global.json`; the scripts prefer the repository-local `artifacts/dotnet/` installation,
-which is how that pin is satisfied on this machine.
+which is how that pin is satisfied on this machine. The native vision library requires
+OpenCV 4.x, located through the standard `OpenCV_DIR` environment variable.
 
 ## Notes for AI
 

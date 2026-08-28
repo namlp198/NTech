@@ -1229,7 +1229,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | M0 — Baseline and integration | In progress | Integration/check green; external asset license provenance remains open |
 | M1 — Native data contracts | Complete and merged | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results; merge `d01e54c` |
 | M2 — Tool definition/catalog | Complete and merged | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` nodes/subworkflows; `bc58e5a` typed graphs; `a777314` catalog and reference graphs; merge `f1c0abd` |
-| M3 — Generic OpenCV foundation | In progress | `861ba0f` execution foundation; `d73f4d8` core/workflow boundary per ADR-0006; `5475413` computed image ownership per ADR-0007; `fe432d4` OpenCV substrate; `43edcd8` image processing; `9f2c0d3` geometry contracts; `ab9b17c` location and geometry; `a4c2108` measurement; `4b72161` clustering and point grid; `462b558` overlay and evidence; `6df1505` exit gate and reference pipeline; 43 of 66 definitions implemented; Linux headless build still to run |
+| M3 — Generic OpenCV foundation | Complete | `861ba0f` execution foundation; `d73f4d8` core/workflow boundary per ADR-0006; `5475413` computed image ownership per ADR-0007; `fe432d4` OpenCV substrate; `43edcd8` image processing; `9f2c0d3` geometry contracts; `ab9b17c` location and geometry; `a4c2108` measurement; `4b72161` clustering and point grid; `462b558` overlay and evidence; `6df1505` exit gate and reference pipeline. The Linux headless build is carried to M11 |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
 | M6 — Wire Marker headless parity | Not started | |
@@ -1243,31 +1243,34 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 
 ## 20. Immediate next action
 
-M2 is complete and merged into `develop` by `f1c0abd`. The milestone delivered
-unresolved-node preservation and subworkflows (`00f86c6`), typed connections and graphs
-(`bc58e5a`), and the initial 66-tool generic catalog with both validated reference graphs
-(`a777314`). Every Section 15 exit gate for M2 is met.
+M3 is complete. The generic OpenCV vision foundation implements 43 of the 66 catalog
+definitions: the whole Image Processing, Location and Geometry, and Measurement groups, the
+clustering and point-grid group, and the overlay and evidence primitives. Both reference
+grid flows of Section 12 run end to end as a chain of ordinary catalog tools, with no
+application-specific tool in the catalog and no Pin Insert engine class.
 
-M3, the generic OpenCV vision foundation, is the current milestone. Its first slice is
-complete: `nvision_workflow` turns a resolved `ToolTypeDefinition` into an invocable
-implementation through typed port values, a validated execution context, cancellation and
-budget, and an implementation registry keyed by definition identity, while `nvision_vision`
-carries the first real implementation. The Section 13 area ownership above is now the
-actual native layout; ADR-0006 records the move of the tool platform contracts out of
-`core`. Concrete image-processing, geometry, measurement, and clustering tools follow in
-later slices.
+Two definitions are deliberately unimplemented and asserted as gaps rather than left
+silent. Point grid inspect receives its model as a versioned resource rather than through a
+port, so it needs the resource binding that M5 provides, and its `point_grid_result`
+contract is unwritten for the same reason. The remaining 22 definitions belong to M4
+(Recognition and Text) and M5 (Acquisition, Logic and Results).
 
-OpenCV 4.14.0 is installed and verified against the real build. Discovery uses the standard
-`OpenCV_DIR` environment variable, so no path to an OpenCV installation is stored in this
-repository and `scripts/native-build.ps1` enables `NVISION_ENABLE_OPENCV` whenever that
-variable is set. A machine without it still builds and passes the gate, without the
-OpenCV-backed tools; when OpenCV becomes a required dependency of `nvision_vision` rather
-than an opt-in one is still an open decision.
+One M3 exit-gate item is carried rather than closed. The Linux native headless build has not
+been run: the WSL installation on the development machine has a compiler but neither CMake
+nor OpenCV, and installing them needs an interactive password. A portability audit was done
+in its place and found nothing Windows-specific outside the C ABI export macro, which
+already has a GCC branch. M11 owns the Linux headless build as a release gate, and that is
+where the item now sits.
 
-Continue while keeping the M0 provenance gap explicit, and keep every slice generic so both
-reference workflows are proven without application vocabulary in production Core types.
+M4, the generic model and recognition foundation, is next: `.nvmodel` integrity and manifest
+validation in C++, a model registry with instance-owned sessions, the native ONNX Runtime
+CPU backend, detector and recognizer pre- and post-processing, CTC decoding, configurable
+orientation search, and the nine Recognition and Text tools.
 
-The full repository gate now runs on this machine. `scripts/check.ps1` resolves .NET SDK
-10.0.200 from the repository-local `artifacts/dotnet/` installation, which satisfies the
-`global.json` pin even though the machine-wide SDKs are 9.0.302 and 10.0.400. Record both
-the native and the managed halves of the gate from now on.
+Keep the M0 provenance gap explicit. The external Wire Marker models and the Pin Insert
+assets still have no license or provenance evidence, and M4 is the milestone that would
+otherwise want to import them.
+
+The full repository gate runs on this machine. `scripts/check.ps1` resolves .NET SDK
+10.0.200 from the repository-local `artifacts/dotnet/` installation and OpenCV 4.14.0 from
+the `OpenCV_DIR` environment variable. Record both halves of the gate.
