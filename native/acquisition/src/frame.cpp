@@ -57,9 +57,14 @@ std::size_t bytes_per_pixel(const PixelFormat format) {
         return 1U;
     case PixelFormat::mono16:
         return 2U;
+    case PixelFormat::bayer_gr8:
+        return 1U;
     case PixelFormat::rgb8:
     case PixelFormat::bgr8:
+    case PixelFormat::hsv8:
         return 3U;
+    case PixelFormat::mono_float32:
+        return 4U;
     }
 
     throw std::invalid_argument("pixel format is unsupported");

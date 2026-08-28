@@ -1,7 +1,12 @@
 #include "nvision/acquisition/image_view.hpp"
 #include "nvision/core/data_type.hpp"
+#include "nvision/core/detection.hpp"
+#include "nvision/core/feature.hpp"
 #include "nvision/core/geometry.hpp"
 #include "nvision/core/inspection_outcome.hpp"
+#include "nvision/core/measurement.hpp"
+#include "nvision/core/overlay.hpp"
+#include "nvision/core/point_grid.hpp"
 #include "nvision/core/resource_reference.hpp"
 #include "nvision/core/semantic_version.hpp"
 
@@ -49,6 +54,8 @@ using nvision::acquisition::FrameBuffer;
 using nvision::acquisition::FrameLease;
 using nvision::acquisition::FrameMetadata;
 using nvision::acquisition::FrameStatus;
+using nvision::acquisition::Image;
+using nvision::acquisition::ImageLease;
 using nvision::acquisition::ImageView;
 using nvision::acquisition::PixelFormat;
 using nvision::acquisition::TimestampQuality;
@@ -389,6 +396,253 @@ void image_views_define_frame_specific_coordinate_transforms_and_bounds() {
     }));
 }
 
+void computed_images_own_their_pixels_without_claiming_a_capture() {
+    // Three 2x2 mono8 rows with padding, so stride handling is exercised rather than
+    // assumed to equal the packed row width.
+    std::vector<std::uint8_t> pixels{1U, 2U, 9U, 3U, 4U, 9U};
+    ImageLease image = std::make_shared<const Image>(
+        nvision::core::ImageId("node.blur.image"), 2U, 2U, 3U, PixelFormat::mono8, pixels);
+    std::weak_ptr<const Image> observed = image;
+
+    {
+        const ImageView view(image);
+        image.reset();
+
+        // The view keeps the computed raster alive exactly as it keeps a frame alive.
+        NVISION_REQUIRE(!observed.expired());
+        NVISION_REQUIRE(view.width() == 2U);
+        NVISION_REQUIRE(view.height() == 2U);
+        NVISION_REQUIRE(view.row(0U)[0] == 1U);
+        NVISION_REQUIRE(view.row(1U)[1] == 4U);
+
+        // A computed raster is never presented as something a camera delivered.
+        NVISION_REQUIRE(!view.source().is_captured());
+        NVISION_REQUIRE(view.frame() == nullptr);
+        NVISION_REQUIRE(view.source().image() != nullptr);
+        NVISION_REQUIRE(view.coordinate_space().value() == "nvision.image.node.blur.image.image-pixel");
+
+        const ImageView cropped = view.subview(1U, 0U, 1U, 2U);
+        NVISION_REQUIRE(cropped.row(0U)[0] == 2U);
+        NVISION_REQUIRE(cropped.row(1U)[0] == 4U);
+        NVISION_REQUIRE(cropped.coordinate_space() != view.coordinate_space());
+        NVISION_REQUIRE(
+            cropped.view_to_source().target_space() == view.source_coordinate_space());
+    }
+
+    NVISION_REQUIRE(observed.expired());
+
+    NVISION_REQUIRE(rejects<std::invalid_argument>([] {
+        static_cast<void>(Image(
+            nvision::core::ImageId("node.blur.image"),
+            2U,
+            2U,
+            1U,
+            PixelFormat::mono8,
+            std::vector<std::uint8_t>(4U)));
+    }));
+    NVISION_REQUIRE(rejects<std::invalid_argument>([] {
+        static_cast<void>(Image(
+            nvision::core::ImageId("node.blur.image"),
+            2U,
+            2U,
+            2U,
+            PixelFormat::mono8,
+            std::vector<std::uint8_t>(3U)));
+    }));
+    NVISION_REQUIRE(rejects<std::invalid_argument>([] {
+        static_cast<void>(ImageView(ImageLease{}));
+    }));
+}
+
+void contours_accept_the_degenerate_shapes_a_detector_really_finds() {
+    const CoordinateSpaceId space("nvision.image.node.contours.image-pixel");
+    const Point2D first(space, 1.0, 1.0);
+    const Point2D second(space, 4.0, 1.0);
+    const Point2D third(space, 4.0, 5.0);
+
+    // A polygon must enclose an area; a contour must not, because a one-pixel region and
+    // a thin one are real results a detector has to be able to report.
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(nvision::core::Polygon({first, second, Point2D(space, 7.0, 1.0)}));
+    }));
+    const nvision::core::Contour single({first});
+    NVISION_REQUIRE(single.points().size() == 1U);
+    NVISION_REQUIRE(single.closed());
+    NVISION_REQUIRE(single.coordinate_space() == space);
+
+    const nvision::core::Contour open({first, second, third}, false, std::size_t{2U});
+    NVISION_REQUIRE(!open.closed());
+    NVISION_REQUIRE(open.parent().has_value() && *open.parent() == 2U);
+
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        static_cast<void>(nvision::core::Contour({}));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(nvision::core::Contour(
+            {first, Point2D(CoordinateSpaceId("nvision.image.other.image-pixel"), 0.0, 0.0)}));
+    }));
+}
+
+void measurements_name_their_unit_and_the_space_they_were_taken_in() {
+    using nvision::core::Measurement;
+    using nvision::core::MeasurementKey;
+    using nvision::core::MeasurementUnit;
+    const CoordinateSpaceId space("nvision.image.node.blobs.image-pixel");
+
+    const Measurement area(MeasurementKey("blob.area"), 42.0, MeasurementUnit::square_pixel, space);
+    NVISION_REQUIRE(area.is_spatial());
+    NVISION_REQUIRE(area.coordinate_space().has_value());
+
+    const Measurement ratio(MeasurementKey("homography.inlier-ratio"), 0.8, MeasurementUnit::ratio);
+    NVISION_REQUIRE(!ratio.is_spatial());
+    NVISION_REQUIRE(!ratio.coordinate_space().has_value());
+
+    // A pixel distance without the raster it was measured in is not comparable, and a pure
+    // number has no space to declare, so neither combination is allowed.
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        static_cast<void>(Measurement(MeasurementKey("gap"), 3.0, MeasurementUnit::pixel));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(
+            Measurement(MeasurementKey("score"), 0.5, MeasurementUnit::ratio, space));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        static_cast<void>(Measurement(MeasurementKey("objects"), 2.5, MeasurementUnit::count));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(
+            Measurement(MeasurementKey("area"), -1.0, MeasurementUnit::square_pixel, space));
+    }));
+}
+
+void detections_stay_consistent_with_the_region_they_describe() {
+    using nvision::core::Detection;
+    const CoordinateSpaceId space("nvision.image.node.components.image-pixel");
+    const AxisAlignedRectangle bounds(space, 2.0, 3.0, 4.0, 5.0);
+
+    const Detection detection(bounds, Point2D(space, 4.0, 5.0), 12.0);
+    NVISION_REQUIRE(detection.coordinate_space() == space);
+    NVISION_REQUIRE(detection.area() == 12.0);
+    NVISION_REQUIRE(!detection.score().has_value());
+
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(Detection(
+            bounds,
+            Point2D(CoordinateSpaceId("nvision.image.other.image-pixel"), 4.0, 5.0),
+            12.0));
+    }));
+    // A selected region cannot cover more than the box that encloses it.
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(Detection(bounds, Point2D(space, 4.0, 5.0), 21.0));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(Detection(bounds, Point2D(space, 4.0, 5.0), -1.0));
+    }));
+}
+
+void match_sets_relate_two_spaces_and_resolve_their_own_point_pairs() {
+    using nvision::core::Feature;
+    using nvision::core::FeatureMatch;
+    using nvision::core::FeatureSet;
+    using nvision::core::MatchSet;
+    const CoordinateSpaceId query_space("nvision.image.node.live.image-pixel");
+    const CoordinateSpaceId reference_space("nvision.image.node.golden.image-pixel");
+
+    const FeatureSet query(
+        query_space,
+        {Feature(Point2D(query_space, 10.0, 12.0), 3.0, 0.0, 0.9),
+         Feature(Point2D(query_space, 30.0, 40.0), 3.0, 90.0, 0.7)});
+    const FeatureSet reference(
+        reference_space,
+        {Feature(Point2D(reference_space, 11.0, 13.0), 3.0, 0.0, 0.8)});
+
+    const MatchSet matches(query, reference, {FeatureMatch(1U, 0U, 0.25)});
+    NVISION_REQUIRE(matches.size() == 1U);
+    // The set resolves its own correspondence, so a later node never needs the images.
+    NVISION_REQUIRE(matches.query_point(0U).x() == 30.0);
+    NVISION_REQUIRE(matches.reference_point(0U).x() == 11.0);
+
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(MatchSet(query, reference, {FeatureMatch(2U, 0U, 0.25)}));
+    }));
+    // Matching a raster against itself would yield an identity that looks like alignment.
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(MatchSet(query, query, {}));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(FeatureSet(
+            query_space, {Feature(Point2D(reference_space, 1.0, 1.0), 3.0, 0.0, 0.5)}));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(Feature(Point2D(query_space, 1.0, 1.0), 0.0, 0.0, 0.5));
+    }));
+}
+
+void a_point_grid_model_records_a_layout_and_nothing_about_its_meaning() {
+    using nvision::core::PointGridModel;
+    const CoordinateSpaceId space("nvision.image.node.golden.image-pixel");
+
+    const PointGridModel model(
+        space,
+        {{Point2D(space, 0.0, 0.0), Point2D(space, 10.0, 0.0)},
+         {Point2D(space, 0.0, 10.0), Point2D(space, 10.0, 10.0), Point2D(space, 20.0, 10.0)}});
+    NVISION_REQUIRE(model.row_count() == 2U);
+    NVISION_REQUIRE(model.point_count() == 5U);
+    // Flattening walks rows in order, then columns within each row.
+    NVISION_REQUIRE(model.points().size() == 5U);
+    NVISION_REQUIRE(model.points()[2].y() == 10.0);
+
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(PointGridModel(space, {}));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(PointGridModel(space, {{}}));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(PointGridModel(
+            space,
+            {{Point2D(CoordinateSpaceId("nvision.image.other.image-pixel"), 0.0, 0.0)}}));
+    }));
+}
+
+void an_overlay_is_data_a_renderer_reads_rather_than_something_already_drawn() {
+    using nvision::core::Overlay;
+    using nvision::core::OverlayItem;
+    using nvision::core::OverlayStyle;
+    const CoordinateSpaceId space("nvision.image.node.evidence.image-pixel");
+
+    const OverlayItem marker(
+        Circle(Point2D(space, 12.0, 8.0), 4.0), OverlayStyle(255U, 0U, 0U, 2.0), "pin 3");
+    NVISION_REQUIRE(marker.coordinate_space() == space);
+    // The anchor is where a renderer would place the label, derived from the shape itself.
+    NVISION_REQUIRE(marker.anchor().x() == 12.0);
+    NVISION_REQUIRE(marker.label() == "pin 3");
+
+    const Overlay overlay(
+        space,
+        {marker,
+         OverlayItem(
+             AxisAlignedRectangle(space, 0.0, 0.0, 20.0, 20.0), OverlayStyle(0U, 255U, 0U))});
+    NVISION_REQUIRE(overlay.size() == 2U);
+    NVISION_REQUIRE(overlay.items()[1].anchor().x() == 0.0);
+
+    // A shape from another raster would be drawn somewhere it never was.
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(Overlay(
+            space,
+            {OverlayItem(
+                Point2D(CoordinateSpaceId("nvision.image.other.image-pixel"), 1.0, 1.0),
+                OverlayStyle(0U, 0U, 255U))}));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        static_cast<void>(OverlayStyle(0U, 0U, 0U, 0.0));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&] {
+        static_cast<void>(
+            OverlayItem(Point2D(space, 1.0, 1.0), OverlayStyle(0U, 0U, 0U), "line\nbreak"));
+    }));
+}
+
 void resource_references_are_versioned_and_content_addressed() {
     constexpr std::string_view checksum =
         "3bec1d7190001d1dc1f4ef009013b1abafb1d6a7d725840f15c54920e639e313";
@@ -472,6 +726,13 @@ int main() {
     both_reference_workflows_are_expressible_with_generic_port_types();
     image_views_retain_frame_ownership_without_copying_pixels();
     image_views_define_frame_specific_coordinate_transforms_and_bounds();
+    computed_images_own_their_pixels_without_claiming_a_capture();
+    contours_accept_the_degenerate_shapes_a_detector_really_finds();
+    measurements_name_their_unit_and_the_space_they_were_taken_in();
+    detections_stay_consistent_with_the_region_they_describe();
+    match_sets_relate_two_spaces_and_resolve_their_own_point_pairs();
+    a_point_grid_model_records_a_layout_and_nothing_about_its_meaning();
+    an_overlay_is_data_a_renderer_reads_rather_than_something_already_drawn();
     resource_references_are_versioned_and_content_addressed();
     resource_integrity_rejects_noncanonical_or_incomplete_metadata();
     return 0;

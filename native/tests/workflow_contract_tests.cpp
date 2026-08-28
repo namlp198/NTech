@@ -1,6 +1,6 @@
-#include "nvision/core/subworkflow.hpp"
-#include "nvision/core/workflow_graph.hpp"
-#include "nvision/core/workflow_node.hpp"
+#include "nvision/workflow/subworkflow.hpp"
+#include "nvision/workflow/workflow_graph.hpp"
+#include "nvision/workflow/workflow_node.hpp"
 
 #include <cstdlib>
 #include <stdexcept>
@@ -19,35 +19,35 @@ namespace {
 
 using nvision::core::AxisAlignedRectangle;
 using nvision::core::CoordinateSpaceId;
-using nvision::core::DiagnosticSeverity;
-using nvision::core::GeometryKind;
-using nvision::core::NodeConfiguration;
-using nvision::core::NodeParameterAssignment;
-using nvision::core::NodePortAddress;
-using nvision::core::NumericConstraint;
-using nvision::core::ParameterDefinition;
+using nvision::workflow::DiagnosticSeverity;
+using nvision::workflow::GeometryKind;
+using nvision::workflow::NodeConfiguration;
+using nvision::workflow::NodeParameterAssignment;
+using nvision::workflow::NodePortAddress;
+using nvision::workflow::NumericConstraint;
+using nvision::workflow::ParameterDefinition;
 using nvision::core::ParameterKey;
-using nvision::core::ParameterType;
-using nvision::core::ParameterValue;
+using nvision::workflow::ParameterType;
+using nvision::workflow::ParameterValue;
 using nvision::core::PortDataType;
-using nvision::core::PortDirection;
+using nvision::workflow::PortDirection;
 using nvision::core::PortKey;
 using nvision::core::SemanticVersion;
-using nvision::core::SubworkflowDefinition;
-using nvision::core::SubworkflowParameterPromotion;
-using nvision::core::SubworkflowPortMapping;
-using nvision::core::ToolCatalogMetadata;
-using nvision::core::ToolPortDefinition;
-using nvision::core::ToolRegistry;
-using nvision::core::ToolResolutionStatus;
-using nvision::core::ToolTypeDefinition;
+using nvision::workflow::SubworkflowDefinition;
+using nvision::workflow::SubworkflowParameterPromotion;
+using nvision::workflow::SubworkflowPortMapping;
+using nvision::workflow::ToolCatalogMetadata;
+using nvision::workflow::ToolPortDefinition;
+using nvision::workflow::ToolRegistry;
+using nvision::workflow::ToolResolutionStatus;
+using nvision::workflow::ToolTypeDefinition;
 using nvision::core::ToolTypeId;
-using nvision::core::WorkflowConnection;
-using nvision::core::WorkflowDiagnostic;
-using nvision::core::WorkflowGraph;
-using nvision::core::WorkflowGraphBinding;
-using nvision::core::WorkflowNode;
-using nvision::core::WorkflowNodeBinding;
+using nvision::workflow::WorkflowConnection;
+using nvision::workflow::WorkflowDiagnostic;
+using nvision::workflow::WorkflowGraph;
+using nvision::workflow::WorkflowGraphBinding;
+using nvision::workflow::WorkflowNode;
+using nvision::workflow::WorkflowNodeBinding;
 using nvision::core::WorkflowNodeId;
 
 template <typename Action>
@@ -113,7 +113,7 @@ ToolTypeDefinition crop_definition() {
         ToolCatalogMetadata("Crop", {"Image Processing"}),
         {port("image", PortDirection::input, PortDataType::image_view),
          port("image", PortDirection::output, PortDataType::image_view)},
-        nvision::core::ToolOrigin::built_in(),
+        nvision::workflow::ToolOrigin::built_in(),
         {},
         {roi_parameter()});
 }
@@ -125,7 +125,7 @@ ToolTypeDefinition text_definition() {
         ToolCatalogMetadata("Text Recognition", {"Recognition", "Text"}),
         {port("image", PortDirection::input, PortDataType::image_view),
          port("text", PortDirection::output, PortDataType::text_result)},
-        nvision::core::ToolOrigin::built_in(),
+        nvision::workflow::ToolOrigin::built_in(),
         {},
         {confidence_parameter()});
 }
@@ -148,7 +148,7 @@ ToolTypeDefinition compare_definition() {
         {port("value", PortDirection::input, PortDataType::floating_point),
          port("decision", PortDirection::output, PortDataType::decision),
          port("passed", PortDirection::output, PortDataType::boolean)},
-        nvision::core::ToolOrigin::built_in(),
+        nvision::workflow::ToolOrigin::built_in(),
         {},
         {ParameterDefinition(
             ParameterKey("threshold"),
@@ -487,7 +487,7 @@ SubworkflowDefinition text_region_subworkflow() {
             ToolCatalogMetadata("Region Text", {"Recognition", "Text"}),
             {port("image", PortDirection::input, PortDataType::image_view),
              port("text", PortDirection::output, PortDataType::text_result)},
-            nvision::core::ToolOrigin::built_in(),
+            nvision::workflow::ToolOrigin::built_in(),
             {},
             {roi_parameter(), confidence_parameter()}),
         WorkflowGraph(
@@ -636,7 +636,7 @@ void invalid_subworkflow_structures_are_rejected() {
         ToolCatalogMetadata("Region Text", {"Recognition", "Text"}),
         {port("image", PortDirection::input, PortDataType::image_view),
          port("text", PortDirection::output, PortDataType::text_result)},
-        nvision::core::ToolOrigin::built_in(),
+        nvision::workflow::ToolOrigin::built_in(),
         {},
         {roi_parameter()});
 
@@ -716,7 +716,7 @@ void subworkflow_binding_reports_contract_mismatches() {
             ToolCatalogMetadata("Wrong Promotion", {"Recognition"}),
             {port("image", PortDirection::input, PortDataType::image_view),
              port("text", PortDirection::output, PortDataType::text_result)},
-            nvision::core::ToolOrigin::built_in(),
+            nvision::workflow::ToolOrigin::built_in(),
             {},
             {roi_parameter(),
              ParameterDefinition(
@@ -757,7 +757,7 @@ void subworkflow_binding_reports_contract_mismatches() {
             ToolCatalogMetadata("Unpromoted", {"Recognition"}),
             {port("image", PortDirection::input, PortDataType::image_view),
              port("text", PortDirection::output, PortDataType::text_result)},
-            nvision::core::ToolOrigin::built_in(),
+            nvision::workflow::ToolOrigin::built_in(),
             {},
             {roi_parameter()}),
         graph,

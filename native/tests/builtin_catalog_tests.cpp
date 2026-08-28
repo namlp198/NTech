@@ -1,4 +1,4 @@
-#include "nvision/core/builtin_catalog.hpp"
+#include "nvision/workflow/builtin_catalog.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -15,13 +15,13 @@
 namespace {
 
 using nvision::core::ParameterKey;
-using nvision::core::ParameterKind;
-using nvision::core::PortDirection;
+using nvision::workflow::ParameterKind;
+using nvision::workflow::PortDirection;
 using nvision::core::PortKey;
 using nvision::core::SemanticVersion;
-using nvision::core::ToolOriginKind;
-using nvision::core::ToolRegistry;
-using nvision::core::ToolResolutionStatus;
+using nvision::workflow::ToolOriginKind;
+using nvision::workflow::ToolRegistry;
+using nvision::workflow::ToolResolutionStatus;
 using nvision::core::ToolTypeId;
 
 std::size_t count_in_category(const ToolRegistry& registry, const std::string& category) {
@@ -47,7 +47,7 @@ bool contains(const std::string& text, const std::string& token) {
 }
 
 void catalog_enumerates_the_initial_generic_tool_tree() {
-    const ToolRegistry registry = nvision::core::create_builtin_registry();
+    const ToolRegistry registry = nvision::workflow::create_builtin_registry();
 
     NVISION_REQUIRE(registry.definitions().size() == 66U);
     NVISION_REQUIRE(count_in_category(registry, "Acquisition") == 5U);
@@ -79,7 +79,7 @@ void catalog_enumerates_the_initial_generic_tool_tree() {
 }
 
 void catalog_definitions_are_built_in_and_typed() {
-    const ToolRegistry registry = nvision::core::create_builtin_registry();
+    const ToolRegistry registry = nvision::workflow::create_builtin_registry();
 
     for (const auto& definition : registry.definitions()) {
         NVISION_REQUIRE(definition->origin().kind() == ToolOriginKind::built_in);
@@ -99,7 +99,7 @@ void catalog_definitions_are_built_in_and_typed() {
 // Guards the boundary in the execution plan: no generic contract may carry the vocabulary
 // of a reference application. Applications are graphs and Recipes, not built-in tools.
 void catalog_contains_no_application_vocabulary() {
-    const ToolRegistry registry = nvision::core::create_builtin_registry();
+    const ToolRegistry registry = nvision::workflow::create_builtin_registry();
     const std::vector<std::string> forbidden{
         "wire", "marker", "pininsert", "pin-insert", "pin insert"};
 
@@ -133,7 +133,7 @@ void catalog_contains_no_application_vocabulary() {
 // Capabilities that a reference application might expect as dedicated tools must stay
 // configuration of a generic tool instead.
 void application_variation_stays_configuration() {
-    const ToolRegistry registry = nvision::core::create_builtin_registry();
+    const ToolRegistry registry = nvision::workflow::create_builtin_registry();
 
     const auto recognition = registry.resolve_exact(
         ToolTypeId("nvision.tool.recognition.text-recognition"), SemanticVersion(1U, 0U, 0U));

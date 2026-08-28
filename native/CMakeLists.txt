@@ -1,21 +1,20 @@
 add_library(nvision_core STATIC
     acquisition/src/file_camera.cpp
     acquisition/src/frame.cpp
+    acquisition/src/image.cpp
     acquisition/src/image_view.cpp
-    core/src/builtin_catalog.cpp
+    core/src/detection.cpp
     core/src/engine.cpp
     core/src/execution_result.cpp
+    core/src/feature.cpp
     core/src/geometry.cpp
     core/src/identifier.cpp
     core/src/inspection_outcome.cpp
-    core/src/parameter_schema.cpp
+    core/src/measurement.cpp
+    core/src/overlay.cpp
+    core/src/point_grid.cpp
     core/src/resource_reference.cpp
-    core/src/semantic_version.cpp
-    core/src/subworkflow.cpp
-    core/src/tool_definition.cpp
-    core/src/tool_registry.cpp
-    core/src/workflow_graph.cpp
-    core/src/workflow_node.cpp)
+    core/src/semantic_version.cpp)
 
 target_include_directories(nvision_core
     PUBLIC
@@ -23,6 +22,65 @@ target_include_directories(nvision_core
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/core/include>)
 
 target_compile_features(nvision_core PUBLIC cxx_std_20)
+
+# Workflow owns the tool catalog, the persisted graph contracts, and execution. Core
+# keeps the data vocabulary those contracts are expressed in: identifiers, versions,
+# port data kinds, geometry, resources, status, and results.
+add_library(nvision_workflow STATIC
+    workflow/src/builtin_catalog.cpp
+    workflow/src/parameter_schema.cpp
+    workflow/src/port_value.cpp
+    workflow/src/subworkflow.cpp
+    workflow/src/tool_definition.cpp
+    workflow/src/tool_execution.cpp
+    workflow/src/tool_implementation_registry.cpp
+    workflow/src/tool_registry.cpp
+    workflow/src/workflow_graph.cpp
+    workflow/src/workflow_node.cpp)
+
+target_include_directories(nvision_workflow
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/workflow/include>)
+
+target_compile_features(nvision_workflow PUBLIC cxx_std_20)
+target_link_libraries(nvision_workflow PUBLIC nvision_core)
+
+# Vision owns the generic image tool implementations. OpenCV is a required dependency of
+# this library and stays PRIVATE, so it can never reach a public NVision header. It is
+# located through the standard CMake search, which honours the OpenCV_DIR environment
+# variable, so no build file in this repository contains a machine-specific path.
+find_package(OpenCV REQUIRED CONFIG)
+message(STATUS "NVision vision tools build against OpenCV ${OpenCV_VERSION}")
+
+add_library(nvision_vision STATIC
+    vision/src/alignment_tools.cpp
+    vision/src/binarize_tools.cpp
+    vision/src/builtin_tool_implementations.cpp
+    vision/src/cluster_tools.cpp
+    vision/src/color_tools.cpp
+    vision/src/count_tools.cpp
+    vision/src/crop_tool.cpp
+    vision/src/evidence_tools.cpp
+    vision/src/filter_tools.cpp
+    vision/src/grid_tools.cpp
+    vision/src/morphology_tools.cpp
+    vision/src/opencv_interop.cpp
+    vision/src/quality_tools.cpp
+    vision/src/region_tools.cpp
+    vision/src/threshold_tool.cpp
+    vision/src/tool_support.cpp
+    vision/src/warp_tools.cpp)
+
+target_include_directories(nvision_vision
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vision/include>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/vision/src
+        ${OpenCV_INCLUDE_DIRS})
+
+target_compile_features(nvision_vision PUBLIC cxx_std_20)
+target_link_libraries(nvision_vision PUBLIC nvision_workflow)
+target_link_libraries(nvision_vision PRIVATE ${OpenCV_LIBS})
 
 add_library(nvision_engine SHARED
     abi/src/nvision_c_api.cpp)
@@ -45,9 +103,13 @@ set_target_properties(nvision_engine PROPERTIES
 
 if(MSVC)
     target_compile_options(nvision_core PRIVATE /W4 /WX /permissive- /EHsc)
+    target_compile_options(nvision_workflow PRIVATE /W4 /WX /permissive- /EHsc)
+    target_compile_options(nvision_vision PRIVATE /W4 /WX /permissive- /EHsc)
     target_compile_options(nvision_engine PRIVATE /W4 /WX /permissive- /EHsc)
 else()
     target_compile_options(nvision_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    target_compile_options(nvision_workflow PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    target_compile_options(nvision_vision PRIVATE -Wall -Wextra -Wpedantic -Werror)
     target_compile_options(nvision_engine PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
@@ -131,7 +193,7 @@ if(NVISION_BUILD_TESTS)
     add_executable(nvision_tool_catalog_tests
         tests/tool_catalog_tests.cpp)
 
-    target_link_libraries(nvision_tool_catalog_tests PRIVATE nvision_core)
+    target_link_libraries(nvision_tool_catalog_tests PRIVATE nvision_workflow)
     target_compile_features(nvision_tool_catalog_tests PRIVATE cxx_std_20)
 
     if(MSVC)
@@ -148,7 +210,7 @@ if(NVISION_BUILD_TESTS)
     add_executable(nvision_parameter_schema_tests
         tests/parameter_schema_tests.cpp)
 
-    target_link_libraries(nvision_parameter_schema_tests PRIVATE nvision_core)
+    target_link_libraries(nvision_parameter_schema_tests PRIVATE nvision_workflow)
     target_compile_features(nvision_parameter_schema_tests PRIVATE cxx_std_20)
 
     if(MSVC)
@@ -166,7 +228,7 @@ if(NVISION_BUILD_TESTS)
     add_executable(nvision_workflow_contract_tests
         tests/workflow_contract_tests.cpp)
 
-    target_link_libraries(nvision_workflow_contract_tests PRIVATE nvision_core)
+    target_link_libraries(nvision_workflow_contract_tests PRIVATE nvision_workflow)
     target_compile_features(nvision_workflow_contract_tests PRIVATE cxx_std_20)
 
     if(MSVC)
@@ -184,7 +246,7 @@ if(NVISION_BUILD_TESTS)
     add_executable(nvision_builtin_catalog_tests
         tests/builtin_catalog_tests.cpp)
 
-    target_link_libraries(nvision_builtin_catalog_tests PRIVATE nvision_core)
+    target_link_libraries(nvision_builtin_catalog_tests PRIVATE nvision_workflow)
     target_compile_features(nvision_builtin_catalog_tests PRIVATE cxx_std_20)
 
     if(MSVC)
@@ -202,7 +264,7 @@ if(NVISION_BUILD_TESTS)
     add_executable(nvision_reference_graph_tests
         tests/reference_graph_tests.cpp)
 
-    target_link_libraries(nvision_reference_graph_tests PRIVATE nvision_core)
+    target_link_libraries(nvision_reference_graph_tests PRIVATE nvision_workflow)
     target_compile_features(nvision_reference_graph_tests PRIVATE cxx_std_20)
 
     if(MSVC)
@@ -216,4 +278,104 @@ if(NVISION_BUILD_TESTS)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 
     add_test(NAME nvision_reference_graph_tests COMMAND nvision_reference_graph_tests)
+
+    add_executable(nvision_tool_execution_tests
+        tests/tool_execution_tests.cpp)
+
+    target_link_libraries(nvision_tool_execution_tests PRIVATE nvision_vision)
+    target_compile_features(nvision_tool_execution_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_tool_execution_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_tool_execution_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_tool_execution_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    # A test executable that links the vision library needs the OpenCV runtime beside it,
+    # otherwise the suite fails to start rather than reporting a real assertion.
+    if(WIN32)
+        add_custom_command(TARGET nvision_tool_execution_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_RUNTIME_DLLS:nvision_tool_execution_tests>
+                $<TARGET_FILE_DIR:nvision_tool_execution_tests>
+            COMMAND_EXPAND_LISTS)
+    endif()
+
+    add_test(NAME nvision_tool_execution_tests COMMAND nvision_tool_execution_tests)
+
+    add_executable(nvision_vision_tool_tests
+        tests/vision_tool_tests.cpp)
+
+    target_link_libraries(nvision_vision_tool_tests PRIVATE nvision_vision)
+    target_compile_features(nvision_vision_tool_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_vision_tool_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_vision_tool_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_vision_tool_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    if(WIN32)
+        add_custom_command(TARGET nvision_vision_tool_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_RUNTIME_DLLS:nvision_vision_tool_tests>
+                $<TARGET_FILE_DIR:nvision_vision_tool_tests>
+            COMMAND_EXPAND_LISTS)
+    endif()
+
+    add_test(NAME nvision_vision_tool_tests COMMAND nvision_vision_tool_tests)
+
+    add_executable(nvision_reference_pipeline_tests
+        tests/reference_pipeline_tests.cpp)
+
+    target_link_libraries(nvision_reference_pipeline_tests PRIVATE nvision_vision)
+    target_compile_features(nvision_reference_pipeline_tests PRIVATE cxx_std_20)
+
+    if(MSVC)
+        target_compile_options(nvision_reference_pipeline_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_reference_pipeline_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_reference_pipeline_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    if(WIN32)
+        add_custom_command(TARGET nvision_reference_pipeline_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_RUNTIME_DLLS:nvision_reference_pipeline_tests>
+                $<TARGET_FILE_DIR:nvision_reference_pipeline_tests>
+            COMMAND_EXPAND_LISTS)
+    endif()
+
+    add_test(NAME nvision_reference_pipeline_tests COMMAND nvision_reference_pipeline_tests)
+
+    add_executable(nvision_public_contract_tests
+        tests/public_contract_tests.cpp)
+
+    target_link_libraries(nvision_public_contract_tests PRIVATE nvision_vision)
+    target_compile_features(nvision_public_contract_tests PRIVATE cxx_std_20)
+    target_compile_definitions(nvision_public_contract_tests PRIVATE
+        NVISION_NATIVE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
+    if(MSVC)
+        target_compile_options(nvision_public_contract_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(
+            nvision_public_contract_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_public_contract_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    add_test(NAME nvision_public_contract_tests COMMAND nvision_public_contract_tests)
 endif()

@@ -15,6 +15,15 @@ enum class PixelFormat : std::uint32_t {
     mono16 = 1,
     rgb8 = 2,
     bgr8 = 3,
+    // Undecoded sensor data. The pattern is part of the format because a decoder cannot
+    // infer it from the pixels.
+    bayer_gr8 = 4,
+    // Three 8-bit channels whose meaning is hue, saturation and value rather than colour
+    // primaries. OpenCV cannot distinguish this from BGR, so the producing tool declares it.
+    hsv8 = 5,
+    // Single-channel 32-bit floating point, produced by operations such as a distance
+    // transform whose result is a magnitude rather than an intensity.
+    mono_float32 = 6,
 };
 
 enum class FrameStatus : std::uint32_t {

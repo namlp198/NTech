@@ -3,6 +3,8 @@
 #include "nvision/core/identifier.hpp"
 
 #include <array>
+#include <cstddef>
+#include <optional>
 #include <vector>
 
 namespace nvision::core {
@@ -81,6 +83,30 @@ public:
 
 private:
     std::vector<Point2D> vertices_;
+};
+
+// An ordered chain of boundary points. Unlike a Polygon it may be degenerate: a
+// single-pixel region yields one point and a thin region yields collinear points, and
+// refusing those would mean a detector could not report what it actually found.
+//
+// A contour may name the contour that encloses it, which is how a nested boundary keeps
+// its relationship without a separate hierarchy structure.
+class Contour final {
+public:
+    explicit Contour(
+        std::vector<Point2D> points,
+        bool closed = true,
+        std::optional<std::size_t> parent = std::nullopt);
+
+    [[nodiscard]] const CoordinateSpaceId& coordinate_space() const noexcept;
+    [[nodiscard]] const std::vector<Point2D>& points() const noexcept;
+    [[nodiscard]] bool closed() const noexcept;
+    [[nodiscard]] const std::optional<std::size_t>& parent() const noexcept;
+
+private:
+    std::vector<Point2D> points_;
+    bool closed_;
+    std::optional<std::size_t> parent_;
 };
 
 class Transform2D final {
