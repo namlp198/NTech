@@ -209,18 +209,38 @@ stage without forking the strategy.
 
 The following are development gates, not optional future polish.
 
-### 6.1 Collections and multi-value ports
+Status: 6.1, 6.4, 6.5 and 6.6 are implemented on `codex/group-a-contract-corrections`
+(`636b729`, `ab61844`, `32d36a0`, `7e4b20d`). 6.2, 6.3 and 6.7 remain open. Each subsection
+records what was decided, so that a later change does not reopen a settled question by
+accident.
 
-`allows_multiple` at graph validation must have an equivalent runtime representation.
-`PortValueMap` cannot silently overwrite a second value for the same port. Define one
-consistent model before M4 Text Consensus or M5 logic execution depends on it:
+### 6.1 Collections and multi-value ports — resolved
 
-- a typed collection value;
-- an ordered multi-entry port binding; or
-- an explicit collection-building tool and collection port type.
+Resolved as a typed collection value whose arity is declared by the port.
 
-The model must cover capture sequences, recognition crops, barcode results, expression
-inputs, weighted measurements, Boolean operands, result evidence, and other fan-in cases.
+- A port declaring `allows_multiple` always carries a `PortValue` collection, empty or not.
+  A port that does not never carries one. An implementation therefore never tests which it
+  received, and the contract cannot be satisfied two different ways.
+- Collections do not nest, every element carries the declared element kind, and an empty
+  collection still declares what it is empty of.
+- `ToolExecutionContext` rejects a mismatched input arity and `execute_tool` rejects a
+  mismatched output arity, so a plural port that produces one value is a contract violation
+  rather than a shorthand.
+- `bind_workflow_graph` reports `PORT_ARITY_MISMATCH` when a collection output reaches a
+  single-value input. A collection input needs no rule: it gathers its sources in
+  connection order, contributing one element per single source and its elements in order
+  per collection source, so any mixture still has one defined order.
+- Prefer a collection over a new `X_list` port kind. `PortDataType::text_result_list` was
+  removed because it was the only list kind with no core aggregate behind it, and declaring
+  it on a port that also allowed multiple sources meant plural twice over. The remaining
+  list kinds stay: `PointList`, `ContourList`, `DetectionList` and `MeasurementList` are
+  single domain aggregates with their own invariants, such as one shared coordinate space,
+  which a generic collection would not enforce.
+
+Still open, and owned by M5: per-element fan-out. A collection can be built, carried and
+gathered, but nothing applies a subgraph to each element. Do not close that gap with a
+per-kind element-selector tool. The catalog has no polymorphic port, so it would take one
+tool per data kind, and iteration is scheduling rather than a tool.
 
 ### 6.2 Coordinate and transform chain
 
@@ -250,31 +270,56 @@ Avoid `any_metadata` as the primary path through a typed graph. Controlled exten
 may remain at plugin or metadata boundaries, but ordinary built-ins need contracts that
 Studio, Runtime, C ABI, gRPC, and persisted schemas can inspect.
 
-### 6.4 Evidence media
+### 6.4 Evidence media — resolved
 
-An evidence consumer must be able to read an artifact without out-of-band knowledge. Image
-and overlay evidence must be encoded or accompanied by at least:
+`EvidenceMedia` describes the stored bytes rather than the raster they came from, because
+the raster is gone by the time anyone reads the evidence. It carries width, height,
+encoding, channel layout and component type, and derives the channel count, the MIME type
+and the exact packed length from those. Deriving the MIME type rather than storing it means
+a declared type can never disagree with the encoding it names.
 
-- width and height;
-- pixel format/channel order;
-- encoding or MIME type;
-- content integrity and length;
-- storage reference;
-- coordinate space and relevant transform/provenance.
+The vocabulary is deliberately not the acquisition one. `EvidenceChannelLayout` says what a
+reader will find in the bytes, so an undecoded Bayer pattern or an HSV raster is described
+truthfully instead of being passed off as a picture a viewer would misread.
 
-### 6.5 Truthful execution characteristics
+`EvidenceArtifact` enforces the rest: image kinds must carry media and non-image kinds must
+not, so a descriptor always means a raster; packed evidence whose length disagrees with its
+descriptor is refused at construction; and every artifact records where it was stored.
+`EvidenceSink::store` returns `StoredEvidence`, the integrity and the reference together,
+because the storage key is only what the tool asked for and the store is the only thing
+that knows where the bytes really went.
+
+Encoding to PNG or TIFF is now a change of one enum value and the bytes handed to the
+sink. The contract already describes both.
+
+### 6.5 Truthful execution characteristics — resolved
 
 Tool metadata must not claim cancellation, timeout, thread safety, or reentrancy that the
 implementation does not provide. Long-running OpenCV and inference operations need
 cooperative checkpoints or scheduler isolation appropriate to their backend. Measuring an
 elapsed budget after completion is diagnostic behavior, not preemptive timeout.
 
-### 6.6 Subworkflow assignability
+`ToolExecutionCharacteristics` now defaults `supports_cancellation` and `supports_timeout`
+to false, so a definition that says nothing promises nothing. `supports_cancellation` means
+the implementation observes the token while it runs; `supports_timeout` means it bounds its
+own work to the budget. Neither describes the engine, which checks the token before
+invoking and measures elapsed time after returning whatever a definition claims.
 
-Parameter promotion compatibility must compare the complete accepted value domain, not
-only `ParameterKind` and the exposed default. Numeric ranges, enumeration options, array
-element/count constraints, geometry kinds, ROI shapes, and resource kinds must be
-assignable from the exposed schema to the internal schema.
+A catalog test pins that no built-in claims either. It is meant to fail the day one starts
+to, so that the claim and the cooperative checkpoints justifying it arrive together.
+
+### 6.6 Subworkflow assignability — resolved
+
+`ParameterType::is_assignable_to` answers the question promotion actually asks: does every
+value the exposed schema accepts reach the internal parameter. It compares numeric ranges,
+enumeration options, array element types and counts, geometry kinds, ROI shapes and
+reference kinds.
+
+It is deliberately conservative. An unbounded source never fits a bounded target, an
+unbounded array count never fits a bounded one, and a target step must be matched exactly,
+because proving that a coarser grid lands on a finer one needs the origin as well as the
+spacing. Refusing a domain it cannot prove contained is the safe direction; admitting one
+it cannot is how the original defect happened.
 
 ### 6.7 Immutable raster enforcement
 
@@ -289,12 +334,12 @@ unchanged after representative and high-risk tools.
 
 ### M4 — Model and recognition
 
-Before completing M4:
+The collection model M4 was blocked on is done (6.1). What remains:
 
-- choose and implement the collection/multi-value model required by Text Consensus,
-  recognition crops, and barcode lists;
-- define `TextResult`, text collections, barcode collections, detection-to-crop mapping,
-  and orientation result semantics;
+- give `text_result` and `barcode_result` native representations; `PortValue` has no
+  factory for either, so the catalog declares kinds execution cannot yet carry;
+- define `TextResult`, detection-to-crop mapping, and orientation result semantics, and
+  express plural recognition output as collections rather than as new list kinds;
 - keep OCR as a composable strategy over independently testable stages;
 - verify model package provenance before importing external assets;
 - golden-test preprocessing, tensor layout, decoding, orientation, and post-processing.
@@ -303,7 +348,12 @@ Before completing M4:
 
 Before completing M5:
 
-- execute fan-in and fan-out without overwriting values;
+- execute fan-in without overwriting values, which the collection model of 6.1 now
+  represents, and add the per-element fan-out it deliberately leaves out: applying a
+  subgraph to each element of a collection is scheduling, and the Wire Marker reference
+  graph already needs it to measure quality per recognized crop;
+- resolve promoted parameters through `ParameterType::is_assignable_to` rather than a
+  looser check reintroduced at Recipe level;
 - define data-selection versus control-flow branch semantics;
 - resolve promoted parameters using full schema assignability;
 - bind resource/model/template collections deterministically;

@@ -6,233 +6,171 @@
 
 ## Branch
 
-`develop`. The documentation work was committed as `45af6e2` on
-`codex/tool-catalog-evolution-guide` and merged by `22398b6`.
-`develop` remains ahead of `origin/develop` by 28 commits and has not been pushed.
+`codex/group-a-contract-corrections`, branched from `develop` at `68e5555`. Four commits,
+not yet merged and not pushed. `develop` itself is level with `origin/develop`; the
+previous handoff said it was 28 commits ahead and unpushed, which is no longer true.
 
 ## Completed
 
-- Performed an independent, read-only review of the M2/M3 tool contracts and M3 OpenCV
-  implementations. The overall architecture remains product-neutral and platform-first,
-  but the review identified cross-milestone gaps that existing green tests do not cover:
-  executable multi-value ports and typed collections, non-identity transform correctness,
-  self-describing evidence, typed aggregate results, full subworkflow assignability, and
-  truthful cancellation/timeout behavior.
-- Added `docs/implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md` as the durable
-  framework for tool admission, reuse assessment, catalog expansion, milestone gates, and
-  verification beyond the two reference applications.
-- Linked the new guide from `docs/README.md` and Section 8.8 of the authoritative execution
-  plan. Strengthened the M4, M5, and M8 exit gates and corrected the plan header that still
-  said implementation had not started.
-- Updated `docs/00_CONTEXT.md`, `tasks/active.md`, and this handoff to record the review and
-  the pre-M4 contract decisions. No production source or test code changed.
-- Synced the context documents to reality in `1b8e992`. M2 was already merged into
-  `develop` by `f1c0abd`, but `tasks/active.md`, `docs/00_CONTEXT.md`, and both the
-  progress record and immediate-next-action sections of the execution plan still described
-  it as complete on a feature branch awaiting merge.
-- Corrected the recorded .NET SDK blocker in the same commit. The previous handoff reported
-  that only SDK 9.0.312 was installed and that the managed half of the gate could not run.
-  The repository already carries a local SDK 10.0.200 under `artifacts/dotnet/`, and every
-  script prefers it over the machine-wide `dotnet`, so the full gate runs here.
-- Added the M3 tool execution foundation in `861ba0f`.
-- `nvision_workflow` is a new native library owning execution: `PortValue`/`PortValueMap`,
-  `CancellationToken`/`CancellationSource`, `ExecutionBudget`, `ParameterBinding`,
-  `ToolExecutionContext`, `ToolExecutionOutcome`, `ToolImplementation`, `execute_tool`, and
-  `ToolImplementationRegistry`.
-- `ToolExecutionContext` validates its inputs against the bound definition once, so an
-  implementation never rechecks that a port is declared, is an input rather than an output,
-  carries the declared data kind, or is present when the contract marks it required.
-- `ParameterBinding::resolve` fills declared parameters from the node configuration or the
-  declared default and drops keys the bound version does not declare. The node still
-  persists those keys; the tool simply never receives a value it did not declare.
-- `execute_tool` honours cancellation before invoking, turns a thrown exception into a
-  technical error instead of letting it unwind into the engine, turns an exceeded budget
-  into a timeout, and validates successful outputs against the declared output ports. A
-  non-success outcome cannot carry outputs at all, so a failed tool can never hand a
-  downstream node a value that looks valid.
-- `nvision_vision` is a new native library for the generic image tools and carries the
-  first real one. Crop resolves a rectangular ROI against the input view, refuses a region
-  authored in another coordinate space, rejects a sub-pixel or out-of-bounds region, and
-  produces a subview plus the explicit view-to-source transform without copying pixels.
-- A catalogued definition with no implementation binds as `not_implemented` rather than as
-  a missing tool, so remaining M3 coverage is measurable. 1 of the 66 definitions is
-  implemented.
-- OpenCV is opt-in through `NVISION_ENABLE_OPENCV` and located by the standard CMake
-  search. No build file holds a machine-specific path, and the dependency is PRIVATE to
-  `nvision_vision` so no public header can expose an OpenCV type.
-- Relocated the M2 tool platform contracts from `nvision::core` to `nvision::workflow` in
-  `d73f4d8`, recorded as ADR-0006. `parameter_schema`, `tool_definition`, `tool_registry`,
-  `builtin_catalog`, `workflow_node`, `workflow_graph`, and `subworkflow` moved so that
-  execution and the contracts it executes share one area, as Section 13 of the plan
-  requires. The change is mechanical, the resulting dependency is strictly one way, and no
-  core, acquisition, or ABI header includes a workflow header.
-- Probed both OpenCV distributions under `D:\src\learn_opencv_all\Libraries` with a real
-  CMake configure and both failed. `opencv480_CUDA` demands CUDA exactly 11.8 against an
-  installed 11.2 and uses the removed `FindCUDA` module; the stock `opencv/build` is
-  missing the `x64/vc16/bin` directory its own imported targets reference.
-- OpenCV 4.14.0 was then installed at `D:\setups\opencv` and verified against the real
-  build, which clears that blocker. `find_package` resolves it from the standard
-  `OpenCV_DIR` environment variable and the runtime DLL is copied beside the native test
-  executables.
-- Added the M3 computed-image ownership contract in `5475413`, recorded as ADR-0007.
-  `Image` owns its pixels and carries no acquisition metadata, `ImageSource` names which
-  raster kind a view exposes, and `ToolExecutionContext::output_image_id` derives a stable
-  identity for a produced image from the node and the output port.
-- Made OpenCV a required dependency and added the interop substrate in `fe432d4`.
-  `opencv_interop` borrows a view as a `cv::Mat` without copying and copies results back
-  into an owned `Image`, with the pixel format declared by the producing tool because
-  OpenCV records depth and channel count but not meaning.
-  `nvision_public_contract_tests` scans every public include root for OpenCV and ONNX
-  Runtime spellings, so the no-third-party-type rule is enforced rather than trusted.
-- Implemented the whole Image Processing group in `43edcd8`: colour conversion, channel
-  extraction, resize, normalise, CLAHE, blur, sharpen, adaptive threshold, colour range,
-  morphology, distance transform, perspective warp, and affine transform, alongside the
-  crop and threshold tools that landed with the substrate. `PixelFormat` gained
-  `bayer_gr8`, `hsv8`, and `mono_float32`.
-- Added the location and geometry data contracts in `9f2c0d3`: `Contour`, `Measurement`,
-  `Detection`, `Feature`, `FeatureSet`, `FeatureMatch`, and `MatchSet`. A contour is
-  deliberately not a polygon, because a single-pixel or collinear region is a real result a
-  detector must be able to report. A measurement carries a unit, and one in image units
-  must name the coordinate space it was taken in. A match set carries both feature sets, so
-  a homography estimate recovers the point pairs without being handed the images again.
-- Implemented all 11 Location and Geometry tools in `ab9b17c`. Coordinate space is checked
-  wherever two inputs must agree, contour parent indices are remapped through the area
-  filter rather than passed through stale, point assignment consumes each candidate once,
-  and algorithmic failure is reported as a recoverable vision error while a contract
-  problem is reported as a configuration error.
-- Implemented 10 of the 11 Measurement tools in `a4c2108`. Lengths carry the coordinate
-  space they were measured in, counts and quality figures name none, and comparing two
-  rasters requires a shared pixel format and extent.
-- Implemented the clustering and point-grid group in `4b72161`, together with the grid
-  deviation tool held back from the measurement slice. `PointGridModel` records where
-  features are expected and nothing about what they mean; tolerances belong to the recipe
-  that inspects against it. K-Means fixes OpenCV's thread-local generator, DBSCAN is
-  implemented directly and expands in input order, and both sorting paths are stable, so a
-  repeated run produces identical results.
-- Point grid inspect is deliberately not implemented. It receives its model as a versioned
-  resource rather than through a port, a considered catalog decision that keeps training
-  and inspection as separate runs joined by a recipe binding. That binding arrives with M5,
-  and a tool that could only ever report an unbound resource would be worse than none. Its
-  `point_grid_result` contract is unwritten for the same reason. The coverage test asserts
-  the gap.
-- The tool execution suite no longer names a specific unimplemented tool. It asks the
-  registry which definitions are still pending, so filling in the catalog no longer breaks
-  a test that is not about the tool being added.
-- Added the overlay and evidence primitives in `462b558`. `Overlay` carries shapes, styles
-  and labels as data, so the same overlay renders into evidence, a Studio canvas or a
-  Runtime preview and no result depends on a drawing having happened. `EvidenceSink` is the
-  seam evidence output needed: a tool hands over bytes and receives the integrity that
-  identifies them, never learning where they are kept and never computing the digest,
-  because the store is the only thing that knows what it actually wrote.
-- Evidence Output reports what the raster really is, using the ADR-0007 provenance: a view
-  over a captured frame becomes source evidence, a computed raster derived evidence, and an
-  annotated one an overlay. With no sink attached it reports the fact rather than
-  discarding what it made.
-- Closed the exit gate in `6df1505`. Two catalog definitions promised what their contract
-  cannot deliver, which only became visible once the tools existed: threshold declared
-  truncate and to-zero on a tool whose only output is a mask, and channel extract declared
-  an index of up to three on a three-channel image. Both enumerations and ranges are now
-  correct, both refusals moved from run time to bind time, and the corresponding guards in
-  the tools are gone. They were corrected in place rather than by a version bump because
-  the catalog has never been published, so nothing binds these definitions anywhere.
-- `nvision_reference_pipeline_tests` answers the exit-gate question directly. It runs the
-  Pin Insert training and inspection flows of plan Section 12 as a chain of ordinary
-  catalog tools on a generated fixture, learns a two by three layout, and measures a
-  shifted fixture as deviating by exactly the root of five. A second test asserts every
-  identity the chain used resolves from the built-in catalog, so adding a tool named after
-  a product to make the flow work would be visible rather than quiet.
-- Catalog coverage is 43 of 66 definitions. Image Processing, Location and Geometry, and
-  Measurement are complete; Clustering and Structure is complete apart from point grid
-  inspect.
+Corrected the four review findings that change public contracts, before M4 and M5 build on
+them. Group A is the set whose cost grows the longer it is deferred. Group B, below, is
+implementation-local and blocks nothing.
+
+### `636b729` — an executable collection contract for plural ports
+
+`allows_multiple` was a graph-level claim with no runtime equivalent. `PortValueMap` holds
+one value per key, so a validated fan-in would have kept only the last value it was handed,
+and several catalog ports named a plural output while declaring a singular kind.
+
+Arity now belongs to the port declaration. A port declaring `allows_multiple` always
+carries a `PortValue` collection, empty or not; a port that does not never carries one. An
+implementation therefore never tests which it received. Collections do not nest, every
+element carries the declared element kind, and an empty collection still declares what it
+is empty of.
+
+`ToolExecutionContext` rejects a mismatched input arity, `execute_tool` rejects a
+mismatched output arity, and `bind_workflow_graph` reports `PORT_ARITY_MISMATCH` when a
+collection output reaches a single-value input. The other direction needed no rule, and the
+first draft that added one was wrong: a collection input gathers its sources in connection
+order, contributing one element per single source and its elements in order per collection
+source, so any mixture already has one defined order.
+
+Capture Sequence `images`, Image Buffer `images`, Text Recognition `crops`, Text Split
+`parts` and Barcode Reader `barcodes` became collections of their element kind, and Text
+Consensus `candidates` became a collection of `text_result`.
+`PortDataType::text_result_list` was removed: it was the only list kind with no core
+aggregate behind it, and declaring it on a port that also allowed multiple sources meant
+plural twice over. The other list kinds stay, because `PointList`, `ContourList`,
+`DetectionList` and `MeasurementList` are single domain aggregates with invariants a
+generic collection would not enforce, such as one shared coordinate space.
+
+### `ab61844` — evidence that can be read without out-of-band knowledge
+
+Evidence stored packed pixels and recorded only a kind, a digest, a length and a coordinate
+space. Nothing said how wide the image was, how many channels it had, what a component held
+or how the bytes were encoded, so no consumer outside the run that wrote it could
+reconstruct the image.
+
+`EvidenceMedia` describes the stored bytes rather than the raster they came from, because
+the raster is gone by the time anyone reads the evidence. The media type is derived from
+the encoding rather than stored, so the two cannot disagree. The channel vocabulary is
+deliberately not the acquisition one: it says what a reader will find in the bytes, so an
+undecoded Bayer pattern or an HSV raster is described truthfully instead of being passed
+off as a picture a viewer would misread.
+
+`EvidenceArtifact` enforces the rest. Image kinds must carry media and non-image kinds must
+not, so a descriptor always means a raster. Packed evidence whose length disagrees with its
+descriptor is refused at construction, which is a real invariant: 16 by 8 mono8 pixels are
+128 bytes and nothing else. `EvidenceSink::store` returns `StoredEvidence`, the integrity
+and the storage reference together, because the storage key is only what the tool asked for
+and the store is the only thing that knows where the bytes really went.
+
+### `32d36a0` — promoted parameters resolved by full schema assignability
+
+Promotion compared `ParameterKind` and asked whether the internal schema accepted the
+exposed default. That admits an exposed enum of `{a, b}` into an internal enum of `{a}`:
+the bind is clean, the default is fine, and the first Recipe that chooses `b` fails at
+execution instead of at authoring time.
+
+`ParameterType::is_assignable_to` compares whole accepted domains, and is deliberately
+conservative. An unbounded source never fits a bounded target, an unbounded array count
+never fits a bounded one, and a target step must be matched exactly, because proving that a
+coarser grid lands on a finer one needs the origin as well as the spacing. Refusing a
+domain it cannot prove contained is the safe direction; admitting one it cannot is how the
+original defect happened.
+
+### `7e4b20d` — execution characteristics that promise only what tools do
+
+Every catalog definition claimed cancellation and timeout support, because those were the
+constructor defaults and the catalog passes no characteristics. Neither claim was true. No
+implementation observes the token while it runs, and none bounds its own work to the
+budget; the engine checks the token before invoking and measures elapsed time after
+returning, which diagnoses an overrun rather than preventing one.
+
+Both defaults are now false, so a definition that says nothing promises nothing. A catalog
+test pins that no built-in claims either, and is meant to fail the day one starts to, so
+that the claim and the cooperative checkpoints justifying it arrive together.
 
 ## Current Status
 
-M3 remains complete and merged into `develop` by `d1faa1d`: 43 of 66 definitions execute,
-and both reference grid flows run end to end. The Tool Catalog evolution guidance is now
-merged into `develop` by `22398b6`. It makes the distinction between product-neutral
-architectural direction and sample-driven validation explicit, and turns the review
-findings into gates before M4, M5, M8, and the UI milestones depend on the affected
-contracts.
+The full gate is green: 0 native warnings under `/W4 /WX`, 13 native CTests, 119 .NET
+tests, and a clean `dotnet format --verify-no-changes`, against OpenCV 4.14.0 and the
+repository-local .NET SDK 10.0.200.
+
+## Surfaced rather than closed
+
+Correcting the collection contract exposed a real gap. The Wire Marker graph of plan
+Section 12.1 fed the recognizer's crop collection straight into single-image quality tools,
+and the arity rule now refuses that connection, correctly. Measuring each crop needs
+per-element fan-out over a collection, which is scheduling rather than a tool, so M5 owns
+it. The reference graph measures print quality through an explicit Crop whose ROI comes
+from the Recipe: expressible today, and where the plan puts product geometry anyway.
+
+Do not close that gap with a per-kind element-selector tool. The catalog has no polymorphic
+port, so it would take one tool per data kind, which is a worse contract than the gap.
 
 ## Next Actions
 
-1. Choose the typed collection/multi-value execution model before starting Text Consensus,
-   recognition crop collections, barcode lists, or M5 fan-in tools.
-2. Resolve the transform-chain findings with non-identity tests before alignment results
-   become a production dependency.
-3. Start M4, the generic model and recognition foundation: `.nvmodel` integrity and
-   manifest validation in C++, a model registry with instance-owned sessions, the native
-   ONNX Runtime CPU backend, detector and recognizer pre- and post-processing, CTC
-   decoding, configurable orientation search, and the nine Recognition and Text tools.
-4. Resolve the external model provenance and license question first. M4 is the milestone
-   that would otherwise want to import the Wire Marker models, and no license evidence has
-   been found beside them.
-5. Push `develop` when you are ready; this session did not push.
-6. Run the Linux native headless build, now carried as an M11 release gate. WSL Ubuntu here
-   has g++ 13.3 but neither `cmake` nor OpenCV, and `sudo` needs a password, so the
-   packages could not be installed non-interactively:
-   `wsl -d Ubuntu -- sudo apt-get install -y cmake libopencv-dev`, then
-   `wsl -d Ubuntu -- bash -lc "cd /mnt/d/src/ai-workspace/06_Repositories/NTech && cmake -S . -B artifacts/native/linux-host -DCMAKE_BUILD_TYPE=Release -DNVISION_BUILD_TESTS=ON && cmake --build artifacts/native/linux-host && ctest --test-dir artifacts/native/linux-host"`.
-7. Keep the M0 asset provenance gap explicit and run the full repository check after each
-   coherent behavior slice.
-8. Decide whether to renormalize repository line endings as a separate commit.
+1. Merge `codex/group-a-contract-corrections` into `develop` when authorized. Nothing in it
+   is pushed yet.
+2. Work Group B, the four remaining review findings. None blocks a milestone contract.
+   1. ECC refinement passes and labels its transform in the direction opposite to the
+      OpenCV contract. `findTransformECC(template, input, warp)` yields a matrix used with
+      `WARP_INVERSE_MAP`, so it maps reference to image, while the tool requires and labels
+      image to reference. Homography Estimate a few lines above it is correct, which is
+      what makes this a local slip rather than a convention. Settle it with non-identity
+      translation and rotation fixtures; the current test uses two identical rasters and an
+      identity start, so it cannot detect an inversion.
+   2. Resize publishes a pure scale. OpenCV's `INTER_LINEAR` uses pixel centres, so the
+      exact mapping is `x_src = (x_dst + 0.5) * s - 0.5` and the published transform is
+      short by `(s - 1) / 2`. Declare the convention and test a non-integer scale.
+   3. Affine Transform produces a raster in a new coordinate space and publishes no
+      transform, so downstream geometry cannot map back. Perspective Warp already does. It
+      also fixes the output canvas to the input size, so content can be clipped silently.
+   4. Homography Validate reads only the affine 2x2 block; `values[6]` and `values[7]` are
+      never read, so a matrix with extreme projective distortion still validates.
+   5. `interop::borrow` hands immutable bytes through a mutable `cv::Mat`. Nothing mutates
+      an input today, so this is a guard rather than a fix.
+3. Then start M4. The collection model it was waiting on exists; `text_result` and
+   `barcode_result` still have no native representation and `PortValue` has no factory for
+   them, so M4 owns those.
+4. Resolve the external model provenance and license question before M4 imports anything.
+5. Run the Linux native headless build, carried as an M11 release gate.
 
 ## Warnings
 
-- The current catalog accepts multiple graph connections for selected ports, but runtime
-  `PortValueMap` still represents one value per port. Do not implement M4 consensus or M5
-  fan-in by overwriting values; select the collection model first.
-- ECC, resize, affine, and homography validation need non-identity coordinate tests before
-  their transform semantics are treated as production-proven.
-- Evidence currently records packed pixels without enough media metadata for an independent
-  consumer to reconstruct the image. Follow the evolution guide before exposing evidence
-  through M8 boundaries.
-- `PixelFormat` gained one Bayer pattern, `bayer_gr8`, because that is the only one the
-  catalog and the reference application need. The other three 8-bit patterns are absent on
-  purpose and should be added with the tool or parameter that requires them.
-- `PortValue` covers the port data kinds that have a native representation today.
-  `point_grid_result`, text/barcode types, controlled metadata, and collection transport
-  still need representations in the milestones that first execute them.
-- Feature matching is tested for the contracts it must keep rather than for a number of
-  matches, because how many correspondences a detector finds on a synthetic fixture is not
-  a property worth pinning. The homography test builds its correspondences by hand so its
-  expectation stays exact.
-- The execution budget is enforced after the fact by `execute_tool`, which measures elapsed
-  time and reports a timeout. It does not interrupt a running tool. A tool that must stop
-  early has to observe the cancellation token itself.
-- The catalog parameter sets remain contract-level minimums. Implementing a tool may
-  require a version bump on its definition; crop needed none.
-- Pin Insert golden/regression images remain unavailable, so it is currently an
-  architectural contract oracle rather than a parity suite.
-- ONNX Runtime and OpenCV distributions contain license files, but no license/provenance
-  evidence was found beside the external Wire Marker project/models or the provided Pin
-  Insert project. Do not import or redistribute those assets until provenance is resolved.
-- Repository line endings are still inconsistent in the committed blobs while
-  `.gitattributes` declares `* text=auto eol=lf`. A full Release build left the working
-  tree clean this session, so the problem is currently latent. `git add --renormalize .` as
-  its own commit remains the clean fix and still needs an explicit decision.
-- The new contracts are internal C++ APIs. Do not expose them through C ABI/gRPC until the
-  boundary work reaches M8.
+- `PortValue` still has no representation for `text_result`, `barcode_result`,
+  `point_grid_result`, `defect`, `defect_list`, `frame`, `image`, `bounding_box`, `polygon`
+  or `any_metadata`. "43 of 66 implemented" counts definitions, not round-trippable
+  contracts, and the two numbers should not be reported as the same claim.
+- `EvidenceSink` is a changed contract. Any implementer outside this repository returns
+  `StoredEvidence` now, not `ResourceIntegrity`.
+- Evidence is still written as raw packed pixels. The contract now describes them
+  truthfully, and encoding to PNG or TIFF is a change of one enum value and the bytes handed
+  to the sink, but nothing encodes yet.
+- The execution budget is still enforced after the fact. It measures and reports; it does
+  not interrupt. That is now stated in the header rather than implied.
+- Catalog definitions were corrected in place because the catalog is unpublished. Once it
+  ships, a contract change requires a version bump instead.
+- Pin Insert golden/regression images remain unavailable, so it is an architectural
+  contract oracle rather than a parity suite.
+- No license or provenance evidence has been found beside the external Wire Marker
+  project/models or the provided Pin Insert project. Do not import or redistribute them.
+- Repository line endings are still inconsistent in committed blobs while `.gitattributes`
+  declares `* text=auto eol=lf`. A full Release build leaves the working tree clean, so it
+  stays latent. `git add --renormalize .` as its own commit remains the clean fix.
+- These are internal C++ APIs. Do not expose them through C ABI or gRPC until M8.
 
 ## Verification
 
-- Full `scripts/check.ps1 -Configuration Release`: passed after every slice, and again on
-  `develop` after the merge from a deleted build directory. That run reported 0 native
-  warnings under `/W4 /WX`, 13 CTests passed and 0 failed, 119 .NET tests passed and 0
-  failed, and a clean `dotnet format --verify-no-changes`, against OpenCV 4.14.0.
-- Portability audit in place of the Linux compile: no native source outside the C ABI
-  export macro uses a Windows-only header or construct, that macro already has a GCC
-  branch, no source uses a backslash path separator, and every quoted include resolves
-  case-sensitively. This is an audit and not a compile, so the gate item stays open.
-- Reference pipeline check: swapping the colour range bounds left nothing to find and
-  failed the pipeline at its first assertion, so the chain genuinely executes rather than
-  asserting over empty results.
-- OpenCV check: with `OpenCV_DIR=D:\setups\opencv\build`, configure reported
-  `Found OpenCV 4.14.0`, `nvision_vision` linked it, `opencv_world4140.dll` was copied
-  into the native test output directory, and the gate stayed green.
-- This is the first session in which the managed half of the gate actually ran.
-- Negative check: removing the crop transform output made `nvision_tool_execution_tests`
-  fail with `OUTPUT_CONTRACT_VIOLATION`, and restoring it returned the suite to green.
-- Boundary check after the relocation: no header under `native/core`, `native/acquisition`,
-  or `native/abi` includes anything from `nvision/workflow`, and no include of the old
-  `nvision/core/` paths for the relocated files remains anywhere in `native/`.
+- Full `scripts/check.ps1 -Configuration Release`: green after all four commits.
+- Negative check on the collection contract: removing the output arity check made
+  `nvision_tool_execution_tests` fail, and restoring it returned the suite to green.
+- Negative check on assignability: restoring the kind-only promotion comparison made
+  `nvision_workflow_contract_tests` fail on both the widened ROI shape set and the
+  unbounded range, and the assignability check returned it to green.
+- Evidence check: the tool's own test now asserts the descriptor against what the sink was
+  handed, so `packed_length_bytes()` and the stored length are compared rather than
+  assumed, in both the plain and the annotated path.
+- The arity rule found the crop connection in the Wire Marker reference graph before any
+  test was written for it, which is the first evidence that the contract does real work.
