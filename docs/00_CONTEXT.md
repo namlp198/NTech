@@ -53,7 +53,9 @@ validated execution context, cancellation and budget, and an implementation regi
 by the same stable ID and exact version, while `nvision_vision` carries the first real
 implementation. A catalogued definition without an implementation binds as not_implemented,
 so coverage stays measurable, and it currently stands at 43 of 66 with Image Processing,
-Location and Geometry, Measurement, clustering, and evidence complete. The native area boundary was also brought in line
+Location and Geometry, Measurement, clustering, and evidence complete. The Pin Insert
+training and inspection flows run end to end on those tools alone, with no application
+tool in the catalog. The one exit-gate item still open is the Linux headless build. The native area boundary was also brought in line
 with the plan: the tool platform contracts moved from `nvision::core` to
 `nvision::workflow` under ADR-0006, leaving core as the data vocabulary and workflow as the
 tool platform plus execution. The remaining tool groups follow on top of that foundation. Keep the M0 provenance gap explicit, use the managed P2 path as a behavior

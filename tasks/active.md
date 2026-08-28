@@ -2,7 +2,7 @@
 
 ## Current Task
 
-M3 — Generic OpenCV Vision Foundation — Slices S0 through S5 complete
+M3 — Generic OpenCV Vision Foundation — Complete except the Linux build check
 
 ## Goal
 
@@ -21,12 +21,12 @@ parameter sets against real behaviour, with no public contract exposing an OpenC
 | S3 | Measurement, 10 tools | Complete, `a4c2108` |
 | S4 | Clustering and point grid, 6 tools | Complete, `4b72161` |
 | S5 | Overlay and evidence primitives, 1 tool | Complete, `462b558` |
-| S6 | Exit gate: parameter refinement, Pin Insert representation, Linux build | Not started |
+| S6 | Exit gate: parameter refinement, Pin Insert representation | Complete, `6df1505` |
 
 Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to M4
 (Recognition and Text, 9) and M5 (Acquisition 5, Logic and Results 8, point grid inspect 1).
 
-## Completed in S0 through S5
+## Completed in S0 through S6
 
 - `Image` is a computed raster that owns its pixels and carries no acquisition metadata,
   so a derived image can never be mistaken for a capture. `ImageSource` names which raster
@@ -64,12 +64,21 @@ Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to 
   that identifies them without learning where they are kept or computing the digest.
 - Evidence Output executes. The artifact reports whether the raster was captured, computed
   or annotated, using the provenance ADR-0007 introduced.
+- Corrected the two catalog definitions that promised what their contract cannot deliver.
+  Threshold now offers only the modes that produce a mask, and channel extract bounds its
+  index to the channels a three-channel image has. Both refusals moved from run time to
+  bind time, which is where a schema violation belongs.
+- `nvision_reference_pipeline_tests` runs the Pin Insert training and inspection flows of
+  plan Section 12 as a chain of ordinary catalog tools on a generated fixture, and asserts
+  every identity the chain used is a built-in definition.
 
 ## Next Steps
 
-1. S6, close the M3 exit gate: refine the parameter sets implementation showed to be
-   wrong, prove the Pin Insert algorithms are representable without a Pin Insert engine
-   class, and run the Linux native headless build.
+1. Run the Linux native headless build once WSL has `cmake` and `libopencv-dev`. It is the
+   last unchecked M3 exit-gate item and needs a package install this session could not
+   perform.
+2. Review and merge the branch, then start M4, the generic model and recognition
+   foundation.
 
 ## Acceptance Criteria
 
@@ -85,12 +94,12 @@ Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to 
 - [x] Measurement tools are implemented and tested, except grid deviation.
 - [x] Clustering and point-grid tools are implemented and tested, except point grid inspect.
 - [x] Overlay and evidence tools are implemented and tested.
-- [ ] Pin Insert source algorithms are representable without a Pin Insert engine class.
+- [x] Pin Insert source algorithms are representable without a Pin Insert engine class.
 - [ ] The Linux native headless build compiles the vision library.
 
 ## Verification Baseline
 
-`scripts/check.ps1 -Configuration Release` with `OpenCV_DIR` set is green: 12 native
+`scripts/check.ps1 -Configuration Release` with `OpenCV_DIR` set is green: 13 native
 CTests, 119 .NET tests, and a clean `dotnet format --verify-no-changes`.
 
 ## Open Items
@@ -101,10 +110,19 @@ CTests, 119 .NET tests, and a clean `dotnet format --verify-no-changes`.
   it would have no producer to check against. Both are M5 items, and the coverage test
   asserts the gap rather than leaving it silent.
 
-- The catalog declares threshold modes `truncate` and `to-zero` on a tool whose output
-  port is a mask. Both keep source intensity, so they produce an image rather than a mask.
-  The tool refuses them today. Resolve in S6 by splitting the definition or bumping its
-  version.
+- The Linux native headless build has not been run. WSL Ubuntu on this machine has g++ 13.3
+  but neither `cmake` nor OpenCV, and `sudo` requires a password, so the packages could not
+  be installed non-interactively. What was checked instead: no native source outside the C
+  ABI export macro uses a Windows-only header or construct, that macro already has a GCC
+  branch, no source uses a backslash path separator, and every quoted include resolves
+  case-sensitively. That is an audit, not a compile, and the gate item stays open until the
+  build actually runs.
+
+  ```bash
+  wsl -d Ubuntu -- sudo apt-get install -y cmake libopencv-dev
+  ```
+- Catalog definitions are corrected in place while the catalog is unpublished. Once it
+  ships, a contract change requires a version bump instead.
 - External Wire Marker model and Pin Insert asset provenance/license evidence is still
   unresolved. Do not import or redistribute those assets until it is.
 - Pin Insert golden/regression images are still unavailable, so it remains an

@@ -112,6 +112,19 @@
   over a captured frame becomes source evidence, a computed raster derived evidence, and an
   annotated one an overlay. With no sink attached it reports the fact rather than
   discarding what it made.
+- Closed the exit gate in `6df1505`. Two catalog definitions promised what their contract
+  cannot deliver, which only became visible once the tools existed: threshold declared
+  truncate and to-zero on a tool whose only output is a mask, and channel extract declared
+  an index of up to three on a three-channel image. Both enumerations and ranges are now
+  correct, both refusals moved from run time to bind time, and the corresponding guards in
+  the tools are gone. They were corrected in place rather than by a version bump because
+  the catalog has never been published, so nothing binds these definitions anywhere.
+- `nvision_reference_pipeline_tests` answers the exit-gate question directly. It runs the
+  Pin Insert training and inspection flows of plan Section 12 as a chain of ordinary
+  catalog tools on a generated fixture, learns a two by three layout, and measures a
+  shifted fixture as deviating by exactly the root of five. A second test asserts every
+  identity the chain used resolves from the built-in catalog, so adding a tool named after
+  a product to make the flow work would be visible rather than quiet.
 - Catalog coverage is 43 of 66 definitions. Image Processing, Location and Geometry, and
   Measurement are complete; Clustering and Structure is complete apart from point grid
   inspect.
@@ -120,15 +133,16 @@
 
 M2 is complete and merged. M3 is in progress and green: the tool execution foundation, the
 computed-image ownership contract, the OpenCV interop substrate, and the complete Image
-Processing, Location and Geometry, Measurement, clustering, and evidence groups are landed, and the native area boundary now
-matches the plan. Slice S6 remains. The branch has not been pushed and has not been merged into `develop`.
+Processing, Location and Geometry, Measurement, clustering, and evidence groups are landed, and the Pin Insert flows run on generic tools alone, and the native area boundary now
+matches the plan. M3 is complete apart from the Linux headless build. The branch has not been pushed and has not been merged into `develop`.
 
 ## Next Actions
 
-1. Continue with slice S6, the M3 exit gate.
-   It refines the parameter sets implementation showed to be wrong, proves the Pin Insert
-   algorithms are representable without a Pin Insert engine class, and runs the Linux
-   native headless build.
+1. Run the Linux native headless build. It is the one M3 exit-gate item still unchecked.
+   WSL Ubuntu here has g++ 13.3 but neither `cmake` nor OpenCV, and `sudo` needs a
+   password, so the packages could not be installed non-interactively:
+   `wsl -d Ubuntu -- sudo apt-get install -y cmake libopencv-dev`, then
+   `wsl -d Ubuntu -- bash -lc "cd /mnt/d/src/ai-workspace/06_Repositories/NTech && cmake -S . -B artifacts/native/linux-host -DCMAKE_BUILD_TYPE=Release -DNVISION_BUILD_TESTS=ON && cmake --build artifacts/native/linux-host && ctest --test-dir artifacts/native/linux-host"`.
 3. Review and merge `codex/m3-tool-execution-foundation` into `develop`.
 4. Keep the M0 asset provenance gap explicit and run the full repository check after each
    coherent behavior slice.
@@ -170,8 +184,15 @@ matches the plan. Slice S6 remains. The branch has not been pushed and has not b
 ## Verification
 
 - Full `scripts/check.ps1 -Configuration Release`: passed after every slice. The final
-  run reported 0 native warnings under `/W4 /WX`, 12 CTests passed and 0 failed, 119 .NET
+  run reported 0 native warnings under `/W4 /WX`, 13 CTests passed and 0 failed, 119 .NET
   tests passed and 0 failed, and a clean `dotnet format --verify-no-changes`.
+- Portability audit in place of the Linux compile: no native source outside the C ABI
+  export macro uses a Windows-only header or construct, that macro already has a GCC
+  branch, no source uses a backslash path separator, and every quoted include resolves
+  case-sensitively. This is an audit and not a compile, so the gate item stays open.
+- Reference pipeline check: swapping the colour range bounds left nothing to find and
+  failed the pipeline at its first assertion, so the chain genuinely executes rather than
+  asserting over empty results.
 - OpenCV check: with `OpenCV_DIR=D:\setups\opencv\build`, configure reported
   `Found OpenCV 4.14.0`, `nvision_vision` linked it, `opencv_world4140.dll` was copied
   into the native test output directory, and the gate stayed green.
