@@ -97,6 +97,14 @@ enum class ToolDeviceRequirement : std::uint32_t {
     external_device = 3,
 };
 
+// What a tool really does, not what would be convenient to assume.
+//
+// Every default is the conservative answer, so a definition that says nothing promises
+// nothing. supports_cancellation means the implementation observes the token while it
+// runs, and supports_timeout means it bounds its own work to the budget. Neither is a
+// statement about the engine: execute_tool measures elapsed time after a tool returns and
+// reports an overrun, which is diagnosis rather than preemption, and it can do that for a
+// tool that claims neither.
 class ToolExecutionCharacteristics final {
 public:
     ToolExecutionCharacteristics(
@@ -105,8 +113,8 @@ public:
         bool thread_safe = false,
         bool reentrant = false,
         bool deterministic = true,
-        bool supports_cancellation = true,
-        bool supports_timeout = true,
+        bool supports_cancellation = false,
+        bool supports_timeout = false,
         bool supports_debug_preview = false);
 
     [[nodiscard]] ToolExecutionLifetime lifetime() const noexcept;

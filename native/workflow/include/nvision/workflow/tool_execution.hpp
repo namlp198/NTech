@@ -50,6 +50,11 @@ private:
 
 // The monotonic time a single tool invocation is allowed to take. An unbounded budget
 // means the caller accepts whatever the tool needs; it is not a hidden default timeout.
+//
+// A budget is not enforced against a running tool. execute_tool measures how long the call
+// took and reports an overrun afterwards, so an exceeded budget is a diagnosis rather than
+// an interruption. A tool that must stop early has to observe the cancellation token
+// itself, and only then may its definition claim to support cancellation or timeout.
 class ExecutionBudget final {
 public:
     [[nodiscard]] static ExecutionBudget unbounded() noexcept;
