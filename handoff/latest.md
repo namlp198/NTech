@@ -2,11 +2,12 @@
 
 ## Date
 
-2026-08-27
+2026-08-28
 
 ## Branch
 
-`codex/m3-tool-execution-foundation`, created from `develop` at `f1c0abd`
+`develop`. The M3 work was done on `codex/m3-tool-execution-foundation`, created from
+`develop` at `f1c0abd`, and merged back by `d1faa1d`.
 
 ## Completed
 
@@ -131,22 +132,30 @@
 
 ## Current Status
 
-M2 is complete and merged. M3 is in progress and green: the tool execution foundation, the
-computed-image ownership contract, the OpenCV interop substrate, and the complete Image
-Processing, Location and Geometry, Measurement, clustering, and evidence groups are landed, and the Pin Insert flows run on generic tools alone, and the native area boundary now
-matches the plan. M3 is complete apart from the Linux headless build. The branch has not been pushed and has not been merged into `develop`.
+M3 is complete and merged into `develop` by `d1faa1d`. The generic OpenCV vision foundation
+implements 43 of the 66 catalog definitions, both reference grid flows run end to end on
+those tools alone, and the full gate is green on `develop` after a clean rebuild.
+
+`develop` is ahead of `origin/develop` by the whole milestone and has not been pushed.
 
 ## Next Actions
 
-1. Run the Linux native headless build. It is the one M3 exit-gate item still unchecked.
-   WSL Ubuntu here has g++ 13.3 but neither `cmake` nor OpenCV, and `sudo` needs a
-   password, so the packages could not be installed non-interactively:
+1. Start M4, the generic model and recognition foundation: `.nvmodel` integrity and
+   manifest validation in C++, a model registry with instance-owned sessions, the native
+   ONNX Runtime CPU backend, detector and recognizer pre- and post-processing, CTC
+   decoding, configurable orientation search, and the nine Recognition and Text tools.
+2. Resolve the external model provenance and license question first. M4 is the milestone
+   that would otherwise want to import the Wire Marker models, and no license evidence has
+   been found beside them.
+3. Push `develop` when you are ready; this session did not push.
+4. Run the Linux native headless build, now carried as an M11 release gate. WSL Ubuntu here
+   has g++ 13.3 but neither `cmake` nor OpenCV, and `sudo` needs a password, so the
+   packages could not be installed non-interactively:
    `wsl -d Ubuntu -- sudo apt-get install -y cmake libopencv-dev`, then
    `wsl -d Ubuntu -- bash -lc "cd /mnt/d/src/ai-workspace/06_Repositories/NTech && cmake -S . -B artifacts/native/linux-host -DCMAKE_BUILD_TYPE=Release -DNVISION_BUILD_TESTS=ON && cmake --build artifacts/native/linux-host && ctest --test-dir artifacts/native/linux-host"`.
-3. Review and merge `codex/m3-tool-execution-foundation` into `develop`.
-4. Keep the M0 asset provenance gap explicit and run the full repository check after each
+5. Keep the M0 asset provenance gap explicit and run the full repository check after each
    coherent behavior slice.
-5. Decide whether to renormalize repository line endings as a separate commit.
+6. Decide whether to renormalize repository line endings as a separate commit.
 
 ## Warnings
 
@@ -183,9 +192,10 @@ matches the plan. M3 is complete apart from the Linux headless build. The branch
 
 ## Verification
 
-- Full `scripts/check.ps1 -Configuration Release`: passed after every slice. The final
-  run reported 0 native warnings under `/W4 /WX`, 13 CTests passed and 0 failed, 119 .NET
-  tests passed and 0 failed, and a clean `dotnet format --verify-no-changes`.
+- Full `scripts/check.ps1 -Configuration Release`: passed after every slice, and again on
+  `develop` after the merge from a deleted build directory. That run reported 0 native
+  warnings under `/W4 /WX`, 13 CTests passed and 0 failed, 119 .NET tests passed and 0
+  failed, and a clean `dotnet format --verify-no-changes`, against OpenCV 4.14.0.
 - Portability audit in place of the Linux compile: no native source outside the C ABI
   export macro uses a Windows-only header or construct, that macro already has a GCC
   branch, no source uses a backslash path separator, and every quoted include resolves
