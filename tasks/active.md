@@ -2,12 +2,28 @@
 
 ## Current Task
 
-M3 — Generic OpenCV Vision Foundation — Complete and merged into `develop`
+Generic Tool Catalog generalization audit — documented on
+`codex/tool-catalog-evolution-guide`
 
 ## Goal
 
-Implement the 44 catalog definitions M3 owns behind their existing contracts, refining
-parameter sets against real behaviour, with no public contract exposing an OpenCV type.
+Turn the independent M2/M3 review into durable development guidance so later milestones
+preserve product-neutral tools while correcting collection, transform, evidence, typed
+result, subworkflow, and execution-characteristic gaps before they become public contracts.
+
+## Outcome
+
+- Added `docs/implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md`.
+- Recorded a tool admission checklist, current catalog reuse assessment, future capability
+  candidates, and verification policy.
+- Added explicit entry/exit gates for M4, M5, M8, M9, and M10.
+- Linked the guide from the documentation index and the authoritative execution plan.
+- No production source or test code changed.
+
+## M3 Historical Baseline
+
+The sections below retain the completed M3 slice and verification record. They remain the
+implementation baseline while the generalization guide controls entry into later work.
 
 ## Slice Plan
 
@@ -74,13 +90,18 @@ Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to 
 
 ## Next Steps
 
-1. Start M4, the generic model and recognition foundation: `.nvmodel` integrity and
+1. Before implementing M4 recognition tools, choose the executable typed
+   collection/multi-value representation required by text candidates, recognition crops,
+   barcode lists, and consensus inputs.
+2. Add non-identity tests and resolve the documented ECC/resize/affine/homography transform
+   risks before relying on those paths for alignment or measurement.
+3. Start M4, the generic model and recognition foundation: `.nvmodel` integrity and
    manifest validation in C++, a model registry with instance-owned sessions, the native
    ONNX Runtime CPU backend, detector and recognizer pre- and post-processing, CTC
    decoding, configurable orientation search, and the nine Recognition and Text tools.
-2. Resolve the external model provenance and license question before M4 imports anything.
+4. Resolve the external model provenance and license question before M4 imports anything.
    It is the milestone that would otherwise want those assets.
-3. Run the Linux native headless build once WSL has `cmake` and `libopencv-dev`. It is
+5. Run the Linux native headless build once WSL has `cmake` and `libopencv-dev`. It is
    carried as an M11 release gate rather than an open M3 item.
 
 ## Acceptance Criteria
