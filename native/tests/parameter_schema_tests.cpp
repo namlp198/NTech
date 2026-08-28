@@ -1,6 +1,7 @@
 #include "nvision/workflow/parameter_schema.hpp"
 #include "nvision/workflow/tool_definition.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
@@ -309,6 +310,75 @@ void type_constraints_reject_incompatible_defaults() {
     }));
 }
 
+// Assignability is about the whole accepted domain, not the kind and one default. Every
+// case here would bind cleanly under a kind comparison and then fail at execution.
+void parameter_domains_are_assignable_only_when_they_are_contained() {
+    const auto option = [](const char* key) {
+        return EnumOption(EnumOptionKey(key), key);
+    };
+    const ParameterType wide_enum =
+        ParameterType::enumeration({option("fast"), option("accurate")});
+    const ParameterType narrow_enum = ParameterType::enumeration({option("fast")});
+    NVISION_REQUIRE(narrow_enum.is_assignable_to(wide_enum));
+    NVISION_REQUIRE(!wide_enum.is_assignable_to(narrow_enum));
+
+    const ParameterType wide_range =
+        ParameterType::floating_point(NumericConstraint(0.0, 10.0));
+    const ParameterType narrow_range =
+        ParameterType::floating_point(NumericConstraint(2.0, 5.0));
+    const ParameterType unbounded = ParameterType::floating_point();
+    NVISION_REQUIRE(narrow_range.is_assignable_to(wide_range));
+    NVISION_REQUIRE(!wide_range.is_assignable_to(narrow_range));
+    NVISION_REQUIRE(wide_range.is_assignable_to(unbounded));
+    // An unbounded exposed parameter can offer a value no bounded internal one accepts.
+    NVISION_REQUIRE(!unbounded.is_assignable_to(wide_range));
+
+    // A grid the target does not share cannot be shown to land on it.
+    const ParameterType stepped =
+        ParameterType::integer(NumericConstraint(0.0, 10.0, 2.0));
+    const ParameterType unstepped = ParameterType::integer(NumericConstraint(0.0, 10.0));
+    NVISION_REQUIRE(unstepped.is_assignable_to(unstepped));
+    NVISION_REQUIRE(stepped.is_assignable_to(unstepped));
+    NVISION_REQUIRE(!unstepped.is_assignable_to(stepped));
+
+    // A different kind is never assignable, whatever the domains look like.
+    NVISION_REQUIRE(!ParameterType::string().is_assignable_to(wide_enum));
+    NVISION_REQUIRE(!ParameterType::integer().is_assignable_to(ParameterType::floating_point()));
+
+    const ParameterType narrow_array =
+        ParameterType::array(narrow_enum, 1U, std::optional<std::size_t>(3U));
+    const ParameterType wide_array =
+        ParameterType::array(wide_enum, 0U, std::optional<std::size_t>(8U));
+    NVISION_REQUIRE(narrow_array.is_assignable_to(wide_array));
+    NVISION_REQUIRE(!wide_array.is_assignable_to(narrow_array));
+    // An element type that does not fit sinks the array even when the counts do.
+    const ParameterType wide_elements_narrow_counts =
+        ParameterType::array(wide_enum, 1U, std::optional<std::size_t>(3U));
+    const ParameterType narrow_elements_wide_counts =
+        ParameterType::array(narrow_enum, 0U, std::optional<std::size_t>(8U));
+    NVISION_REQUIRE(
+        !wide_elements_narrow_counts.is_assignable_to(narrow_elements_wide_counts));
+    // An unbounded count cannot be shown to fit inside a bounded one.
+    NVISION_REQUIRE(!ParameterType::array(narrow_enum, 1U).is_assignable_to(wide_array));
+
+    NVISION_REQUIRE(ParameterType::geometry(GeometryKind::circle)
+                        .is_assignable_to(ParameterType::geometry(GeometryKind::circle)));
+    NVISION_REQUIRE(!ParameterType::geometry(GeometryKind::circle)
+                         .is_assignable_to(ParameterType::geometry(GeometryKind::rectangle)));
+
+    const ParameterType rect_only =
+        ParameterType::region_of_interest({GeometryKind::rectangle});
+    const ParameterType rect_or_polygon =
+        ParameterType::region_of_interest({GeometryKind::rectangle, GeometryKind::polygon});
+    NVISION_REQUIRE(rect_only.is_assignable_to(rect_or_polygon));
+    NVISION_REQUIRE(!rect_or_polygon.is_assignable_to(rect_only));
+
+    NVISION_REQUIRE(
+        ParameterType::model_reference().is_assignable_to(ParameterType::model_reference()));
+    NVISION_REQUIRE(
+        !ParameterType::model_reference().is_assignable_to(ParameterType::resource_reference()));
+}
+
 void tool_definitions_reject_invalid_condition_graphs() {
     NVISION_REQUIRE(rejects_invalid_argument([] {
         const auto invalid = tool_with_parameters({mode_parameter(), mode_parameter()});
@@ -400,6 +470,7 @@ int main() {
     schemas_keep_versioned_resource_kinds_explicit();
     tool_definitions_validate_declarative_visibility_conditions();
     type_constraints_reject_incompatible_defaults();
+    parameter_domains_are_assignable_only_when_they_are_contained();
     tool_definitions_reject_invalid_condition_graphs();
     return EXIT_SUCCESS;
 }

@@ -2,6 +2,7 @@
 #include "nvision/workflow/workflow_graph.hpp"
 #include "nvision/workflow/workflow_node.hpp"
 
+#include <cstddef>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
@@ -806,6 +807,60 @@ void subworkflow_binding_reports_contract_mismatches() {
         nullptr);
     NVISION_REQUIRE(
         find_diagnostic(promotion_binding.diagnostics(), "MISSING_PROMOTED_PARAMETER") != nullptr);
+
+    // A promotion whose kind and default both look fine but whose domain is wider than the
+    // internal one. Under a kind comparison this bound cleanly and then failed on the first
+    // run whose Recipe chose a value the internal parameter never accepted.
+    const SubworkflowDefinition wider_domain(
+        ToolTypeDefinition(
+            ToolTypeId("nvision.subworkflow.recognition.wider-domain"),
+            SemanticVersion(1U, 0U, 0U),
+            ToolCatalogMetadata("Wider Domain", {"Recognition"}),
+            {port("image", PortDirection::input, PortDataType::image_view),
+             port("text", PortDirection::output, PortDataType::text_result)},
+            nvision::workflow::ToolOrigin::built_in(),
+            {},
+            {ParameterDefinition(
+                 ParameterKey("roi"),
+                 "Region",
+                 // The internal crop accepts only a rectangle, so exposing a circle as
+                 // well promises an editor shape the node can never be given.
+                 ParameterType::region_of_interest(
+                     {GeometryKind::rectangle, GeometryKind::circle}),
+                 true,
+                 ParameterValue::region_of_interest(sample_rectangle())),
+             ParameterDefinition(
+                 ParameterKey("minimum-confidence"),
+                 "Minimum Confidence",
+                 // The internal parameter is bounded to 0..1; this one is not bounded at all.
+                 ParameterType::floating_point(),
+                 true,
+                 ParameterValue::floating_point(0.5))}),
+        graph,
+        {SubworkflowPortMapping(
+             PortKey("image"), PortDirection::input, WorkflowNodeId("node.crop"),
+             PortKey("image")),
+         SubworkflowPortMapping(
+             PortKey("text"), PortDirection::output, WorkflowNodeId("node.text"),
+             PortKey("text"))},
+        {SubworkflowParameterPromotion(
+             ParameterKey("roi"), WorkflowNodeId("node.crop"), ParameterKey("roi")),
+         SubworkflowParameterPromotion(
+             ParameterKey("minimum-confidence"),
+             WorkflowNodeId("node.text"),
+             ParameterKey("minimum-confidence"))});
+
+    const WorkflowGraphBinding domain_binding = bind_subworkflow(wider_domain, registry);
+    NVISION_REQUIRE(domain_binding.is_fully_resolved());
+    NVISION_REQUIRE(domain_binding.has_errors());
+    std::size_t domain_mismatches = 0U;
+    for (const auto& diagnostic : domain_binding.diagnostics()) {
+        if (diagnostic.code().value() == "PROMOTED_PARAMETER_TYPE_MISMATCH") {
+            ++domain_mismatches;
+        }
+    }
+    // Both promotions are refused: the wider ROI shape set and the unbounded range.
+    NVISION_REQUIRE(domain_mismatches == 2U);
 
     // An exposed parameter that reaches no node is reported without failing the bind.
     const SubworkflowDefinition unpromoted(

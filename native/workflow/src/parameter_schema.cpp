@@ -489,6 +489,84 @@ bool ParameterType::accepts(const ParameterValue& value) const noexcept {
     return false;
 }
 
+namespace {
+
+// A numeric domain is contained when it is bounded at least everywhere the target is, and
+// no wider on either side. An unbounded source can never fit inside a bounded target.
+bool numeric_domain_fits(const NumericConstraint& source, const NumericConstraint& target) {
+    if (target.minimum().has_value() &&
+        (!source.minimum().has_value() || *source.minimum() < *target.minimum())) {
+        return false;
+    }
+    if (target.maximum().has_value() &&
+        (!source.maximum().has_value() || *source.maximum() > *target.maximum())) {
+        return false;
+    }
+    if (target.step().has_value() &&
+        (!source.step().has_value() || *source.step() != *target.step())) {
+        // A coarser grid can still sit off the target's, and proving alignment needs the
+        // origin as well as the spacing. Requiring the same step refuses some assignments
+        // that would work rather than admitting one that would not.
+        return false;
+    }
+    return true;
+}
+
+}  // namespace
+
+bool ParameterType::is_assignable_to(const ParameterType& target) const noexcept {
+    if (kind_ != target.kind_) {
+        return false;
+    }
+    switch (kind_) {
+        case ParameterKind::boolean:
+        case ParameterKind::string:
+            return true;
+        case ParameterKind::integer:
+        case ParameterKind::floating_point:
+            return numeric_domain_fits(*numeric_constraint_, *target.numeric_constraint_);
+        case ParameterKind::enumeration:
+            return std::all_of(
+                enum_options_.begin(),
+                enum_options_.end(),
+                [&target](const EnumOption& option) {
+                    return std::any_of(
+                        target.enum_options_.begin(),
+                        target.enum_options_.end(),
+                        [&option](const EnumOption& allowed) {
+                            return allowed.key() == option.key();
+                        });
+                });
+        case ParameterKind::array:
+            if (!element_type_->is_assignable_to(*target.element_type_)) {
+                return false;
+            }
+            if (minimum_items_ < target.minimum_items_) {
+                return false;
+            }
+            return !target.maximum_items_.has_value() ||
+                   (maximum_items_.has_value() && *maximum_items_ <= *target.maximum_items_);
+        case ParameterKind::geometry:
+            return *geometry_kind_ == *target.geometry_kind_;
+        case ParameterKind::region_of_interest:
+            return std::all_of(
+                allowed_roi_shapes_.begin(),
+                allowed_roi_shapes_.end(),
+                [&target](const GeometryKind shape) {
+                    return std::find(
+                               target.allowed_roi_shapes_.begin(),
+                               target.allowed_roi_shapes_.end(),
+                               shape) != target.allowed_roi_shapes_.end();
+                });
+        case ParameterKind::resource_reference:
+        case ParameterKind::model_reference:
+        case ParameterKind::calibration_reference:
+            // The kinds already match, and a reference carries no further domain.
+            return true;
+    }
+    return false;
+}
+
 PropertyEditorMetadata::PropertyEditorMetadata(
     std::vector<std::string> group_path,
     const std::uint32_t order,

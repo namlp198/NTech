@@ -232,14 +232,20 @@ WorkflowGraphBinding bind_subworkflow(
                 promotion.node_parameter_key()));
             continue;
         }
+        // Guaranteed non-null: the constructor refuses a promotion whose exposed key the
+        // interface does not declare.
         const auto* exposed_parameter =
             definition.interface_definition().find_parameter(promotion.exposed_key());
-        const bool kind_matches =
-            exposed_parameter->type().kind() == node_parameter->type().kind();
+        // The exposed schema is what a Recipe may set, so every value it admits has to
+        // reach the internal parameter. Comparing kinds and one default would let an
+        // exposed enum of {a, b} bind to an internal enum of {a} and fail on the first run
+        // that chose b.
+        const bool assignable =
+            exposed_parameter->type().is_assignable_to(node_parameter->type());
         const bool default_accepted =
             !exposed_parameter->default_value().has_value() ||
             node_parameter->type().accepts(*exposed_parameter->default_value());
-        if (!kind_matches || !default_accepted) {
+        if (!assignable || !default_accepted) {
             diagnostics.push_back(WorkflowDiagnostic::parameter(
                 core::ResultCode("PROMOTED_PARAMETER_TYPE_MISMATCH"),
                 DiagnosticSeverity::error,
