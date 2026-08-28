@@ -215,6 +215,83 @@ private:
     SemanticVersion version_;
 };
 
+// A tool whose input and output are both plural, so the arity half of the port contract
+// can be exercised on its own without a data kind changing at the same time.
+ToolTypeDefinition gathering_definition() {
+    return ToolTypeDefinition(
+        ToolTypeId("nvision.test.tool.gatherer"),
+        initial_version(),
+        ToolCatalogMetadata("Gatherer", {"Test"}),
+        {ToolPortDefinition(
+             PortKey("values"),
+             "Values",
+             PortDirection::input,
+             PortDataType::integer,
+             true,
+             true),
+         ToolPortDefinition(
+             PortKey("label"),
+             "Label",
+             PortDirection::input,
+             PortDataType::string,
+             false),
+         ToolPortDefinition(
+             PortKey("items"),
+             "Items",
+             PortDirection::output,
+             PortDataType::integer,
+             true,
+             true)},
+        nvision::workflow::ToolOrigin::built_in());
+}
+
+class GatheringTool final : public ToolImplementation {
+public:
+    explicit GatheringTool(const bool produce_collection)
+        : produce_collection_(produce_collection),
+          id_("nvision.test.tool.gatherer"),
+          version_(1U, 0U, 0U) {}
+
+    [[nodiscard]] const ToolTypeId& tool_type_id() const noexcept override {
+        return id_;
+    }
+
+    [[nodiscard]] const SemanticVersion& tool_version() const noexcept override {
+        return version_;
+    }
+
+    [[nodiscard]] ToolExecutionOutcome execute(const ToolExecutionContext& context) const override {
+        PortValueMap outputs;
+        if (!produce_collection_) {
+            outputs.set(PortKey("items"), PortValue::integer(1));
+            return ToolExecutionOutcome::succeeded(std::move(outputs));
+        }
+        std::vector<PortValue> doubled;
+        for (const PortValue& value : context.input(PortKey("values")).collection_value()) {
+            doubled.push_back(PortValue::integer(value.integer_value() * 2));
+        }
+        outputs.set(
+            PortKey("items"), PortValue::collection(PortDataType::integer, std::move(doubled)));
+        return ToolExecutionOutcome::succeeded(std::move(outputs));
+    }
+
+private:
+    bool produce_collection_;
+    ToolTypeId id_;
+    SemanticVersion version_;
+};
+
+ToolExecutionContext gatherer_context(
+    const std::shared_ptr<const ToolTypeDefinition>& definition,
+    PortValueMap inputs) {
+    return ToolExecutionContext(
+        definition,
+        ExecutionSessionId("session.01"),
+        WorkflowNodeId("node.gather"),
+        std::move(inputs),
+        ParameterBinding::resolve(*definition, NodeConfiguration()));
+}
+
 NodeConfiguration counter_configuration() {
     return NodeConfiguration(
         {NodeParameterAssignment(ParameterKey("label"), ParameterValue::string("primary"))});
@@ -281,6 +358,81 @@ void typed_port_values_enforce_the_declared_data_kind() {
     with_optional.set(PortKey("threshold"), PortValue::integer(9));
     const ToolExecutionContext complete = counter_context(definition, std::move(with_optional));
     NVISION_REQUIRE(complete.input(PortKey("threshold")).integer_value() == 9);
+}
+
+// Arity belongs to the port declaration, so a plural port always carries a collection and
+// a single port never does. Without this a graph could validate while execution silently
+// kept one of the values it was handed.
+void collections_carry_the_arity_their_port_declares() {
+    const PortValue empty = PortValue::collection(PortDataType::text_result, {});
+    NVISION_REQUIRE(empty.is_collection());
+    // An empty collection still says what it is empty of, so a consumer never has to guess.
+    NVISION_REQUIRE(empty.type() == PortDataType::text_result);
+    NVISION_REQUIRE(empty.collection_value().empty());
+
+    const PortValue numbers = PortValue::collection(
+        PortDataType::integer, {PortValue::integer(3), PortValue::integer(5)});
+    NVISION_REQUIRE(numbers.type() == PortDataType::integer);
+    NVISION_REQUIRE(numbers.collection_value().size() == 2U);
+    NVISION_REQUIRE(numbers.collection_value()[1].integer_value() == 5);
+
+    // A collection is not its element, in either direction.
+    NVISION_REQUIRE(rejects_invalid_argument([&numbers] { (void)numbers.integer_value(); }));
+    NVISION_REQUIRE(!PortValue::integer(1).is_collection());
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        (void)PortValue::integer(1).collection_value();
+    }));
+
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        (void)PortValue::collection(
+            PortDataType::integer, {PortValue::integer(1), PortValue::text("three")});
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([] {
+        // Nesting would make one port kind mean two things at once.
+        (void)PortValue::collection(
+            PortDataType::integer,
+            {PortValue::collection(PortDataType::integer, {PortValue::integer(1)})});
+    }));
+
+    const auto definition = std::make_shared<const ToolTypeDefinition>(gathering_definition());
+
+    NVISION_REQUIRE(rejects_invalid_argument([&definition] {
+        PortValueMap inputs;
+        inputs.set(PortKey("values"), PortValue::integer(1));
+        (void)gatherer_context(definition, std::move(inputs));
+    }));
+    NVISION_REQUIRE(rejects_invalid_argument([&definition] {
+        PortValueMap inputs;
+        inputs.set(
+            PortKey("values"),
+            PortValue::collection(PortDataType::integer, {PortValue::integer(1)}));
+        inputs.set(
+            PortKey("label"),
+            PortValue::collection(PortDataType::string, {PortValue::text("one")}));
+        (void)gatherer_context(definition, std::move(inputs));
+    }));
+
+    PortValueMap inputs;
+    inputs.set(
+        PortKey("values"),
+        PortValue::collection(
+            PortDataType::integer, {PortValue::integer(3), PortValue::integer(5)}));
+    const ToolExecutionContext context = gatherer_context(definition, std::move(inputs));
+    const ToolExecutionOutcome gathered =
+        execute_tool(GatheringTool(true), context);
+    NVISION_REQUIRE(gathered.is_success());
+    const PortValue* items = gathered.outputs().find(PortKey("items"));
+    NVISION_REQUIRE(items != nullptr && items->is_collection());
+    NVISION_REQUIRE(items->collection_value().size() == 2U);
+    NVISION_REQUIRE(items->collection_value()[0].integer_value() == 6);
+
+    // A plural output that produces one value is a contract violation, not a shorthand.
+    const ToolExecutionOutcome flattened = execute_tool(GatheringTool(false), context);
+    NVISION_REQUIRE(!flattened.is_success());
+    NVISION_REQUIRE(flattened.errors().size() == 1U);
+    NVISION_REQUIRE(flattened.errors().front().code() == ResultCode("OUTPUT_CONTRACT_VIOLATION"));
+    // A failed tool hands nothing downstream, so a rejected arity cannot leak a value.
+    NVISION_REQUIRE(flattened.outputs().empty());
 }
 
 void parameter_binding_resolves_defaults_and_rejects_incomplete_configuration() {
@@ -606,6 +758,7 @@ void threshold_produces_a_computed_mask_that_owns_its_pixels() {
 
 int main() {
     typed_port_values_enforce_the_declared_data_kind();
+    collections_carry_the_arity_their_port_declares();
     parameter_binding_resolves_defaults_and_rejects_incomplete_configuration();
     tool_outcomes_never_present_a_failure_as_a_result();
     cancellation_and_budget_are_observable_through_the_execution_contract();

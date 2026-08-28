@@ -59,7 +59,6 @@ bool is_valid(const core::PortDataType type) noexcept {
         case core::PortDataType::detection:
         case core::PortDataType::detection_list:
         case core::PortDataType::text_result:
-        case core::PortDataType::text_result_list:
         case core::PortDataType::barcode_result:
         case core::PortDataType::measurement:
         case core::PortDataType::measurement_list:

@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 #include <variant>
@@ -26,6 +27,11 @@ namespace nvision::workflow {
 // the payload is the native representation agreed for that kind. Both are set by the
 // same factory so a value can never claim a kind its payload does not carry. Kinds
 // whose native representation arrives in a later milestone have no factory yet.
+//
+// A value is either single or a collection of that same kind. Arity belongs to the port
+// declaration rather than to whatever a graph happened to connect: a port declaring
+// allows_multiple always carries a collection, empty or not, and a port that does not
+// never carries one. Collections do not nest, because a port kind names one element kind.
 class PortValue final {
 public:
     [[nodiscard]] static PortValue image(acquisition::ImageView value);
@@ -57,7 +63,17 @@ public:
     [[nodiscard]] static PortValue text(std::string value);
     [[nodiscard]] static PortValue decision(core::InspectionDecision value);
 
+    // An ordered collection of values of one kind. The element kind is declared rather
+    // than inferred so that an empty collection still states what it is empty of.
+    [[nodiscard]] static PortValue collection(
+        core::PortDataType element_type,
+        std::vector<PortValue> values);
+
+    // For a collection this is the kind of its elements, so a port contract is compared
+    // against one kind whichever arity it declares.
     [[nodiscard]] core::PortDataType type() const noexcept;
+    [[nodiscard]] bool is_collection() const noexcept;
+    [[nodiscard]] const std::vector<PortValue>& collection_value() const;
 
     [[nodiscard]] const acquisition::ImageView& image_value() const;
     [[nodiscard]] const core::Transform2D& transform_value() const;
@@ -84,6 +100,10 @@ public:
     [[nodiscard]] const core::InspectionDecision& decision_value() const;
 
 private:
+    // A collection holds its elements behind a shared pointer because a PortValue is
+    // still incomplete here and because copying a port value must stay cheap.
+    using CollectionStorage = std::shared_ptr<const std::vector<PortValue>>;
+
     using Payload = std::variant<
         bool,
         std::int64_t,
@@ -107,7 +127,8 @@ private:
         core::PointGridModel,
         core::Overlay,
         core::EvidenceArtifact,
-        core::InspectionDecision>;
+        core::InspectionDecision,
+        CollectionStorage>;
 
     PortValue(core::PortDataType type, Payload payload);
 
