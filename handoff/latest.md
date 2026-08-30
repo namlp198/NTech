@@ -6,14 +6,14 @@
 
 ## Branch
 
-Two branches, neither merged nor pushed:
+`develop`. Both feature branches are merged and neither is deleted:
 
-- `codex/group-a-contract-corrections`, from `develop` at `68e5555`. Five commits.
-- `codex/native-onnxruntime-dependency`, branched from that one so M4 work can build on the
-  collection contract. One commit, `ddd887e`.
+- `codex/group-a-contract-corrections`, five commits, merged by `566e4e2`.
+- `codex/native-onnxruntime-dependency`, branched from that one so M4 work could build on
+  the collection contract, merged by `e4dd1cb`.
 
-`develop` itself is level with `origin/develop`; the previous handoff said it was 28
-commits ahead and unpushed, which is no longer true.
+`develop` is nine commits ahead of `origin/develop` and has not been pushed. The previous
+handoff said it was 28 commits ahead before this session, which was already untrue then.
 
 ## Completed
 
@@ -149,8 +149,8 @@ port, so it would take one tool per data kind, which is a worse contract than th
 
 ## Next Actions
 
-1. Merge `codex/group-a-contract-corrections`, then `codex/native-onnxruntime-dependency`,
-   into `develop` when authorized. Nothing is pushed yet.
+1. Push `develop` when you are ready. This session merged both branches but did not push,
+   and the merged state is verified only on this machine.
 2. Work Group B, the five remaining review findings. None blocks a milestone contract, but
    two of them sit directly on M4's coordinate path and should come first: the resize
    pixel-centre convention (2), because detector preprocessing resizes to the model input
@@ -185,6 +185,10 @@ port, so it would take one tool per data kind, which is a worse contract than th
 
 ## Warnings
 
+- OpenCV moved on this machine during the session. It was at `D:\setups\opencv` and is now
+  at `D:\opencv\build`, which is why a mid-session configure failed. Nothing in the
+  repository names either path, so only the `OpenCV_DIR` you export has to change; the
+  failure is worth knowing about because it looks like a build regression and is not one.
 - The ONNX Runtime staged into `artifacts/onnxruntime` is the CPU package. Two GPU
   distributions exist on this machine under `D:\src\learn_opencv_all\Libraries`, left by
   the external Wire Marker project. Do not point `ONNXRUNTIME_ROOT` at them: the plan puts
@@ -218,7 +222,10 @@ port, so it would take one tool per data kind, which is a worse contract than th
 
 ## Verification
 
-- Full `scripts/check.ps1 -Configuration Release`: green after all five commits.
+- Full `scripts/check.ps1 -Configuration Release`: green after all five commits, and again
+  on `develop` after both merges from a deleted build directory. That run reported 0 native
+  warnings under `/W4 /WX`, 14 CTests passed and 0 failed, 119 .NET tests passed and 0
+  failed, and a clean `dotnet format --verify-no-changes`.
 - Negative check on the collection contract: removing the output arity check made
   `nvision_tool_execution_tests` fail, and restoring it returned the suite to green.
 - Negative check on assignability: restoring the kind-only promotion comparison made

@@ -14,7 +14,7 @@ Build a reusable industrial Machine Vision platform for authoring, publishing, e
 - Working P2 path: FrameLease ownership → File Camera → AcquisitionService → compiled Crop/Classify/Compare/Decision Workflow → ONNX Runtime CPU → immutable InspectionResult → file image evidence + SQLite.
 - Blocked: Pin Insert parity still lacks golden/regression images, and external Wire Marker model provenance/license evidence remains open before those assets can be redistributed. Two previously recorded blockers are resolved: `scripts/check.ps1` resolves the pinned .NET SDK 10.0.200 from the repository-local `artifacts/dotnet/` installation, and OpenCV 4.14.0 is installed and verified, discovered through the standard `OpenCV_DIR` environment variable.
 - Not started: native model/ONNX and Workflow/inspection migration, the Engine Host implementation, ProjectFormat/Studio authoring, Runtime Service, PLC integration, real camera plugins, and production-trained inspection models.
-- Contract hardening is now split. The four corrections that change public contracts are complete on `codex/group-a-contract-corrections` and not yet merged: an executable collection model with arity declared by the port, self-describing evidence media plus a storage reference, full subworkflow parameter assignability, and execution characteristics that promise only what implementations do. The four that remain are implementation-local: ECC transform direction, the resize pixel-centre convention and the missing affine transform output, projective homography validation, and a source-byte immutability check around the OpenCV borrow. The durable guidance is `docs/implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md`.
+- Contract hardening is now split. The four corrections that change public contracts are complete and merged into `develop` by `566e4e2`: an executable collection model with arity declared by the port, self-describing evidence media plus a storage reference, full subworkflow parameter assignability, and execution characteristics that promise only what implementations do. The four that remain are implementation-local: ECC transform direction, the resize pixel-centre convention and the missing affine transform output, projective homography validation, and a source-byte immutability check around the OpenCV borrow. The durable guidance is `docs/implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md`.
 
 ## Architecture Summary
 
@@ -73,7 +73,8 @@ collection input gathers its sources in connection order, and a collection outpu
 a single-value input is a graph error rather than a silent loss. Per-element fan-out over a
 collection remains unrepresented on purpose: iteration is scheduling, and M5 owns it.
 
-ONNX Runtime is now a located native dependency rather than a managed-only one.
+ONNX Runtime is now a located native dependency rather than a managed-only one, merged
+into `develop` by `e4dd1cb`.
 `cmake/FindONNXRuntime.cmake` resolves a distribution through a standard root variable or
 the repository-local staging directory that `scripts/install-onnxruntime.ps1` writes, in
 the layout the official archives use. `nvision_ai` links it PRIVATE and owns one model

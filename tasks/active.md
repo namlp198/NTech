@@ -2,9 +2,9 @@
 
 ## Current Task
 
-M4 preparation. Group A contract corrections are complete on
-`codex/group-a-contract-corrections`; the ONNX Runtime native dependency is complete on
-`codex/native-onnxruntime-dependency`, branched from it. Neither is merged into `develop`.
+M4 preparation — complete and merged into `develop`. The Group A contract corrections
+merged by `566e4e2`, the ONNX Runtime native dependency by `e4dd1cb`. `develop` is nine
+commits ahead of `origin/develop` and has not been pushed.
 
 ## Goal
 
@@ -173,8 +173,7 @@ Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to 
 
 ## Next Steps
 
-1. Merge `codex/group-a-contract-corrections`, then `codex/native-onnxruntime-dependency`,
-   into `develop` when authorized. Neither is pushed.
+1. Push `develop` when you are ready; this session merged but did not push.
 2. Work Group B above. Two of the five sit on M4's coordinate path and should come first:
    the resize pixel-centre convention, because detector preprocessing resizes to the model
    input size and has to map boxes back, and the missing affine transform output, because

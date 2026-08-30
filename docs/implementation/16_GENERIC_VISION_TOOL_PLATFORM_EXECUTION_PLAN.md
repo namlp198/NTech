@@ -2,7 +2,7 @@
 
 **Product:** NTech NVision
 **Document type:** Long-running implementation plan and cross-session context
-**Status:** Approved direction; M3 complete, Group A contract corrections and the ONNX Runtime native dependency complete, M4 next
+**Status:** Approved direction; M3, the Group A contract corrections, and the ONNX Runtime native dependency complete and merged into `develop`; M4 next
 **Date:** 2026-08-28
 **Primary deliverable:** A real NVision Studio/Runtime application that executes Wire Marker Inspection end to end through the generic native tool platform
 **Second reference application:** Pin Insert Machine, used to prevent Wire Marker-specific abstractions from entering Core
@@ -1266,8 +1266,8 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | M1 — Native data contracts | Complete and merged | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results; merge `d01e54c` |
 | M2 — Tool definition/catalog | Complete and merged | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` nodes/subworkflows; `bc58e5a` typed graphs; `a777314` catalog and reference graphs; merge `f1c0abd` |
 | M3 — Generic OpenCV foundation | Complete | `861ba0f` execution foundation; `d73f4d8` core/workflow boundary per ADR-0006; `5475413` computed image ownership per ADR-0007; `fe432d4` OpenCV substrate; `43edcd8` image processing; `9f2c0d3` geometry contracts; `ab9b17c` location and geometry; `a4c2108` measurement; `4b72161` clustering and point grid; `462b558` overlay and evidence; `6df1505` exit gate and reference pipeline. The Linux headless build is carried to M11 |
-| Group A contract corrections | Complete, unmerged | `636b729` collections; `ab61844` evidence media; `32d36a0` parameter assignability; `7e4b20d` execution characteristics, on `codex/group-a-contract-corrections` |
-| ONNX Runtime native dependency | Complete, unmerged | `ddd887e` find module, staging script, `nvision_ai` seam, and a test that loads and runs a real model, on `codex/native-onnxruntime-dependency` |
+| Group A contract corrections | Complete and merged | `636b729` collections; `ab61844` evidence media; `32d36a0` parameter assignability; `7e4b20d` execution characteristics; merge `566e4e2` |
+| ONNX Runtime native dependency | Complete and merged | `ddd887e` find module, staging script, `nvision_ai` seam, and a test that loads and runs a real model; merge `e4dd1cb` |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
 | M6 — Wire Marker headless parity | Not started | |
