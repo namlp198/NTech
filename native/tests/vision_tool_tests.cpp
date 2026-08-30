@@ -1405,7 +1405,7 @@ void a_learned_grid_becomes_the_reference_a_later_run_deviates_from() {
 // writing bytes somewhere durable.
 class RecordingEvidenceSink final : public nvision::workflow::EvidenceSink {
 public:
-    [[nodiscard]] nvision::core::ResourceIntegrity store(
+    [[nodiscard]] nvision::workflow::StoredEvidence store(
         const std::string& storage_key,
         std::span<const std::uint8_t> content) override {
         last_key_ = storage_key;
@@ -1418,10 +1418,14 @@ public:
             const std::size_t slot = index % 64U;
             hex[slot] = "0123456789abcdef"[(hex[slot] + content[index]) % 16U];
         }
-        return nvision::core::ResourceIntegrity(
-            nvision::core::IntegrityDigest(
-                nvision::core::IntegrityAlgorithm::sha256, std::move(hex)),
-            static_cast<std::uint64_t>(content.size()));
+        return nvision::workflow::StoredEvidence(
+            nvision::core::ResourceIntegrity(
+                nvision::core::IntegrityDigest(
+                    nvision::core::IntegrityAlgorithm::sha256, std::move(hex)),
+                static_cast<std::uint64_t>(content.size())),
+            // Where the bytes really went, which is the store's answer rather than the
+            // key the tool asked for.
+            "memory://evidence/" + storage_key);
     }
 
     [[nodiscard]] const std::string& last_key() const noexcept {
@@ -1484,6 +1488,17 @@ void evidence_records_what_was_inspected_and_leaves_storage_to_the_engine() {
     // An empty storage key falls back to the node, so evidence is never stored anonymously.
     NVISION_REQUIRE(sink.last_key() == "node.evidence");
     NVISION_REQUIRE(sink.stored() == 1U);
+    // The artifact reports where the store put it, not the key the tool asked for.
+    NVISION_REQUIRE(artifact.storage_reference() == "memory://evidence/node.evidence");
+    // A consumer holding only this artifact can still reconstruct the image from the bytes.
+    NVISION_REQUIRE(artifact.media().has_value());
+    NVISION_REQUIRE(artifact.media()->width() == 8U);
+    NVISION_REQUIRE(artifact.media()->height() == 8U);
+    NVISION_REQUIRE(
+        artifact.media()->channel_layout() == nvision::core::EvidenceChannelLayout::mono);
+    NVISION_REQUIRE(
+        artifact.media()->component_type() == nvision::core::EvidenceComponentType::uint8);
+    NVISION_REQUIRE(artifact.media()->packed_length_bytes() == sink.last_length());
 
     RecordingEvidenceSink annotated_sink;
     PortValueMap annotated;
@@ -1503,12 +1518,18 @@ void evidence_records_what_was_inspected_and_leaves_storage_to_the_engine() {
             ParameterKey("storage-key"), ParameterValue::string("run-42.overlay"))}),
         &annotated_sink);
     NVISION_REQUIRE(drawn.is_success());
-    NVISION_REQUIRE(
-        drawn.outputs().find(PortKey("evidence"))->evidence_value().kind() ==
-        nvision::core::EvidenceKind::overlay);
+    const auto& annotated_artifact =
+        drawn.outputs().find(PortKey("evidence"))->evidence_value();
+    NVISION_REQUIRE(annotated_artifact.kind() == nvision::core::EvidenceKind::overlay);
     // Annotating widens grey to colour, so three channels of sixty-four pixels are stored.
     NVISION_REQUIRE(annotated_sink.last_length() == 192U);
     NVISION_REQUIRE(annotated_sink.last_key() == "run-42.overlay");
+    // The descriptor follows the canvas that was written rather than the image measured,
+    // so a reader is not told to expect one channel where three were stored.
+    NVISION_REQUIRE(
+        annotated_artifact.media()->channel_layout() ==
+        nvision::core::EvidenceChannelLayout::bgr);
+    NVISION_REQUIRE(annotated_artifact.media()->packed_length_bytes() == 192U);
 
     // An overlay authored against another raster would be drawn where it never was.
     RecordingEvidenceSink unused_sink;

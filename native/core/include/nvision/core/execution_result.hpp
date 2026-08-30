@@ -1,5 +1,6 @@
 #pragma once
 
+#include "nvision/core/evidence_media.hpp"
 #include "nvision/core/identifier.hpp"
 #include "nvision/core/inspection_outcome.hpp"
 #include "nvision/core/resource_reference.hpp"
@@ -111,23 +112,33 @@ enum class EvidenceKind : std::uint32_t {
     trace = 5,
 };
 
+// One stored artifact, described well enough that a consumer can find it and read it.
+// Image evidence must carry its media descriptor: bytes with no dimensions, layout or
+// encoding are not evidence of anything, because nobody downstream can reconstruct what
+// was seen. Non-image evidence must not carry one, so a descriptor always means an image.
 class EvidenceArtifact final {
 public:
     EvidenceArtifact(
         EvidenceId id,
         EvidenceKind kind,
         ResourceIntegrity integrity,
+        std::string storage_reference,
+        std::optional<EvidenceMedia> media = std::nullopt,
         std::optional<CoordinateSpaceId> coordinate_space = std::nullopt);
 
     [[nodiscard]] const EvidenceId& id() const noexcept;
     [[nodiscard]] EvidenceKind kind() const noexcept;
     [[nodiscard]] const ResourceIntegrity& integrity() const noexcept;
+    [[nodiscard]] const std::string& storage_reference() const noexcept;
+    [[nodiscard]] const std::optional<EvidenceMedia>& media() const noexcept;
     [[nodiscard]] const std::optional<CoordinateSpaceId>& coordinate_space() const noexcept;
 
 private:
     EvidenceId id_;
     EvidenceKind kind_;
     ResourceIntegrity integrity_;
+    std::string storage_reference_;
+    std::optional<EvidenceMedia> media_;
     std::optional<CoordinateSpaceId> coordinate_space_;
 };
 

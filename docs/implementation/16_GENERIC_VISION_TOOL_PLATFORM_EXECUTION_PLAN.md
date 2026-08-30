@@ -2,7 +2,7 @@
 
 **Product:** NTech NVision
 **Document type:** Long-running implementation plan and cross-session context
-**Status:** Approved direction; M3 complete, M4 next
+**Status:** Approved direction; M3 complete, Group A contract corrections complete, M4 next
 **Date:** 2026-08-28
 **Primary deliverable:** A real NVision Studio/Runtime application that executes Wire Marker Inspection end to end through the generic native tool platform
 **Second reference application:** Pin Insert Machine, used to prevent Wire Marker-specific abstractions from entering Core
@@ -1266,6 +1266,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | M1 — Native data contracts | Complete and merged | `c07440b` foundations; `0c71340` Image Views; `4339211` resources; `e8b7073` results; merge `d01e54c` |
 | M2 — Tool definition/catalog | Complete and merged | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` nodes/subworkflows; `bc58e5a` typed graphs; `a777314` catalog and reference graphs; merge `f1c0abd` |
 | M3 — Generic OpenCV foundation | Complete | `861ba0f` execution foundation; `d73f4d8` core/workflow boundary per ADR-0006; `5475413` computed image ownership per ADR-0007; `fe432d4` OpenCV substrate; `43edcd8` image processing; `9f2c0d3` geometry contracts; `ab9b17c` location and geometry; `a4c2108` measurement; `4b72161` clustering and point grid; `462b558` overlay and evidence; `6df1505` exit gate and reference pipeline. The Linux headless build is carried to M11 |
+| Group A contract corrections | Complete, unmerged | `636b729` collections; `ab61844` evidence media; `32d36a0` parameter assignability; `7e4b20d` execution characteristics, on `codex/group-a-contract-corrections` |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
 | M6 — Wire Marker headless parity | Not started | |
@@ -1279,35 +1280,39 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 
 ## 20. Immediate next action
 
-M3 is complete. The generic OpenCV vision foundation implements 43 of the 66 catalog
-definitions: the whole Image Processing, Location and Geometry, and Measurement groups, the
-clustering and point-grid group, and the overlay and evidence primitives. Both reference
-grid flows of Section 12 run end to end as a chain of ordinary catalog tools, with no
-application-specific tool in the catalog and no Pin Insert engine class.
+The four review findings that change public contracts are corrected and green on
+`codex/group-a-contract-corrections`, ahead of the milestones that would have inherited
+them. They are Sections 6.1, 6.4, 6.5 and 6.6 of
+`17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md`:
 
-Two definitions are deliberately unimplemented and asserted as gaps rather than left
-silent. Point grid inspect receives its model as a versioned resource rather than through a
-port, so it needs the resource binding that M5 provides, and its `point_grid_result`
-contract is unwritten for the same reason. The remaining 22 definitions belong to M4
-(Recognition and Text) and M5 (Acquisition, Logic and Results).
+- plural ports carry a typed collection whose arity is declared by the port, so a
+  validated fan-in can no longer keep only the last value it was handed;
+- evidence describes its own media and records where it was stored, so a consumer outside
+  the run that wrote it can reconstruct the image;
+- promoted subworkflow parameters are resolved by full schema assignability, so an exposed
+  domain wider than the internal one is refused at authoring time rather than at run time;
+- execution characteristics default to promising nothing, and no built-in claims
+  cancellation or timeout, because no implementation provides either.
 
-One M3 exit-gate item is carried rather than closed. The Linux native headless build has not
-been run: the WSL installation on the development machine has a compiler but neither CMake
-nor OpenCV, and installing them needs an interactive password. A portability audit was done
-in its place and found nothing Windows-specific outside the C ABI export macro, which
-already has a GCC branch. M11 owns the Linux headless build as a release gate, and that is
-where the item now sits.
+Correcting the collection contract surfaced a real gap rather than closing one. The Wire
+Marker graph of Section 12.1 fed the recognizer's crop collection straight into
+single-image quality tools; that is now refused. Measuring each crop needs per-element
+fan-out over a collection, which is scheduling rather than a tool, so M5 owns it. The
+reference graph measures print quality through an explicit Crop whose ROI comes from the
+Recipe, which is expressible today and is where this plan puts product geometry anyway.
 
-M4, the generic model and recognition foundation, is next: `.nvmodel` integrity and manifest
-validation in C++, a model registry with instance-owned sessions, the native ONNX Runtime
-CPU backend, detector and recognizer pre- and post-processing, CTC decoding, configurable
-orientation search, and the nine Recognition and Text tools.
+Four findings remain, all implementation-local and none blocking a milestone contract: the
+ECC transform direction, the resize pixel-centre convention together with the missing
+affine transform output, projective homography validation, and a source-byte immutability
+check around the OpenCV borrow. `tasks/active.md` carries them as Group B. Start with ECC:
+it is small, self-contained, and settles a question currently left at "probably inverted".
 
-Before M4 closes, apply the entry gates in
-`17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md`: select an executable collection/multi-value
-model for text candidates, recognition crops, and barcode lists; verify ECC and other
-coordinate-sensitive paths with non-identity fixtures; and keep structured outputs and
-evidence self-describing across later ABI and UI boundaries.
+M4, the generic model and recognition foundation, is next: `.nvmodel` integrity and
+manifest validation in C++, a model registry with instance-owned sessions, the native ONNX
+Runtime CPU backend, detector and recognizer pre- and post-processing, CTC decoding,
+configurable orientation search, and the nine Recognition and Text tools. The collection
+question it was waiting on is answered; `text_result` and `barcode_result` still have no
+native representation, and M4 owns them.
 
 Keep the M0 provenance gap explicit. The external Wire Marker models and the Pin Insert
 assets still have no license or provenance evidence, and M4 is the milestone that would

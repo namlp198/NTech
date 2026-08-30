@@ -2,6 +2,7 @@
 #include "nvision/workflow/workflow_graph.hpp"
 #include "nvision/workflow/workflow_node.hpp"
 
+#include <cstddef>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
@@ -167,6 +168,25 @@ ToolTypeDefinition boolean_logic_definition() {
          port("result", PortDirection::output, PortDataType::boolean)});
 }
 
+// Produces many values on one port, which is what makes arity visible in a graph.
+ToolTypeDefinition text_split_definition() {
+    return ToolTypeDefinition(
+        ToolTypeId("nvision.tool.recognition.text-split"),
+        SemanticVersion(1U, 0U, 0U),
+        ToolCatalogMetadata("Text Split", {"Recognition", "Text"}),
+        {port("text", PortDirection::input, PortDataType::text_result),
+         port("parts", PortDirection::output, PortDataType::text_result, true, true)});
+}
+
+ToolTypeDefinition text_consensus_definition() {
+    return ToolTypeDefinition(
+        ToolTypeId("nvision.tool.recognition.text-consensus"),
+        SemanticVersion(1U, 0U, 0U),
+        ToolCatalogMetadata("Text Consensus", {"Recognition", "Text"}),
+        {port("candidates", PortDirection::input, PortDataType::text_result, true, true),
+         port("text", PortDirection::output, PortDataType::text_result)});
+}
+
 WorkflowNode node(std::string id, std::string tool_type_id, NodeConfiguration configuration = {}) {
     return WorkflowNode(
         WorkflowNodeId(std::move(id)),
@@ -235,6 +255,8 @@ ToolRegistry reference_registry() {
     static_cast<void>(registry.register_definition(sharpness_definition()));
     static_cast<void>(registry.register_definition(compare_definition()));
     static_cast<void>(registry.register_definition(boolean_logic_definition()));
+    static_cast<void>(registry.register_definition(text_split_definition()));
+    static_cast<void>(registry.register_definition(text_consensus_definition()));
     return registry;
 }
 
@@ -476,6 +498,43 @@ void graph_binding_validates_typed_connections() {
     const WorkflowGraphBinding multi_binding = bind_workflow_graph(multi_source, registry);
     NVISION_REQUIRE(!multi_binding.has_errors());
     NVISION_REQUIRE(multi_binding.diagnostics().empty());
+}
+
+// A plural port is a different contract from a singular one, not a convenience. A graph
+// that connects the two would validate today and lose values at execution tomorrow.
+void collection_ports_declare_arity_in_the_graph() {
+    const ToolRegistry registry = reference_registry();
+
+    const WorkflowGraph flattened(
+        {source_node(),
+         text_node(),
+         node("node.split-a", "nvision.tool.recognition.text-split"),
+         node("node.split-b", "nvision.tool.recognition.text-split")},
+        {connect("node.source", "image", "node.text", "image"),
+         connect("node.text", "text", "node.split-a", "text"),
+         // A collection cannot be poured into a port that holds one value.
+         connect("node.split-a", "parts", "node.split-b", "text")});
+    const WorkflowGraphBinding flattened_binding = bind_workflow_graph(flattened, registry);
+    NVISION_REQUIRE(flattened_binding.has_errors());
+    const auto* arity = find_diagnostic(flattened_binding.diagnostics(), "PORT_ARITY_MISMATCH");
+    NVISION_REQUIRE(arity != nullptr);
+    NVISION_REQUIRE(arity->node_id()->value() == "node.split-b");
+    NVISION_REQUIRE(arity->port_key()->value() == "text");
+
+    // A collection input gathers whatever reaches it: a plural source, a singular one, or
+    // both, in connection order.
+    const WorkflowGraph gathered(
+        {source_node(),
+         text_node(),
+         node("node.split", "nvision.tool.recognition.text-split"),
+         node("node.consensus", "nvision.tool.recognition.text-consensus")},
+        {connect("node.source", "image", "node.text", "image"),
+         connect("node.text", "text", "node.split", "text"),
+         connect("node.split", "parts", "node.consensus", "candidates"),
+         connect("node.text", "text", "node.consensus", "candidates")});
+    const WorkflowGraphBinding gathered_binding = bind_workflow_graph(gathered, registry);
+    NVISION_REQUIRE(!gathered_binding.has_errors());
+    NVISION_REQUIRE(gathered_binding.diagnostics().empty());
 }
 
 SubworkflowDefinition text_region_subworkflow() {
@@ -749,6 +808,60 @@ void subworkflow_binding_reports_contract_mismatches() {
     NVISION_REQUIRE(
         find_diagnostic(promotion_binding.diagnostics(), "MISSING_PROMOTED_PARAMETER") != nullptr);
 
+    // A promotion whose kind and default both look fine but whose domain is wider than the
+    // internal one. Under a kind comparison this bound cleanly and then failed on the first
+    // run whose Recipe chose a value the internal parameter never accepted.
+    const SubworkflowDefinition wider_domain(
+        ToolTypeDefinition(
+            ToolTypeId("nvision.subworkflow.recognition.wider-domain"),
+            SemanticVersion(1U, 0U, 0U),
+            ToolCatalogMetadata("Wider Domain", {"Recognition"}),
+            {port("image", PortDirection::input, PortDataType::image_view),
+             port("text", PortDirection::output, PortDataType::text_result)},
+            nvision::workflow::ToolOrigin::built_in(),
+            {},
+            {ParameterDefinition(
+                 ParameterKey("roi"),
+                 "Region",
+                 // The internal crop accepts only a rectangle, so exposing a circle as
+                 // well promises an editor shape the node can never be given.
+                 ParameterType::region_of_interest(
+                     {GeometryKind::rectangle, GeometryKind::circle}),
+                 true,
+                 ParameterValue::region_of_interest(sample_rectangle())),
+             ParameterDefinition(
+                 ParameterKey("minimum-confidence"),
+                 "Minimum Confidence",
+                 // The internal parameter is bounded to 0..1; this one is not bounded at all.
+                 ParameterType::floating_point(),
+                 true,
+                 ParameterValue::floating_point(0.5))}),
+        graph,
+        {SubworkflowPortMapping(
+             PortKey("image"), PortDirection::input, WorkflowNodeId("node.crop"),
+             PortKey("image")),
+         SubworkflowPortMapping(
+             PortKey("text"), PortDirection::output, WorkflowNodeId("node.text"),
+             PortKey("text"))},
+        {SubworkflowParameterPromotion(
+             ParameterKey("roi"), WorkflowNodeId("node.crop"), ParameterKey("roi")),
+         SubworkflowParameterPromotion(
+             ParameterKey("minimum-confidence"),
+             WorkflowNodeId("node.text"),
+             ParameterKey("minimum-confidence"))});
+
+    const WorkflowGraphBinding domain_binding = bind_subworkflow(wider_domain, registry);
+    NVISION_REQUIRE(domain_binding.is_fully_resolved());
+    NVISION_REQUIRE(domain_binding.has_errors());
+    std::size_t domain_mismatches = 0U;
+    for (const auto& diagnostic : domain_binding.diagnostics()) {
+        if (diagnostic.code().value() == "PROMOTED_PARAMETER_TYPE_MISMATCH") {
+            ++domain_mismatches;
+        }
+    }
+    // Both promotions are refused: the wider ROI shape set and the unbounded range.
+    NVISION_REQUIRE(domain_mismatches == 2U);
+
     // An exposed parameter that reaches no node is reported without failing the bind.
     const SubworkflowDefinition unpromoted(
         ToolTypeDefinition(
@@ -808,6 +921,7 @@ int main() {
     invalid_node_contracts_are_rejected();
     invalid_graph_topology_is_rejected();
     graph_binding_validates_typed_connections();
+    collection_ports_declare_arity_in_the_graph();
     subworkflows_expose_a_reusable_graph_through_a_tool_interface();
     invalid_subworkflow_structures_are_rejected();
     subworkflow_binding_reports_contract_mismatches();

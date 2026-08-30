@@ -282,6 +282,26 @@ WorkflowGraphBinding bind_workflow_graph(
                 connection.target_node_id(),
                 connection.target_port_key()));
         }
+
+        // A collection carries its own arity, so it can only be handed to a port that
+        // declares one. Gathering it into a single value would have to drop everything
+        // after the first element, which is exactly the loss this contract prevents.
+        //
+        // The other direction needs no rule. A collection input gathers its sources in
+        // connection order, contributing one element per single source and its elements
+        // in order per collection source, so any mixture still has one defined order.
+        if (source_port->allows_multiple() && !target_port->allows_multiple()) {
+            diagnostics.push_back(WorkflowDiagnostic::port(
+                core::ResultCode("PORT_ARITY_MISMATCH"),
+                DiagnosticSeverity::error,
+                "output port " + connection.source_port_key().value() + " of node " +
+                    connection.source_node_id().value() +
+                    " produces a collection, which input port " +
+                    connection.target_port_key().value() + " cannot accept",
+                connection.target_node_id(),
+                connection.target_port_key()));
+            continue;
+        }
     }
 
     for (const auto& binding : bindings) {

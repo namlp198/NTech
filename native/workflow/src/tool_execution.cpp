@@ -164,6 +164,14 @@ ToolExecutionContext::ToolExecutionContext(
                 "input port " + entry.first.value() + " of tool " + definition_->id().value() +
                 " received a value of a different data kind");
         }
+        // Arity is declared by the port, so an implementation reading a plural port always
+        // finds a collection and one reading a single port never has to test for one.
+        if (port->allows_multiple() != entry.second.is_collection()) {
+            throw std::invalid_argument(
+                "input port " + entry.first.value() + " of tool " + definition_->id().value() +
+                (port->allows_multiple() ? " declares a collection but received a single value"
+                                         : " declares a single value but received a collection"));
+        }
     }
     for (const auto& port : definition_->ports()) {
         if (port.direction() != PortDirection::input || !port.required()) {
@@ -312,6 +320,12 @@ std::string describe_output_violation(
         if (port->data_type() != entry.second.type()) {
             return "output port " + entry.first.value() + " of tool " + definition.id().value() +
                    " produced a value of a different data kind";
+        }
+        if (port->allows_multiple() != entry.second.is_collection()) {
+            return "output port " + entry.first.value() + " of tool " + definition.id().value() +
+                   (port->allows_multiple()
+                        ? " declares a collection but produced a single value"
+                        : " declares a single value but produced a collection");
         }
     }
     for (const auto& port : definition.ports()) {

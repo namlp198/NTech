@@ -141,6 +141,13 @@ public:
     [[nodiscard]] const std::vector<GeometryKind>& allowed_roi_shapes() const noexcept;
     [[nodiscard]] bool accepts(const ParameterValue& value) const noexcept;
 
+    // True when every value this type accepts is also accepted by `target`. Comparing the
+    // kind and a single default is not enough: an exposed enum of {a, b} promoted into an
+    // internal enum of {a} binds cleanly and then fails at execution the first time a
+    // Recipe chooses b. The check is deliberately conservative, so it refuses a domain it
+    // cannot prove is contained rather than admitting one it cannot.
+    [[nodiscard]] bool is_assignable_to(const ParameterType& target) const noexcept;
+
 private:
     explicit ParameterType(ParameterKind kind);
 

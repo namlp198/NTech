@@ -5,6 +5,7 @@ add_library(nvision_core STATIC
     acquisition/src/image_view.cpp
     core/src/detection.cpp
     core/src/engine.cpp
+    core/src/evidence_media.cpp
     core/src/execution_result.cpp
     core/src/feature.cpp
     core/src/geometry.cpp
@@ -28,6 +29,7 @@ target_compile_features(nvision_core PUBLIC cxx_std_20)
 # port data kinds, geometry, resources, status, and results.
 add_library(nvision_workflow STATIC
     workflow/src/builtin_catalog.cpp
+    workflow/src/evidence_sink.cpp
     workflow/src/parameter_schema.cpp
     workflow/src/port_value.cpp
     workflow/src/subworkflow.cpp

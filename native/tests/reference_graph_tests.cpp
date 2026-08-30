@@ -188,6 +188,11 @@ void text_inspection_reference_graph_validates() {
               "nvision.tool.logic.lookup-table",
               {assign("keys", strings({"upright-upright", "upright-inverted"})),
                assign("values", strings({"type-1", "type-2"}))}),
+         // Print quality is measured on the text region rather than the whole capture.
+         // The region comes from the Recipe as an ROI parameter, because the catalog has
+         // no detection-to-region conversion and because per-crop measurement over the
+         // recognizer's crop collection needs the element fan-out that arrives with M5.
+         node("node.text-crop", "nvision.tool.processing.crop", {assign("roi", rectangle())}),
          node("node.quality-sharpness", "nvision.tool.measurement.sharpness"),
          node("node.quality-contrast", "nvision.tool.measurement.contrast"),
          node("node.quality-edges", "nvision.tool.measurement.edge-density"),
@@ -221,9 +226,10 @@ void text_inspection_reference_graph_validates() {
          edge("node.split-1", "parts", "node.consensus", "candidates"),
          edge("node.split-2", "parts", "node.consensus", "candidates"),
          edge("node.consensus", "value", "node.type-lookup", "key"),
-         edge("node.recognize-1", "crops", "node.quality-sharpness", "image"),
-         edge("node.recognize-1", "crops", "node.quality-contrast", "image"),
-         edge("node.recognize-1", "crops", "node.quality-edges", "image"),
+         edge("node.image-1", "image", "node.text-crop", "image"),
+         edge("node.text-crop", "image", "node.quality-sharpness", "image"),
+         edge("node.text-crop", "image", "node.quality-contrast", "image"),
+         edge("node.text-crop", "image", "node.quality-edges", "image"),
          edge("node.quality-sharpness", "measurement", "node.quality-score", "values"),
          edge("node.quality-contrast", "measurement", "node.quality-score", "values"),
          edge("node.quality-edges", "measurement", "node.quality-score", "values"),
@@ -238,7 +244,7 @@ void text_inspection_reference_graph_validates() {
          edge("node.quality-sharpness", "measurement", "node.result", "measurements"),
          edge("node.evidence", "evidence", "node.result", "evidence")});
 
-    require_clean(bind_workflow_graph(graph, registry), 24U);
+    require_clean(bind_workflow_graph(graph, registry), 25U);
 }
 
 // Execution plan Section 12.2. Golden segmentation, seed extraction, row structure, and a

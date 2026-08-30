@@ -132,6 +132,20 @@ void catalog_contains_no_application_vocabulary() {
 
 // Capabilities that a reference application might expect as dedicated tools must stay
 // configuration of a generic tool instead.
+// Metadata is a promise the engine and Studio act on, so it has to match the code. No
+// built-in implementation observes the cancellation token while it runs, and none bounds
+// its own work to the budget, so no built-in definition may claim either. This test is
+// meant to fail the day a tool starts claiming one, so that the claim and the cooperative
+// checkpoints that justify it are added together.
+void catalog_execution_characteristics_match_the_implementations() {
+    const ToolRegistry registry = nvision::workflow::create_builtin_registry();
+    NVISION_REQUIRE(!registry.definitions().empty());
+    for (const auto& definition : registry.definitions()) {
+        NVISION_REQUIRE(!definition->execution().supports_cancellation());
+        NVISION_REQUIRE(!definition->execution().supports_timeout());
+    }
+}
+
 void application_variation_stays_configuration() {
     const ToolRegistry registry = nvision::workflow::create_builtin_registry();
 
@@ -172,6 +186,7 @@ int main() {
     catalog_enumerates_the_initial_generic_tool_tree();
     catalog_definitions_are_built_in_and_typed();
     catalog_contains_no_application_vocabulary();
+    catalog_execution_characteristics_match_the_implementations();
     application_variation_stays_configuration();
     return EXIT_SUCCESS;
 }

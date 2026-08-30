@@ -2,23 +2,80 @@
 
 ## Current Task
 
-Generic Tool Catalog generalization audit — complete and merged into `develop` by
-`22398b6`
+Group A contract corrections — complete on `codex/group-a-contract-corrections`, not yet
+merged into `develop`
 
 ## Goal
 
-Turn the independent M2/M3 review into durable development guidance so later milestones
-preserve product-neutral tools while correcting collection, transform, evidence, typed
-result, subworkflow, and execution-characteristic gaps before they become public contracts.
+Correct the four review findings that change public contracts, before M4 and M5 build on
+them. Group A is the set whose cost grows the longer it is deferred; Group B is
+implementation-local and can follow without blocking the milestones.
 
 ## Outcome
 
-- Added `docs/implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md`.
-- Recorded a tool admission checklist, current catalog reuse assessment, future capability
-  candidates, and verification policy.
-- Added explicit entry/exit gates for M4, M5, M8, M9, and M10.
-- Linked the guide from the documentation index and the authoritative execution plan.
-- No production source or test code changed.
+Four commits, each green on the full gate:
+
+| Commit | Correction | Guide gate |
+|---|---|---|
+| `636b729` | Executable collection contract for plural ports | §6.1 |
+| `ab61844` | Self-describing evidence media and storage reference | §6.4 |
+| `32d36a0` | Full schema assignability for promoted parameters | §6.6 |
+| `7e4b20d` | Truthful cancellation and timeout characteristics | §6.5 |
+
+- Arity now belongs to the port declaration. A port declaring `allows_multiple` always
+  carries a `PortValue` collection, empty or not, and a port that does not never carries
+  one. Collections do not nest, and an empty one still declares its element kind.
+- `bind_workflow_graph` reports `PORT_ARITY_MISMATCH` when a collection output reaches a
+  single-value input. A collection input needs no rule: it gathers its sources in
+  connection order, so any mixture of single and plural sources has one defined order.
+- Capture Sequence `images`, Image Buffer `images`, Text Recognition `crops`, Text Split
+  `parts` and Barcode Reader `barcodes` became collections. Text Consensus `candidates`
+  became a collection of `text_result`, and `PortDataType::text_result_list` was removed:
+  it was the only list kind with no core aggregate behind it, and declaring it on a port
+  that also allowed multiple sources was the double-plural the collection model resolves.
+- `EvidenceMedia` describes the stored bytes rather than the raster they came from, in a
+  media vocabulary rather than the acquisition one. Image evidence must carry it and
+  non-image evidence must not, and packed evidence whose length disagrees with its
+  descriptor is rejected at construction.
+- `EvidenceSink::store` returns `StoredEvidence`: the integrity that identifies the bytes
+  and the reference that finds them again, both from the store, because the storage key is
+  only what the tool asked for.
+- `ParameterType::is_assignable_to` compares whole accepted domains. It is deliberately
+  conservative: it refuses a domain it cannot prove contained rather than admitting one it
+  cannot.
+- `ToolExecutionCharacteristics` defaults to promising nothing. A catalog test pins that no
+  built-in claims cancellation or timeout, so the claim and the cooperative checkpoints
+  that justify it must arrive together.
+
+## Surfaced by the corrections
+
+The Wire Marker reference graph fed the recognizer's crop collection straight into
+single-image quality tools. That connection is now refused, correctly: measuring each crop
+needs per-element fan-out over a collection, which is an M5 scheduling capability rather
+than a tool. The graph measures print quality through an explicit Crop whose ROI comes from
+the Recipe, which is expressible today and is where the plan puts product geometry anyway.
+M5 owns the fan-out.
+
+## Remaining review findings — Group B
+
+Implementation-local, no contract change, safe to do in any order:
+
+1. ECC refinement passes and labels its transform in the direction opposite to the OpenCV
+   contract. `findTransformECC(template, input, warp)` yields a matrix used with
+   `WARP_INVERSE_MAP`, so it maps reference to image, while the tool declares image to
+   reference. Homography Estimate in the same file is correct, so this is a local slip.
+   Needs non-identity translation and rotation fixtures to settle.
+2. Resize publishes a pure scale. OpenCV's `INTER_LINEAR` uses pixel centres, so the exact
+   mapping is `x_src = (x_dst + 0.5) * s - 0.5` and the published transform is short by
+   `(s - 1) / 2`. Declare the convention and test a non-integer scale.
+3. Affine Transform produces a new raster in a new coordinate space and publishes no
+   transform, so downstream geometry cannot map back. Perspective Warp already does.
+4. Homography Validate reads only the affine 2x2 block, so a matrix with extreme
+   projective distortion still validates. It should evaluate mapped corners, the
+   homogeneous denominator, orientation, convexity, area ratio and local scale.
+5. `interop::borrow` hands immutable bytes through a mutable `cv::Mat`. Nothing mutates an
+   input today; a source-byte immutability check after representative tools would keep it
+   that way.
 
 ## M3 Historical Baseline
 
@@ -90,19 +147,17 @@ Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to 
 
 ## Next Steps
 
-1. Before implementing M4 recognition tools, choose the executable typed
-   collection/multi-value representation required by text candidates, recognition crops,
-   barcode lists, and consensus inputs.
-2. Add non-identity tests and resolve the documented ECC/resize/affine/homography transform
-   risks before relying on those paths for alignment or measurement.
-3. Start M4, the generic model and recognition foundation: `.nvmodel` integrity and
+1. Merge `codex/group-a-contract-corrections` into `develop` when authorized.
+2. Work Group B above. Start with ECC, because it is small, self-contained, and settles a
+   question currently left at "probably inverted".
+3. Then start M4, the generic model and recognition foundation: `.nvmodel` integrity and
    manifest validation in C++, a model registry with instance-owned sessions, the native
    ONNX Runtime CPU backend, detector and recognizer pre- and post-processing, CTC
-   decoding, configurable orientation search, and the nine Recognition and Text tools.
+   decoding, configurable orientation search, and the nine Recognition and Text tools. The
+   collection model M4 was waiting on now exists; `TextResult` and the barcode contracts
+   still need their native representations, and `PortValue` has no factory for them yet.
 4. Resolve the external model provenance and license question before M4 imports anything.
-   It is the milestone that would otherwise want those assets.
-5. Run the Linux native headless build once WSL has `cmake` and `libopencv-dev`. It is
-   carried as an M11 release gate rather than an open M3 item.
+5. Run the Linux native headless build, carried as an M11 release gate.
 
 ## Acceptance Criteria
 
@@ -123,8 +178,14 @@ Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to 
 
 ## Verification Baseline
 
-`scripts/check.ps1 -Configuration Release` with `OpenCV_DIR` set is green: 13 native
-CTests, 119 .NET tests, and a clean `dotnet format --verify-no-changes`.
+`scripts/check.ps1 -Configuration Release` with `OpenCV_DIR` set is green after the Group A
+corrections: 0 native warnings under `/W4 /WX`, 13 native CTests, 119 .NET tests, and a
+clean `dotnet format --verify-no-changes`.
+
+Negative checks performed rather than assumed: removing the output arity check makes
+`nvision_tool_execution_tests` fail, and restoring the kind-only promotion comparison makes
+`nvision_workflow_contract_tests` fail on both the widened ROI shape set and the unbounded
+range. Both suites return to green once the checks are restored.
 
 ## Open Items
 
@@ -146,6 +207,17 @@ CTests, 119 .NET tests, and a clean `dotnet format --verify-no-changes`.
   ```bash
   wsl -d Ubuntu -- sudo apt-get install -y cmake libopencv-dev
   ```
+- Per-element fan-out over a collection has no representation. A collection can be built,
+  carried and gathered, but nothing applies a subgraph to each element, so a plural
+  producer cannot feed a single-value consumer at all. That is deliberate: iteration is
+  scheduling rather than a tool, and M5 owns it. Do not work around it by adding a
+  per-kind element-selector tool; the catalog has no polymorphic port and one tool per
+  data kind would be a worse contract than the gap.
+- `PortValue` still has no representation for `text_result`, `barcode_result`,
+  `point_grid_result`, `defect`, `defect_list`, `frame`, `image`, `bounding_box`,
+  `polygon` or `any_metadata`. The catalog declares those kinds on ports that no
+  implementation produces yet, so "43 of 66 implemented" counts definitions rather than
+  round-trippable contracts. M4 and M5 own the kinds they first execute.
 - Catalog definitions are corrected in place while the catalog is unpublished. Once it
   ships, a contract change requires a version bump instead.
 - External Wire Marker model and Pin Insert asset provenance/license evidence is still

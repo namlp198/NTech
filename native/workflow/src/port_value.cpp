@@ -1,7 +1,9 @@
 #include "nvision/workflow/port_value.hpp"
 
 #include <algorithm>
+#include <memory>
 #include <stdexcept>
+#include <utility>
 
 namespace nvision::workflow {
 
@@ -136,6 +138,36 @@ PortValue PortValue::text(std::string value) {
 
 PortValue PortValue::decision(core::InspectionDecision value) {
     return PortValue(PortDataType::decision, std::move(value));
+}
+
+PortValue PortValue::collection(
+    const PortDataType element_type,
+    std::vector<PortValue> values) {
+    for (const PortValue& value : values) {
+        // Nesting would make a port kind mean two things at once, so a collection holds
+        // exactly the kind it declares and nothing that is itself plural.
+        if (value.is_collection()) {
+            throw std::invalid_argument("a port value collection cannot contain a collection");
+        }
+        if (value.type() != element_type) {
+            throw std::invalid_argument(
+                "every value in a port value collection must carry the declared element kind");
+        }
+    }
+    return PortValue(
+        element_type, std::make_shared<const std::vector<PortValue>>(std::move(values)));
+}
+
+bool PortValue::is_collection() const noexcept {
+    return std::holds_alternative<CollectionStorage>(payload_);
+}
+
+const std::vector<PortValue>& PortValue::collection_value() const {
+    const CollectionStorage* storage = std::get_if<CollectionStorage>(&payload_);
+    if (storage == nullptr) {
+        reject_payload_access("collection");
+    }
+    return **storage;
 }
 
 PortDataType PortValue::type() const noexcept {

@@ -14,7 +14,7 @@ Build a reusable industrial Machine Vision platform for authoring, publishing, e
 - Working P2 path: FrameLease ownership → File Camera → AcquisitionService → compiled Crop/Classify/Compare/Decision Workflow → ONNX Runtime CPU → immutable InspectionResult → file image evidence + SQLite.
 - Blocked: Pin Insert parity still lacks golden/regression images, and external Wire Marker model provenance/license evidence remains open before those assets can be redistributed. Two previously recorded blockers are resolved: `scripts/check.ps1` resolves the pinned .NET SDK 10.0.200 from the repository-local `artifacts/dotnet/` installation, and OpenCV 4.14.0 is installed and verified, discovered through the standard `OpenCV_DIR` environment variable.
 - Not started: native model/ONNX and Workflow/inspection migration, the Engine Host implementation, ProjectFormat/Studio authoring, Runtime Service, PLC integration, real camera plugins, and production-trained inspection models.
-- Known contract hardening before later milestones depend on the current catalog: an executable collection/multi-value model, typed plural outputs, exact non-identity transform tests, self-describing evidence, richer structured results, full subworkflow parameter assignability, and truthful cancellation/timeout characteristics. The durable guidance is `docs/implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md`.
+- Contract hardening is now split. The four corrections that change public contracts are complete on `codex/group-a-contract-corrections` and not yet merged: an executable collection model with arity declared by the port, self-describing evidence media plus a storage reference, full subworkflow parameter assignability, and execution characteristics that promise only what implementations do. The four that remain are implementation-local: ECC transform direction, the resize pixel-centre convention and the missing affine transform output, projective homography validation, and a source-byte immutability check around the OpenCV borrow. The durable guidance is `docs/implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md`.
 
 ## Architecture Summary
 
@@ -66,13 +66,20 @@ yet executable or portable enough. These gates are recorded in
 `docs/implementation/17_GENERIC_TOOL_CATALOG_EVOLUTION_GUIDE.md` and linked from the
 authoritative execution plan.
 
+The collection question M4 was waiting on is answered. Arity belongs to the port
+declaration: a port declaring `allows_multiple` always carries a `PortValue` collection,
+empty or not, collections do not nest, and an empty one still declares its element kind. A
+collection input gathers its sources in connection order, and a collection output reaching
+a single-value input is a graph error rather than a silent loss. Per-element fan-out over a
+collection remains unrepresented on purpose: iteration is scheduling, and M5 owns it.
+
 The next focus is M4, the generic model and recognition foundation: `.nvmodel` integrity,
 a model registry with instance-owned sessions, the native ONNX Runtime CPU backend, text
 detection and recognition pre- and post-processing, CTC decoding, and the Recognition and
 Text tools. Keep the M0 provenance gap explicit, use the managed P2 path as a behavior
-oracle, and do not expand managed hot-path behavior. M4 must first select the typed
-collection/multi-value representation used by text candidates, recognition crops,
-barcode lists, and consensus inputs.
+oracle, and do not expand managed hot-path behavior. M4 still owes the native
+representations `PortValue` has no factory for: `text_result`, `barcode_result`, and the
+contracts they compose into.
 
 ## Verification Baseline
 

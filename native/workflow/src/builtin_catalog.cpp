@@ -51,10 +51,18 @@ ToolPortDefinition input_port(
         allows_multiple);
 }
 
-ToolPortDefinition output_port(std::string key, const core::PortDataType type) {
+ToolPortDefinition output_port(
+    std::string key,
+    const core::PortDataType type,
+    const bool allows_multiple = false) {
     std::string display = title_case(key);
     return ToolPortDefinition(
-        core::PortKey(std::move(key)), std::move(display), PortDirection::output, type, true);
+        core::PortKey(std::move(key)),
+        std::move(display),
+        PortDirection::output,
+        type,
+        true,
+        allows_multiple);
 }
 
 ParameterDefinition boolean_parameter(std::string key, const bool default_value) {
@@ -245,14 +253,14 @@ void register_acquisition_tools(ToolRegistry& registry) {
         "nvision.tool.acquisition.capture-sequence",
         "Capture Sequence",
         category,
-        {output_port("images", core::PortDataType::image_view)},
+        {output_port("images", core::PortDataType::image_view, true)},
         {string_array_parameter("capture-roles", 1U)});
 
     add(registry,
         "nvision.tool.acquisition.image-buffer",
         "Image Buffer",
         category,
-        {input_port("images", core::PortDataType::image_view),
+        {input_port("images", core::PortDataType::image_view, true, true),
          output_port("image", core::PortDataType::image_view)},
         {string_parameter("capture-role", "")});
 
@@ -632,7 +640,7 @@ void register_recognition_tools(ToolRegistry& registry) {
         {input_port("image", core::PortDataType::image_view),
          input_port("regions", core::PortDataType::detection_list, false),
          output_port("text", core::PortDataType::text_result),
-         output_port("crops", core::PortDataType::image_view)},
+         output_port("crops", core::PortDataType::image_view, true)},
         {model_parameter("model"),
          resource_parameter("dictionary", false),
          float_array_parameter("orientations", {0.0}, 1U),
@@ -651,7 +659,7 @@ void register_recognition_tools(ToolRegistry& registry) {
         "Barcode Reader",
         category,
         {input_port("image", core::PortDataType::image_view),
-         output_port("barcodes", core::PortDataType::barcode_result)},
+         output_port("barcodes", core::PortDataType::barcode_result, true)},
         {string_array_parameter("symbologies", 0U)});
 
     add(registry,
@@ -670,7 +678,7 @@ void register_recognition_tools(ToolRegistry& registry) {
         "Text Split",
         category,
         {input_port("text", core::PortDataType::text_result),
-         output_port("parts", core::PortDataType::text_result_list)},
+         output_port("parts", core::PortDataType::text_result, true)},
         {string_parameter("separator", " "),
          integer_parameter("maximum-parts", 0, 0.0, 1024.0)});
 
@@ -695,7 +703,7 @@ void register_recognition_tools(ToolRegistry& registry) {
         "nvision.tool.recognition.text-consensus",
         "Text Consensus",
         category,
-        {input_port("candidates", core::PortDataType::text_result_list, true, true),
+        {input_port("candidates", core::PortDataType::text_result, true, true),
          output_port("text", core::PortDataType::text_result),
          output_port("value", core::PortDataType::string),
          output_port("confidence", core::PortDataType::floating_point)},

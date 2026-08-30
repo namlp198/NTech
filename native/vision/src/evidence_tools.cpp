@@ -2,6 +2,7 @@
 
 #include "tool_support.hpp"
 
+#include "nvision/core/evidence_media.hpp"
 #include "nvision/core/overlay.hpp"
 
 #include <opencv2/imgproc.hpp>
@@ -144,6 +145,44 @@ std::vector<std::uint8_t> packed_bytes(const cv::Mat& rendered) {
     return bytes;
 }
 
+// The media vocabulary is deliberately not the acquisition one. It says what a reader will
+// find in the stored bytes, so an undecoded sensor pattern or an HSV raster is described as
+// what it is instead of being passed off as a picture a viewer would misread.
+core::EvidenceMedia media_of(const ImageView& view) {
+    core::EvidenceChannelLayout layout = core::EvidenceChannelLayout::mono;
+    core::EvidenceComponentType component = core::EvidenceComponentType::uint8;
+    switch (view.pixel_format()) {
+        case PixelFormat::mono8:
+            break;
+        case PixelFormat::mono16:
+            component = core::EvidenceComponentType::uint16;
+            break;
+        case PixelFormat::mono_float32:
+            component = core::EvidenceComponentType::float32;
+            break;
+        case PixelFormat::rgb8:
+            layout = core::EvidenceChannelLayout::rgb;
+            break;
+        case PixelFormat::bgr8:
+            layout = core::EvidenceChannelLayout::bgr;
+            break;
+        case PixelFormat::hsv8:
+            layout = core::EvidenceChannelLayout::hsv;
+            break;
+        case PixelFormat::bayer_gr8:
+            layout = core::EvidenceChannelLayout::bayer_gr;
+            break;
+    }
+    return core::EvidenceMedia(
+        view.width(),
+        view.height(),
+        // The bytes handed to the store are the packed pixels themselves. Recording that
+        // honestly is what lets a later encoder change without the contract lying.
+        core::EvidenceEncoding::raw_packed,
+        layout,
+        component);
+}
+
 class EvidenceOutputTool final : public VisionTool {
 public:
     EvidenceOutputTool()
@@ -177,6 +216,7 @@ public:
         std::vector<std::uint8_t> content;
         EvidenceKind kind = image.source().is_captured() ? EvidenceKind::source_image
                                                          : EvidenceKind::derived_image;
+        core::EvidenceMedia media = media_of(image);
         if (annotation == nullptr) {
             content = packed_bytes(image);
         } else {
@@ -197,6 +237,14 @@ public:
             }
             content = packed_bytes(canvas);
             kind = EvidenceKind::overlay;
+            // Annotation widens a grey raster to colour, so the artifact describes the
+            // canvas that was written rather than the image that was measured.
+            media = core::EvidenceMedia(
+                image.width(),
+                image.height(),
+                core::EvidenceEncoding::raw_packed,
+                core::EvidenceChannelLayout::bgr,
+                core::EvidenceComponentType::uint8);
         }
 
         std::string storage_key =
@@ -205,13 +253,17 @@ public:
             storage_key = context.node_id().value();
         }
 
+        const workflow::StoredEvidence stored = sink->store(storage_key, content);
+
         PortValueMap outputs;
         outputs.set(
             PortKey("evidence"),
             PortValue::evidence(EvidenceArtifact(
                 context.output_evidence_id(PortKey("evidence")),
                 kind,
-                sink->store(storage_key, content),
+                stored.integrity(),
+                stored.reference(),
+                media,
                 image.coordinate_space())));
         return ToolExecutionOutcome::succeeded(std::move(outputs));
     }

@@ -25,7 +25,6 @@ enum class PortDataType : std::uint32_t {
     detection,
     detection_list,
     text_result,
-    text_result_list,
     barcode_result,
     measurement,
     measurement_list,
