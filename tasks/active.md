@@ -2,8 +2,9 @@
 
 ## Current Task
 
-Group A contract corrections — complete on `codex/group-a-contract-corrections`, not yet
-merged into `develop`
+M4 preparation. Group A contract corrections are complete on
+`codex/group-a-contract-corrections`; the ONNX Runtime native dependency is complete on
+`codex/native-onnxruntime-dependency`, branched from it. Neither is merged into `develop`.
 
 ## Goal
 
@@ -46,6 +47,31 @@ Four commits, each green on the full gate:
 - `ToolExecutionCharacteristics` defaults to promising nothing. A catalog test pins that no
   built-in claims cancellation or timeout, so the claim and the cooperative checkpoints
   that justify it must arrive together.
+
+## ONNX Runtime native dependency — `ddd887e`
+
+The native plane had no ONNX Runtime at all. The only one in the repository was the managed
+NuGet reference, which copies runtime binaries into `bin/` and leaves the C++ headers in
+the package. `nvision_public_contract_tests` already forbade ONNX Runtime spellings in
+public headers, so the intent had been recorded long before the dependency existed.
+
+- `cmake/FindONNXRuntime.cmake` resolves a distribution from `ONNXRuntime_ROOT`, the
+  `ONNXRUNTIME_ROOT` environment variable, or the repository-local staging directory. No
+  path in the repository names a machine. A find module is required rather than a
+  convenience: neither the official archives nor the NuGet package ship a CMake config.
+- `scripts/install-onnxruntime.ps1` stages the CPU package the managed plane is already
+  pinned to, in the layout the official archives use, so either source resolves. Both
+  planes then run one ONNX Runtime version, which matters while the managed P2 path is the
+  behavior oracle. The script downloads nothing.
+- `nvision_ai` is the seam M4's backend hangs off, no larger than needed to prove the
+  dependency works. `InferenceSession` owns one session, loads from bytes because a model
+  arrives inside a package whose integrity was already checked, and reports tensors with
+  free dimensions left as -1 rather than guessed. Running is one float input to one float
+  output and refuses anything else.
+- ONNX Runtime stays PRIVATE and `ai/include` is now scanned by the public contract guard.
+
+Verified against ONNX Runtime 1.28.0, configured from a deleted build directory so the find
+module was proven rather than inherited from a cache.
 
 ## Surfaced by the corrections
 
@@ -147,17 +173,23 @@ Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to 
 
 ## Next Steps
 
-1. Merge `codex/group-a-contract-corrections` into `develop` when authorized.
-2. Work Group B above. Start with ECC, because it is small, self-contained, and settles a
-   question currently left at "probably inverted".
-3. Then start M4, the generic model and recognition foundation: `.nvmodel` integrity and
-   manifest validation in C++, a model registry with instance-owned sessions, the native
-   ONNX Runtime CPU backend, detector and recognizer pre- and post-processing, CTC
+1. Merge `codex/group-a-contract-corrections`, then `codex/native-onnxruntime-dependency`,
+   into `develop` when authorized. Neither is pushed.
+2. Work Group B above. Two of the five sit on M4's coordinate path and should come first:
+   the resize pixel-centre convention, because detector preprocessing resizes to the model
+   input size and has to map boxes back, and the missing affine transform output, because
+   recognition crops are rectified through it. ECC, homography validation and the
+   immutability guard are Pin Insert concerns that M4 never touches.
+3. Then M4 proper: `.nvmodel` integrity and manifest validation in C++, a model registry
+   over instance-owned sessions, detector and recognizer pre- and post-processing, CTC
    decoding, configurable orientation search, and the nine Recognition and Text tools. The
-   collection model M4 was waiting on now exists; `TextResult` and the barcode contracts
-   still need their native representations, and `PortValue` has no factory for them yet.
+   collection model M4 was waiting on exists, and the ONNX Runtime backend now links and
+   runs. `text_result` and `barcode_result` still have no native representation and
+   `PortValue` has no factory for them; that is M4's first slice.
 4. Resolve the external model provenance and license question before M4 imports anything.
-5. Run the Linux native headless build, carried as an M11 release gate.
+   The engineering fixtures in `samples/` are not affected: they are synthetic.
+5. Run the Linux native headless build, carried as an M11 release gate. The staging script
+   accepts `-Runtime linux-x64`, and the same package carries that runtime.
 
 ## Acceptance Criteria
 
@@ -178,14 +210,19 @@ Catalog coverage is 43 of 66 definitions. The remaining 23 outside M3 belong to 
 
 ## Verification Baseline
 
-`scripts/check.ps1 -Configuration Release` with `OpenCV_DIR` set is green after the Group A
-corrections: 0 native warnings under `/W4 /WX`, 13 native CTests, 119 .NET tests, and a
-clean `dotnet format --verify-no-changes`.
+`scripts/check.ps1 -Configuration Release` with `OpenCV_DIR` set is green: 0 native
+warnings under `/W4 /WX`, 14 native CTests, 119 .NET tests, and a clean
+`dotnet format --verify-no-changes`. The fourteenth test is `nvision_inference_tests`,
+added with the ONNX Runtime dependency.
 
 Negative checks performed rather than assumed: removing the output arity check makes
 `nvision_tool_execution_tests` fail, and restoring the kind-only promotion comparison makes
 `nvision_workflow_contract_tests` fail on both the widened ROI shape set and the unbounded
-range. Both suites return to green once the checks are restored.
+range. Both suites return to green once the checks are restored. Removing
+`onnxruntime.dll` from the native test output makes `nvision_inference_tests` fail to
+start, so it loads the real runtime rather than a stub, and adding an `Ort::` spelling to
+the new public header makes `nvision_public_contract_tests` fail, so the guard really
+covers `ai/include`.
 
 ## Open Items
 
