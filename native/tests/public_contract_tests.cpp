@@ -25,6 +25,7 @@ namespace {
 constexpr std::string_view public_include_roots[] = {
     "abi/include",
     "acquisition/include",
+    "ai/include",
     "core/include",
     "vision/include",
     "workflow/include",

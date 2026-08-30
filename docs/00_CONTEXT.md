@@ -73,6 +73,14 @@ collection input gathers its sources in connection order, and a collection outpu
 a single-value input is a graph error rather than a silent loss. Per-element fan-out over a
 collection remains unrepresented on purpose: iteration is scheduling, and M5 owns it.
 
+ONNX Runtime is now a located native dependency rather than a managed-only one.
+`cmake/FindONNXRuntime.cmake` resolves a distribution through a standard root variable or
+the repository-local staging directory that `scripts/install-onnxruntime.ps1` writes, in
+the layout the official archives use. `nvision_ai` links it PRIVATE and owns one model
+session; a native test loads and runs the synthetic identity model in `samples/`, so the
+backend is proven rather than merely found. Staging the version the managed plane is pinned
+to keeps both planes on one runtime while the managed P2 path is still the behavior oracle.
+
 The next focus is M4, the generic model and recognition foundation: `.nvmodel` integrity,
 a model registry with instance-owned sessions, the native ONNX Runtime CPU backend, text
 detection and recognition pre- and post-processing, CTC decoding, and the Recognition and
@@ -84,11 +92,13 @@ contracts they compose into.
 ## Verification Baseline
 
 `scripts/check.ps1` builds and tests the native and managed planes, then verifies
-formatting. The current baseline is 13 native CTests plus 119 .NET tests with a clean
+formatting. The current baseline is 14 native CTests plus 119 .NET tests with a clean
 `dotnet format --verify-no-changes`. The managed half requires .NET SDK 10.0.200 as pinned
 by `global.json`; the scripts prefer the repository-local `artifacts/dotnet/` installation,
 which is how that pin is satisfied on this machine. The native vision library requires
-OpenCV 4.x, located through the standard `OpenCV_DIR` environment variable.
+OpenCV 4.x, located through the standard `OpenCV_DIR` environment variable, and the native
+AI library requires ONNX Runtime, staged by `scripts/install-onnxruntime.ps1` or located
+through `ONNXRUNTIME_ROOT`.
 
 ## Notes for AI
 

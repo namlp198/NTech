@@ -2,7 +2,7 @@
 
 **Product:** NTech NVision
 **Document type:** Long-running implementation plan and cross-session context
-**Status:** Approved direction; M3 complete, Group A contract corrections complete, M4 next
+**Status:** Approved direction; M3 complete, Group A contract corrections and the ONNX Runtime native dependency complete, M4 next
 **Date:** 2026-08-28
 **Primary deliverable:** A real NVision Studio/Runtime application that executes Wire Marker Inspection end to end through the generic native tool platform
 **Second reference application:** Pin Insert Machine, used to prevent Wire Marker-specific abstractions from entering Core
@@ -1267,6 +1267,7 @@ Use this table as the durable summary. Detailed work remains in `tasks/active.md
 | M2 — Tool definition/catalog | Complete and merged | `a2f1a25` definitions/registry; `b143c6a` parameter schemas; merge `d01e54c`; `00f86c6` nodes/subworkflows; `bc58e5a` typed graphs; `a777314` catalog and reference graphs; merge `f1c0abd` |
 | M3 — Generic OpenCV foundation | Complete | `861ba0f` execution foundation; `d73f4d8` core/workflow boundary per ADR-0006; `5475413` computed image ownership per ADR-0007; `fe432d4` OpenCV substrate; `43edcd8` image processing; `9f2c0d3` geometry contracts; `ab9b17c` location and geometry; `a4c2108` measurement; `4b72161` clustering and point grid; `462b558` overlay and evidence; `6df1505` exit gate and reference pipeline. The Linux headless build is carried to M11 |
 | Group A contract corrections | Complete, unmerged | `636b729` collections; `ab61844` evidence media; `32d36a0` parameter assignability; `7e4b20d` execution characteristics, on `codex/group-a-contract-corrections` |
+| ONNX Runtime native dependency | Complete, unmerged | `ddd887e` find module, staging script, `nvision_ai` seam, and a test that loads and runs a real model, on `codex/native-onnxruntime-dependency` |
 | M4 — Model/recognition foundation | Not started | |
 | M5 — Native Workflow/Job/Recipe | Not started | |
 | M6 — Wire Marker headless parity | Not started | |
@@ -1307,17 +1308,34 @@ affine transform output, projective homography validation, and a source-byte imm
 check around the OpenCV borrow. `tasks/active.md` carries them as Group B. Start with ECC:
 it is small, self-contained, and settles a question currently left at "probably inverted".
 
+Two of the four remaining findings sit on M4's coordinate path and should be taken first:
+the resize pixel-centre convention, because detector preprocessing resizes to the model
+input size and has to map boxes back to the source, and the missing affine transform output,
+because recognition crops are rectified through it. ECC and homography validation are Pin
+Insert alignment concerns M4 never touches.
+
+The ONNX Runtime dependency M4 needs is in place. It was absent entirely: the only ONNX
+Runtime in the repository was the managed NuGet reference, which leaves the C++ headers
+inside the package. `cmake/FindONNXRuntime.cmake` now resolves a distribution through a
+standard root variable or the repository-local staging directory that
+`scripts/install-onnxruntime.ps1` writes, `nvision_ai` links it PRIVATE, and a native test
+loads and runs the synthetic identity model in `samples/`, so the backend is proven rather
+than merely found. Staging the version the managed plane is pinned to keeps both planes on
+one runtime while the managed P2 path is still the behavior oracle.
+
 M4, the generic model and recognition foundation, is next: `.nvmodel` integrity and
-manifest validation in C++, a model registry with instance-owned sessions, the native ONNX
-Runtime CPU backend, detector and recognizer pre- and post-processing, CTC decoding,
-configurable orientation search, and the nine Recognition and Text tools. The collection
-question it was waiting on is answered; `text_result` and `barcode_result` still have no
-native representation, and M4 owns them.
+manifest validation in C++, a model registry over instance-owned sessions, detector and
+recognizer pre- and post-processing, CTC decoding, configurable orientation search, and the
+nine Recognition and Text tools. Its first slice is the one prerequisite still missing:
+`text_result` and `barcode_result` have no native representation and `PortValue` has no
+factory for them. `InferenceSession` is deliberately narrow — one float input to one float
+output — and should be widened when a detector gives it a real shape to serve, not before.
 
 Keep the M0 provenance gap explicit. The external Wire Marker models and the Pin Insert
 assets still have no license or provenance evidence, and M4 is the milestone that would
 otherwise want to import them.
 
 The full repository gate runs on this machine. `scripts/check.ps1` resolves .NET SDK
-10.0.200 from the repository-local `artifacts/dotnet/` installation and OpenCV 4.14.0 from
-the `OpenCV_DIR` environment variable. Record both halves of the gate.
+10.0.200 from the repository-local `artifacts/dotnet/` installation, OpenCV 4.14.0 from the
+`OpenCV_DIR` environment variable, and ONNX Runtime 1.28.0 from `artifacts/onnxruntime/`.
+Record both halves of the gate.

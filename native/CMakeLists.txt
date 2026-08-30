@@ -84,6 +84,24 @@ target_compile_features(nvision_vision PUBLIC cxx_std_20)
 target_link_libraries(nvision_vision PUBLIC nvision_workflow)
 target_link_libraries(nvision_vision PRIVATE ${OpenCV_LIBS})
 
+# AI owns model sessions and the inference backends behind them. ONNX Runtime ships no
+# CMake config package, so cmake/FindONNXRuntime.cmake locates a distribution through the
+# standard ONNXRUNTIME_ROOT variable or the repository-local staging directory that
+# scripts/install-onnxruntime.ps1 writes. It stays PRIVATE for the same reason OpenCV does:
+# no public NVision header may name a third-party type.
+find_package(ONNXRuntime REQUIRED)
+message(STATUS "NVision AI builds against ONNX Runtime ${ONNXRuntime_VERSION}")
+
+add_library(nvision_ai STATIC
+    ai/src/inference_session.cpp)
+
+target_include_directories(nvision_ai
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ai/include>)
+
+target_compile_features(nvision_ai PUBLIC cxx_std_20)
+target_link_libraries(nvision_ai PRIVATE ONNXRuntime::ONNXRuntime)
+
 add_library(nvision_engine SHARED
     abi/src/nvision_c_api.cpp)
 
@@ -107,11 +125,13 @@ if(MSVC)
     target_compile_options(nvision_core PRIVATE /W4 /WX /permissive- /EHsc)
     target_compile_options(nvision_workflow PRIVATE /W4 /WX /permissive- /EHsc)
     target_compile_options(nvision_vision PRIVATE /W4 /WX /permissive- /EHsc)
+    target_compile_options(nvision_ai PRIVATE /W4 /WX /permissive- /EHsc)
     target_compile_options(nvision_engine PRIVATE /W4 /WX /permissive- /EHsc)
 else()
     target_compile_options(nvision_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
     target_compile_options(nvision_workflow PRIVATE -Wall -Wextra -Wpedantic -Werror)
     target_compile_options(nvision_vision PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    target_compile_options(nvision_ai PRIVATE -Wall -Wextra -Wpedantic -Werror)
     target_compile_options(nvision_engine PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
@@ -360,6 +380,33 @@ if(NVISION_BUILD_TESTS)
     endif()
 
     add_test(NAME nvision_reference_pipeline_tests COMMAND nvision_reference_pipeline_tests)
+
+    add_executable(nvision_inference_tests
+        tests/inference_session_tests.cpp)
+
+    target_link_libraries(nvision_inference_tests PRIVATE nvision_ai)
+    target_compile_features(nvision_inference_tests PRIVATE cxx_std_20)
+    target_compile_definitions(nvision_inference_tests PRIVATE
+        NVISION_TEST_MODEL_DIR="${PROJECT_SOURCE_DIR}/samples/wire-marker/models")
+
+    if(MSVC)
+        target_compile_options(nvision_inference_tests PRIVATE /W4 /WX /permissive- /EHsc)
+    else()
+        target_compile_options(nvision_inference_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    set_target_properties(nvision_inference_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+
+    if(WIN32)
+        add_custom_command(TARGET nvision_inference_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${ONNXRuntime_RUNTIME_LIBRARY}"
+                $<TARGET_FILE_DIR:nvision_inference_tests>
+            COMMAND_EXPAND_LISTS)
+    endif()
+
+    add_test(NAME nvision_inference_tests COMMAND nvision_inference_tests)
 
     add_executable(nvision_public_contract_tests
         tests/public_contract_tests.cpp)
