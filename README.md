@@ -121,6 +121,19 @@ stored in the repository.
 $env:OpenCV_DIR = "<path>\opencv\build"
 ```
 
+ONNX Runtime is a required dependency of the native AI library. It ships no CMake
+config package, so `cmake/FindONNXRuntime.cmake` locates a distribution. Staging the
+version the managed plane is already pinned to needs no environment variable
+afterwards, and keeps both planes on one runtime:
+
+```powershell
+.\scripts\install-onnxruntime.ps1
+```
+
+To build against an official ONNX Runtime archive instead, point `ONNXRUNTIME_ROOT` at
+a directory containing `include/` and `lib/`. No ONNX Runtime path is stored in the
+repository either.
+
 Shell wrappers are retained for compatible CI and future Linux Runtime work.
 
 ## Architecture Guardrails
