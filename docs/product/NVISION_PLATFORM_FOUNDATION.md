@@ -1790,26 +1790,26 @@ docs/
 
 The exact stack may evolve. The architecture should not be tightly coupled to a single UI framework.
 
-A reasonable initial direction for Windows industrial applications is:
+A reasonable product direction is:
 
 ```text
-Language        C#
-Platform        .NET
-Desktop UI      WPF
-Architecture    MVVM
-Vision          OpenCV / OpenCvSharp
-AI              ONNX Runtime / TensorRT
-Database        SQLite
-Logging         Serilog
-API             gRPC / REST
+C++20           Core, Domain runtime, Workflow, Acquisition, Vision, AI, Inspection
+C ABI           Stable embedded/plugin binary boundary
+C#/.NET 10      Studio, Runtime UI/Supervisor, authoring, persistence, business apps
+Desktop UI      WPF + MVVM
+Vision          Native OpenCV C++
+AI              Native ONNX Runtime / TensorRT / OpenVINO
+Database        SQLite through managed infrastructure unless measured otherwise
+IPC/API         gRPC control plane; shared memory for large frames
 ```
 
-Native C++ libraries may be added for:
+Native C++ is required for:
 
-- Performance-critical vision
-- Camera SDK
-- GPU processing
-- Vendor APIs
+- canonical Core and Engine behavior;
+- performance-critical image/AI processing;
+- camera and other time-sensitive device paths;
+- GPU processing and vendor APIs;
+- portable execution on Windows, Linux, and Edge.
 
 Jetson/Edge runtime may use:
 
@@ -1822,9 +1822,14 @@ CUDA
 ONNX
 ```
 
-Core design rule:
+Core design rules:
 
 > UI technology must not define the architecture of NVision Engine.
+
+> Managed applications never become the canonical production execution engine.
+
+The complete boundary is defined by ADR-0005 and
+`architecture/15_NATIVE_ENGINE_ARCHITECTURE.md`.
 
 ---
 

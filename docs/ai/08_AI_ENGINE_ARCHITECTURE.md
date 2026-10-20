@@ -28,6 +28,10 @@
 
 This document defines the architecture of the **NVision AI Engine**.
 
+> **Implementation authority:** Model execution, preprocessing, postprocessing, ONNX
+> Runtime, TensorRT, OpenVINO, and performance-sensitive AI nodes are native C++20.
+> Managed AI contracts are facades/projections and never host the production hot path.
+
 The AI Engine is responsible for providing a stable, backend-independent inference layer for Machine Vision applications.
 
 The Engine must allow NVision workflows to perform tasks such as:

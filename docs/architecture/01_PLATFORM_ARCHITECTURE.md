@@ -1260,19 +1260,23 @@ Do not leak TensorRT or ONNX Runtime types into Domain or Workflow layers.
 
 # 38. Native Integration Boundary
 
-Some components may require C++.
+Canonical Core and Engine components require portable C++20.
 
-Potential C++ uses:
+Required C++ uses include:
 
+- Core and runtime Domain semantics
+- Workflow validation, compilation, and execution
+- Acquisition and native frame ownership
 - TensorRT
+- ONNX Runtime
 - CUDA kernels
-- High-performance image processing
+- OpenCV and high-performance image processing
 - Camera SDK wrappers
 - Vendor C/C++ libraries
 
 Recommended boundary options:
 
-## Option A — P/Invoke
+## Embedded boundary — C ABI / P/Invoke
 
 Suitable for:
 
@@ -1280,13 +1284,7 @@ Suitable for:
 - High performance
 - Same process
 
-## Option B — C++/CLI
-
-Windows-only.
-
-Useful when wrapping complex C++ libraries for .NET.
-
-## Option C — Native Service
+## Production boundary — Native Engine Host
 
 Suitable for:
 
@@ -1303,34 +1301,44 @@ Unix socket
 named pipe
 ```
 
-Preferred architecture rule:
+Large images remain in native/shared memory; gRPC carries control and metadata.
+
+Preferred architecture rules:
 
 > Keep the public native boundary small and stable.
 
+> Do not expose C++ ABI, STL types, exceptions, or compiler allocators across modules.
+
 ---
 
-# 39. Recommended C# / Native Split
+# 39. Required C# / Native Split
 
 For Windows Studio/Runtime:
 
 ```text
-C#
+C# / .NET 10
 ├── UI
 ├── Application
-├── Domain
-├── Workflow
-├── Device orchestration
-├── Result/Data
-└── Most business logic
+├── Studio authoring DTO/ViewModels
+├── Runtime supervision and operator UI
+├── Result persistence/query
+└── Business and enterprise integration
 
-C++ / Native
+C++20 / Native
+├── Core and runtime Domain
+├── Workflow Engine
+├── Acquisition and frame memory
+├── Inspection execution
+├── Native OpenCV nodes
+├── Native ONNX Runtime
 ├── TensorRT
 ├── CUDA
-├── Selected Vision kernels
-└── SDK wrappers when required
+└── Camera/AI/performance plugin SDKs
 ```
 
-Do not move orchestration into C++ without a strong reason.
+The C# product plane performs business orchestration. The inspection execution plane is
+native. Native validation and compilation are authoritative for test, publish, and
+Runtime activation.
 
 ---
 
@@ -2898,21 +2906,23 @@ Persist summary metrics, not necessarily every detailed trace indefinitely.
 
 # 104. Initial Technology Baseline
 
-Recommended Windows MVP:
+Approved product baseline:
 
 ```text
-Language        C#
-Runtime         .NET 8/10-ready architecture
+C++             C++20 native Core and Engine
+Native build    CMake
+Managed         C# / .NET 10 product plane
 Desktop UI      WPF
 Pattern         MVVM
-Vision          OpenCvSharp
-AI              ONNX Runtime
-GPU             CUDA/TensorRT where needed
+Vision          Native OpenCV C++
+AI              Native ONNX Runtime
+GPU             Native CUDA/TensorRT where needed
 Database        SQLite
 Logging         Serilog
-IPC/API         gRPC
+Embedded API    Versioned C ABI + P/Invoke
+Production IPC  gRPC + shared memory
 Serialization   System.Text.Json
-Testing         xUnit
+Testing         Native tests/CTest + xUnit integration
 ```
 
 The exact .NET version can evolve independently of domain architecture.
@@ -2925,20 +2935,16 @@ Recommended Edge direction:
 
 ```text
 OS              Ubuntu
-Runtime Service .NET where practical
+Engine Host     Native C++
+Supervisor      .NET 10 where supported
 Native AI       TensorRT / CUDA
 Camera SDK      Native/vendor SDK
 IPC             gRPC
 Service Manager systemd
 ```
 
-If a device SDK is incompatible with .NET ARM64, wrap it behind:
-
-```text
-Native service
-or
-small P/Invoke ABI
-```
+Device SDKs are wrapped by native plugins behind the same C ABI. The managed supervisor
+does not load vendor camera or AI SDK types.
 
 ---
 

@@ -8,6 +8,71 @@ The repository is a capability-oriented monorepo. Studio, Runtime, SDKs, plugins
 
 P0 — Repository and Foundation, P1 — Core Domain and Workflow Engine, and **P2 — Wire Marker Headless Vertical Slice** are complete.
 
+ADR-0005 rebaselines the production architecture as native-first. The existing managed
+P0–P2 path remains a compatibility oracle while canonical Core/Engine behavior migrates
+to C++20. C#/.NET 10 remains the product plane for Studio, Runtime supervision/UI,
+authoring, persistence, and business software.
+
+N1 is complete: native C++ now owns immutable Frame/PixelFormat contracts, read-only
+buffer lifetime, retain/release frame leases, deterministic P2 File Camera replay,
+camera connect/acquire/disconnect state, timeout/cancellation, and acquisition errors.
+The .NET SDK exercises these capabilities only through the versioned C ABI.
+
+M1 foundational contracts are complete and merged into `develop`.
+Native Core now has typed stable identifiers, semantic versions, generic port data kinds,
+coordinate-space-aware geometry and transforms, and separate technical execution status
+versus inspection verdict.
+
+Native acquisition also provides zero-copy `ImageView` contracts. A view retains its
+source Frame lease, respects stride and ROI bounds, and carries frame-specific source/
+local coordinate spaces with explicit transforms.
+
+Resource, model, template, calibration, and dictionary bindings now share one immutable
+native reference contract keyed by stable ID, exact semantic version, resource kind,
+canonical SHA-256, and expected content length.
+
+Immutable execution and inspection-result aggregates now enforce that technical failures
+remain Indeterminate, contain matching execution errors, and never carry an OK/NG quality
+decision. Evidence is content-addressed, uniquely identified, and spatial evidence must
+declare its coordinate space.
+
+M2 has started with a versioned native Tool Catalog contract. Tool definitions now bind
+stable type identity and exact semantic version to typed ports, catalog metadata,
+built-in/plugin origin, and execution characteristics. Exact registry resolution preserves
+unresolved ID/version requests, while category paths remain display metadata rather than
+persisted identity.
+
+The Tool Catalog now also carries declarative parameter/property-editor schemas. Scalar,
+enum, array, coordinate-aware geometry, ROI, and versioned resource/model/calibration
+fields have type-safe defaults and editor metadata. Conditional fields are validated as
+an acyclic dependency graph before a tool definition can enter the registry.
+
+Workflow nodes now persist only stable tool identity plus exact semantic version, and
+their parameter configuration survives binding unchanged. Unknown tools, unsupported
+versions, incompatible values, and undeclared parameter keys are reported as diagnostics
+instead of being repaired. Typed connections form acyclic graphs whose ports are validated
+against the bound tool contracts, and reusable subworkflows publish a generic graph through
+an ordinary versioned tool interface with mapped ports and promoted parameters.
+
+M2 now enumerates the initial generic Tool Catalog: 66 versioned built-in definitions
+across acquisition, image processing, location and geometry, measurement, recognition and
+text, clustering and structure, and logic and results. Both reference inspection graphs
+validate against that single catalog at contract level, with application variation
+expressed as parameters rather than as application-specific tools.
+
+M3 is complete: the generic OpenCV vision foundation. Native workflow execution turns a
+resolved tool definition into an invocable implementation through typed port values, a
+validated execution context, cancellation and budget, and an implementation registry keyed
+by definition identity. A computed raster is now its own contract, distinct from a captured
+Frame, so a derived image can never be mistaken for a capture.
+
+43 of the 66 catalog definitions execute against real OpenCV: the whole Image Processing,
+Location and Geometry, and Measurement groups, the clustering and point-grid group, and the
+overlay and evidence primitives. Both reference grid flows run end to end as a chain of
+ordinary catalog tools, with no application-specific tool in the catalog and no reference
+application engine class. OpenCV stays a private dependency of the vision library, enforced
+by a test that scans every public include root.
+
 The first executable inspection path now runs deterministic File Camera frames through a compiled typed Workflow, real ONNX Runtime CPU inference, immutable result finalization, image evidence storage, and SQLite history. It proves the reference platform path and error semantics; the included synthetic model and PGM fixtures are engineering regression assets, not production inspection content.
 
 ## Read First
@@ -16,6 +81,7 @@ The first executable inspection path now runs deterministic File Camera frames t
 2. [Documentation Index](docs/README.md)
 3. [Implementation Plan](docs/implementation/13_IMPLEMENTATION_PLAN.md)
 4. [Repository Structure](docs/architecture/14_REPOSITORY_STRUCTURE.md)
+5. [Native Engine Architecture](docs/architecture/15_NATIVE_ENGINE_ARCHITECTURE.md)
 
 Contributors using AI-assisted workflows must also read [docs/README_AI_WORKFLOW.md](docs/README_AI_WORKFLOW.md).
 
@@ -24,6 +90,7 @@ Contributors using AI-assisted workflows must also read [docs/README_AI_WORKFLOW
 ```text
 apps/       Executable products and composition roots
 engine/     Shared acquisition, vision, AI, workflow, and inspection behavior
+native/     Canonical C++20 Core/Engine, C ABI, Engine Host, and native tests
 sdk/        External embedding and control surfaces
 plugins/    Replaceable vendor/backend/protocol implementations
 schemas/    Versioned durable contracts
@@ -44,12 +111,37 @@ Windows is the initial development and deployment platform.
 .\scripts\check.ps1
 ```
 
+`build.ps1` and `test.ps1` include the native CMake/CTest pipeline.
+
+OpenCV 4.x is a required dependency of the native vision library. Set the `OpenCV_DIR`
+environment variable to its CMake config directory before building. No OpenCV path is
+stored in the repository.
+
+```powershell
+$env:OpenCV_DIR = "<path>\opencv\build"
+```
+
+ONNX Runtime is a required dependency of the native AI library. It ships no CMake
+config package, so `cmake/FindONNXRuntime.cmake` locates a distribution. Staging the
+version the managed plane is already pinned to needs no environment variable
+afterwards, and keeps both planes on one runtime:
+
+```powershell
+.\scripts\install-onnxruntime.ps1
+```
+
+To build against an official ONNX Runtime archive instead, point `ONNXRUNTIME_ROOT` at
+a directory containing `include/` and `lib/`. No ONNX Runtime path is stored in the
+repository either.
+
 Shell wrappers are retained for compatible CI and future Linux Runtime work.
 
 ## Architecture Guardrails
 
-- Domain has no UI, database, OpenCV, AI-backend, or vendor-SDK dependency.
+- Canonical Core/Engine execution is portable C++20.
+- Runtime Domain has no UI, database, OpenCV, AI-backend, or vendor-SDK dependency.
 - Engine has no Studio or Runtime UI dependency.
+- OpenCV/ONNX Runtime hot paths are native; C# clients use C ABI/P/Invoke or Engine Host gRPC.
 - Vendor integrations live behind versioned plugin contracts.
 - Studio test mode and Runtime use the same Engine.
 - Editable `.nvision` source is published as immutable `.nvpkg` for production.

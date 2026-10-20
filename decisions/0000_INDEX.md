@@ -8,3 +8,6 @@ Architecture Decision Records are stored in `docs/decisions/`.
 | 0002 | Capability-oriented repository root | Accepted | 2026-08-19 |
 | 0003 | Modular monolith first | Accepted | 2026-08-19 |
 | 0004 | Runtime separate from Studio | Accepted | 2026-08-19 |
+| 0005 | Native-first Core and Engine | Accepted | 2026-08-20 |
+| 0006 | Core and Workflow ownership boundary | Accepted | 2026-08-27 |
+| 0007 | Computed image ownership | Accepted | 2026-08-27 |

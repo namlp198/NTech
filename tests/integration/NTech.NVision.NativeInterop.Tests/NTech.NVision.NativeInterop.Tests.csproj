@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <NativeWindowsPath>$(MSBuildThisFileDirectory)..\..\..\artifacts\native\windows-x64\bin\$(Configuration)\nvision_engine.dll</NativeWindowsPath>
+    <NativeLinuxPath>$(MSBuildThisFileDirectory)../../../artifacts/native/linux-$(RuntimeIdentifier)/bin/libnvision_engine.so</NativeLinuxPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\sdk\dotnet\NTech.NVision.Native\NTech.NVision.Native.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('$(NativeWindowsPath)')">
+    <None Include="$(NativeWindowsPath)" Link="nvision_engine.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\..\samples\wire-marker\fixtures\*.pgm">
+      <Link>Fixtures\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

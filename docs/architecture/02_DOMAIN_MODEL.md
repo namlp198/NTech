@@ -15,6 +15,10 @@
 
 This document defines the core domain model of **NTech NVision**.
 
+> **Language authority:** ADR-0005 makes the canonical runtime Domain a portable C++20
+> component. C# snippets in this foundation document are conceptual/legacy examples for
+> managed authoring DTOs and do not define the production execution language or ABI.
+
 Its purpose is to establish a stable language and set of domain contracts for all major NVision components, including:
 
 - NVision Studio
@@ -357,17 +361,17 @@ Changing `TYPE_01` to `TYPE-A` must not change identity.
 
 # 8. Strongly Typed IDs
 
-Recommended C# direction:
+Language-neutral contract direction; the canonical runtime implementation is C++20:
 
-```csharp
-public readonly record struct ProjectId(Guid Value);
-public readonly record struct JobId(Guid Value);
-public readonly record struct RecipeId(Guid Value);
-public readonly record struct NodeId(Guid Value);
-public readonly record struct DeviceId(Guid Value);
-public readonly record struct ModelId(Guid Value);
-public readonly record struct CalibrationId(Guid Value);
-public readonly record struct InspectionId(string Value);
+```text
+ProjectId      UUID
+JobId          UUID
+RecipeId       UUID
+NodeId         UUID
+DeviceId       UUID
+ModelId        UUID
+CalibrationId  UUID
+InspectionId   stable UTF-8 identifier
 ```
 
 Strong IDs reduce accidental assignment errors.
@@ -3156,12 +3160,12 @@ Use NVision-owned abstractions/value objects.
 
 ---
 
-# 138. C# Domain Project Structure
+# 138. Native Runtime Domain Structure
 
-Recommended initial structure:
+Recommended canonical runtime structure:
 
 ```text
-NTech.NVision.Domain/
+Managed authoring reference only: NTech.NVision.Domain/
 │
 ├── Common/
 │   ├── Entity.cs
@@ -3221,6 +3225,27 @@ NTech.NVision.Domain/
 └── Alarms/
     └── AlarmRecord.cs
 ```
+
+Canonical runtime structure:
+
+```text
+nvision_domain/
+├── include/nvision/domain/
+│   ├── identifiers.hpp
+│   ├── project.hpp
+│   ├── job.hpp
+│   ├── workflow.hpp
+│   ├── recipe.hpp
+│   ├── inspection.hpp
+│   └── validation.hpp
+└── src/
+    ├── project.cpp
+    ├── workflow.cpp
+    └── validation.cpp
+```
+
+Studio may maintain C# authoring DTOs and ViewModels, but they are projections of the
+versioned schema. Native validation and compilation remain authoritative.
 
 ---
 
